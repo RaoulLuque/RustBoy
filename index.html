@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Gameboy Emulator</title>
@@ -10,7 +10,7 @@
 <body id="emulator-body">
 <canvas id="screen" width="160" height="144"></canvas>
 <script type="module">
-    import initSync, { run } from './pkg/rustboy.js';
+    import initSync, { run } from './rustboy.js';
     async function main() {
         console.log("Loading Gameboy Emulator...");
         await initSync();

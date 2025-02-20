@@ -26,10 +26,9 @@ jobs:
         run: wasm-pack build --target web
       - name: Copy Files
         run: |
-          mkdir -p dist
-          cp -r pkg dist/
+          mv pkg dist
           cp index.html dist/
-          rm dist/pkg/.gitignore
+          rm dist/.gitignore
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4.2.5
