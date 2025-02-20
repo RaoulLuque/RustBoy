@@ -47,7 +47,7 @@ pub fn run() {
         web_sys::window()
             .and_then(|win| win.document())
             .and_then(|doc| {
-                let dst = doc.get_element_by_id("wasm-example")?;
+                let dst = doc.get_element_by_id("emulator-body")?;
                 let canvas = web_sys::Element::from(window.canvas()?);
                 dst.append_child(&canvas).ok()?;
                 Some(())
