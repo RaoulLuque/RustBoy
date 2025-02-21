@@ -119,7 +119,40 @@ impl<'a> State<'a> {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        todo!()
+        let output = self.surface.get_current_texture()?;
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
+
+        {
+            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+        }
+
+        // submit will accept anything that implements IntoIter
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(())
     }
 }
 
@@ -135,9 +168,11 @@ pub async fn run() {
             env_logger::init();
         }
     }
+    log::info!("Logger initialized");
 
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
+    window.set_title("RustBoy");
 
     // Add a canvas to the HTML document
     #[cfg(target_arch = "wasm32")]
@@ -177,8 +212,40 @@ pub async fn run() {
                         ..
                     },
                     ..
-                } => control_flow.exit(),
-                WindowEvent::Resized(physical_size) => state.resize(*physical_size),
+                } => {control_flow.exit()},
+                WindowEvent::Resized(physical_size) => {
+                    log::info!("physical_size: {physical_size:?}");
+                    surface_configured = true;
+                    state.resize(*physical_size);
+                }
+                WindowEvent::RedrawRequested => {
+                    // This tells winit that we want another frame after this one
+                    state.window().request_redraw();
+
+                    if !surface_configured {
+                        log::warn!("Surface not configured");
+                        return;
+                    }
+
+                    state.update();
+                    match state.render() {
+                        Ok(_) => {},
+                        // Reconfigure the surface if it's lost or outdated
+                        Err(
+                            wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated,
+                        ) => {log::warn!("Surface is Lost or Outdated"); state.resize(state.size)},
+                        // The system is out of memory, we should probably quit
+                        Err(wgpu::SurfaceError::OutOfMemory | wgpu::SurfaceError::Other) => {
+                            log::error!("OutOfMemory");
+                            control_flow.exit();
+                        }
+
+                        // This happens when a frame takes too long to present
+                        Err(wgpu::SurfaceError::Timeout) => {
+                            log::warn!("Surface timeout")
+                        }
+                    }
+                }
                 _ => {}
             }
         }
