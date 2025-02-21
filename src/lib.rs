@@ -120,7 +120,7 @@ impl<'a> State<'a> {
 
 /// Run the emulator.
 #[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
-pub fn run() {
+pub async fn run() {
     // Initialize logger according to the target architecture
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {

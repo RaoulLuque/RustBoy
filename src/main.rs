@@ -1,5 +1,5 @@
 use rustboy::run;
 
 fn main() {
-    run();
+    pollster::block_on(run());
 }
