@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Test, Deploy to GitHub Pages and Format
 
 on:
   push:
@@ -14,14 +14,15 @@ permissions:
   id-token: write
 
 concurrency:
-  group: 'pages'
+  group: 'ci'
   cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   test:
     name: Cargo Test
-    environment:
-      CARGO_TERM_COLOR: always
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
