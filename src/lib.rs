@@ -9,6 +9,8 @@
 
 //! This crate provides the methods used to run a Gameboy emulator written in Rust, so it can be run both natively and on the web using WebAssembly.
 
+mod cpu;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
