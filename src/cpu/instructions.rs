@@ -1,11 +1,17 @@
 use super::CPU;
 use crate::cpu::registers::Registers;
 
+/// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
+/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
+/// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
 pub enum Instruction {
-    ADD(ArithmeticTarget),
+    ADD(ArithmeticSource),
+    JP(JumpCondition),
 }
 
-enum ArithmeticTarget {
+/// Represents the source of an arithmetic operation. That is, the register to be used in the operation.
+/// The result of the operation is stored in the A register.
+enum ArithmeticSource {
     A,
     B,
     C,
@@ -13,6 +19,15 @@ enum ArithmeticTarget {
     E,
     H,
     L,
+}
+
+/// Represents the possible conditions for a jump instruction.
+enum JumpCondition {
+    NotZero,
+    Zero,
+    NotCarry,
+    Carry,
+    Always,
 }
 
 impl Instruction {
@@ -48,29 +63,29 @@ impl Instruction {
     pub fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
             // TODO: Add more instructions
-            0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
-            0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
-            0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
-            0x82 => Some(Instruction::ADD(ArithmeticTarget::D)),
-            0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
-            0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
-            0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
+            0x87 => Some(Instruction::ADD(ArithmeticSource::A)),
+            0x80 => Some(Instruction::ADD(ArithmeticSource::B)),
+            0x81 => Some(Instruction::ADD(ArithmeticSource::C)),
+            0x82 => Some(Instruction::ADD(ArithmeticSource::D)),
+            0x83 => Some(Instruction::ADD(ArithmeticSource::E)),
+            0x84 => Some(Instruction::ADD(ArithmeticSource::H)),
+            0x85 => Some(Instruction::ADD(ArithmeticSource::L)),
             _ => None,
         }
     }
 }
 
-impl ArithmeticTarget {
+impl ArithmeticSource {
     /// Returns the value of the register corresponding to the target.
     fn get_register(&self, registers: &mut Registers) -> u8 {
         match &self {
-            ArithmeticTarget::A => registers.a,
-            ArithmeticTarget::B => registers.b,
-            ArithmeticTarget::C => registers.c,
-            ArithmeticTarget::D => registers.d,
-            ArithmeticTarget::E => registers.e,
-            ArithmeticTarget::H => registers.h,
-            ArithmeticTarget::L => registers.l,
+            ArithmeticSource::A => registers.a,
+            ArithmeticSource::B => registers.b,
+            ArithmeticSource::C => registers.c,
+            ArithmeticSource::D => registers.d,
+            ArithmeticSource::E => registers.e,
+            ArithmeticSource::H => registers.h,
+            ArithmeticSource::L => registers.l,
         }
     }
 }
@@ -84,6 +99,16 @@ impl CPU {
                 let new_value = self.add(value);
                 self.registers.a = new_value;
                 self.pc.wrapping_add(1)
+            }
+            Instruction::JP(condition) => {
+                let should_jump = match condition {
+                    JumpCondition::NotZero => !self.registers.f.zero,
+                    JumpCondition::Zero => self.registers.f.zero,
+                    JumpCondition::NotCarry => !self.registers.f.carry,
+                    JumpCondition::Carry => self.registers.f.carry,
+                    JumpCondition::Always => true,
+                };
+                self.jump(should_jump)
             }
             _ => {
                 /* TODO: Support more instructions */
@@ -104,5 +129,19 @@ impl CPU {
         // than 0xF = 0b 0000 1111 (binary).
         self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) > 0xF;
         new_value
+    }
+
+    fn jump(&self, should_jump: bool) -> u16 {
+        if should_jump {
+            // The Gameboy is little endian so the least significant byte is stored first. However,
+            // in the correct order, so we can just patch them together.
+            let low_byte = self.bus.read_byte(self.pc + 1) as u16;
+            let high_byte = self.bus.read_byte(self.pc + 2) as u16;
+            (high_byte << 8) | low_byte
+        } else {
+            // If we don't jump we just move to the next instruction.
+            // The jump instruction is 3 bytes long (1 byte for the instruction and 2 bytes for the address).
+            self.pc.wrapping_add(3)
+        }
     }
 }
