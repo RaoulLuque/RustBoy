@@ -106,9 +106,34 @@ impl std::convert::From<FlagsRegister> for u8 {
     }
 }
 
+impl std::convert::From<&FlagsRegister> for u8 {
+    fn from(flags: &FlagsRegister) -> Self {
+        let mut value = 0;
+        if flags.zero {
+            value |= 1 << ZERO_FLAG_BYTE_POSITION;
+        }
+        if flags.subtract {
+            value |= 1 << SUBTRACT_FLAG_BYTE_POSITION;
+        }
+        if flags.half_carry {
+            value |= 1 << HALF_CARRY_FLAG_BYTE_POSITION;
+        }
+        if flags.carry {
+            value |= 1 << CARRY_FLAG_BYTE_POSITION;
+        }
+        value
+    }
+}
+
 impl std::convert::From<FlagsRegister> for u16 {
     fn from(flags: FlagsRegister) -> Self {
-        (u8::from(flags)) as u16
+        u8::from(flags) as u16
+    }
+}
+
+impl std::convert::From<&FlagsRegister> for u16 {
+    fn from(flags: &FlagsRegister) -> Self {
+        u8::from(flags) as u16
     }
 }
 
