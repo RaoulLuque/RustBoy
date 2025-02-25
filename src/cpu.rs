@@ -1,3 +1,7 @@
+//! CPU module
+//! This module contains the CPU struct and its methods.
+//! The execution of instructions is handled/implemented in the [instructions] module.
+
 mod instructions;
 mod registers;
 

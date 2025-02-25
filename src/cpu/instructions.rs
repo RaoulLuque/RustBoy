@@ -1,3 +1,12 @@
+//! This module contains the CPU instructions. The instructions are represented as an enum and
+//! the CPU struct has a method to execute the instruction.
+//!
+//! The instructions are divided into two categories: prefix and non-prefix instructions.
+//! For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
+//! the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
+//!
+//! The instructions are implemented in separate modules for better organization and readability.
+
 mod add;
 mod jump;
 mod load;
