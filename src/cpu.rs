@@ -52,7 +52,13 @@ struct MemoryBus {
 }
 
 impl MemoryBus {
+    /// Read a byte from the memory at the given address.
     fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
+    }
+
+    /// Write a byte to the memory at the given address.
+    fn write_byte(&mut self, address: u16, value: u8) {
+        self.memory[address as usize] = value;
     }
 }

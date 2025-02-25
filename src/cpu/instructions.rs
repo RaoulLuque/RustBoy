@@ -4,14 +4,16 @@ use crate::cpu::registers::Registers;
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
 /// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
+#[derive(Clone, Copy, Debug)]
 pub enum Instruction {
-    ADD(ArithmeticSource),
+    ADD(Register),
     JP(JumpCondition),
+    LD(LoadType),
 }
 
-/// Represents the source of an arithmetic operation. That is, the register to be used in the operation.
-/// The result of the operation is stored in the A register.
-enum ArithmeticSource {
+/// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
+#[derive(Clone, Copy, Debug)]
+enum Register {
     A,
     B,
     C,
@@ -22,12 +24,34 @@ enum ArithmeticSource {
 }
 
 /// Represents the possible conditions for a jump instruction.
+#[derive(Clone, Copy, Debug)]
 enum JumpCondition {
     NotZero,
     Zero,
     NotCarry,
     Carry,
     Always,
+}
+
+/// Represents the possible targets for a byte load instruction.
+#[derive(Clone, Copy, Debug)]
+enum LoadByteTarget {
+    REGISTER(Register),
+    HLI,
+}
+
+/// Represents the possible sources for a byte load instruction.
+#[derive(Clone, Copy, Debug)]
+enum LoadByteSource {
+    REGISTER(Register),
+    D8,
+    HLI,
+}
+
+/// Represents the possible types of load instructions.
+#[derive(Clone, Copy, Debug)]
+enum LoadType {
+    Byte(LoadByteTarget, LoadByteSource),
 }
 
 impl Instruction {
@@ -63,29 +87,42 @@ impl Instruction {
     pub fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
             // TODO: Add more instructions
-            0x87 => Some(Instruction::ADD(ArithmeticSource::A)),
-            0x80 => Some(Instruction::ADD(ArithmeticSource::B)),
-            0x81 => Some(Instruction::ADD(ArithmeticSource::C)),
-            0x82 => Some(Instruction::ADD(ArithmeticSource::D)),
-            0x83 => Some(Instruction::ADD(ArithmeticSource::E)),
-            0x84 => Some(Instruction::ADD(ArithmeticSource::H)),
-            0x85 => Some(Instruction::ADD(ArithmeticSource::L)),
+            0x87 => Some(Instruction::ADD(Register::A)),
+            0x80 => Some(Instruction::ADD(Register::B)),
+            0x81 => Some(Instruction::ADD(Register::C)),
+            0x82 => Some(Instruction::ADD(Register::D)),
+            0x83 => Some(Instruction::ADD(Register::E)),
+            0x84 => Some(Instruction::ADD(Register::H)),
+            0x85 => Some(Instruction::ADD(Register::L)),
             _ => None,
         }
     }
 }
 
-impl ArithmeticSource {
-    /// Returns the value of the register corresponding to the target.
-    fn get_register(&self, registers: &mut Registers) -> u8 {
+impl Register {
+    /// Returns the value of the register corresponding to the enum variant.
+    fn get_register(&self, registers: &Registers) -> u8 {
         match &self {
-            ArithmeticSource::A => registers.a,
-            ArithmeticSource::B => registers.b,
-            ArithmeticSource::C => registers.c,
-            ArithmeticSource::D => registers.d,
-            ArithmeticSource::E => registers.e,
-            ArithmeticSource::H => registers.h,
-            ArithmeticSource::L => registers.l,
+            Register::A => registers.a,
+            Register::B => registers.b,
+            Register::C => registers.c,
+            Register::D => registers.d,
+            Register::E => registers.e,
+            Register::H => registers.h,
+            Register::L => registers.l,
+        }
+    }
+
+    /// Sets the value of the register corresponding to the enum variant.
+    fn set_register(&self, registers: &mut Registers, value: u8) {
+        match &self {
+            Register::A => registers.a = value,
+            Register::B => registers.b = value,
+            Register::C => registers.c = value,
+            Register::D => registers.d = value,
+            Register::E => registers.e = value,
+            Register::H => registers.h = value,
+            Register::L => registers.l = value,
         }
     }
 }
@@ -110,6 +147,29 @@ impl CPU {
                 };
                 self.jump(should_jump)
             }
+            Instruction::LD(type_of_load) => match type_of_load {
+                LoadType::Byte(target, source) => {
+                    let value = match source {
+                        LoadByteSource::REGISTER(register) => {
+                            register.get_register(&self.registers)
+                        }
+                        LoadByteSource::D8 => self.bus.read_byte(self.pc + 1),
+                        LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
+                    };
+                    match target {
+                        LoadByteTarget::REGISTER(register) => {
+                            register.set_register(&mut self.registers, value);
+                        }
+                        LoadByteTarget::HLI => {
+                            self.bus.write_byte(self.registers.get_hl(), value);
+                        }
+                    }
+                    match source {
+                        LoadByteSource::D8 => self.pc.wrapping_add(2),
+                        _ => self.pc.wrapping_add(1),
+                    }
+                }
+            },
             _ => {
                 /* TODO: Support more instructions */
                 self.pc
