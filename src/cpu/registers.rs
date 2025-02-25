@@ -13,6 +13,7 @@ const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 /// The registers can either be accessed in pairs or individually.
 ///
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+#[derive(Debug)]
 pub struct Registers {
     pub a: u8,
     pub b: u8,
@@ -27,7 +28,7 @@ pub struct Registers {
 impl Registers {
     /// Returns the value of the AF register pair.
     pub fn get_af(&self) -> u16 {
-        ((self.a as u16) << 8) | (u16::from(self.f))
+        ((self.a as u16) << 8) | (u16::from(&self.f))
     }
 
     /// Returns the value of the BC register pair.
@@ -78,7 +79,7 @@ impl Registers {
 /// - subtract (N) - set to true if the last operation was a subtraction
 /// - half carry (H) - set to true if there was a carry from bit 3 to bit 4
 /// - carry (C) - set to true if there was a carry from bit 7 (an overflow)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct FlagsRegister {
     pub zero: bool,
     pub subtract: bool,
