@@ -10,6 +10,7 @@
 mod add;
 mod jump;
 mod load;
+mod push_and_pop;
 
 use super::CPU;
 use crate::cpu::instructions::jump::JumpCondition;
