@@ -14,14 +14,14 @@ const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 ///
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
 pub struct Registers {
-    a: u8,
-    b: u8,
-    c: u8,
-    d: u8,
-    e: u8,
-    f: FlagsRegister,
-    h: u8,
-    l: u8,
+    pub a: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub f: FlagsRegister,
+    pub h: u8,
+    pub l: u8,
 }
 
 impl Registers {
@@ -79,11 +79,11 @@ impl Registers {
 /// - half carry (H) - set to true if there was a carry from bit 3 to bit 4
 /// - carry (C) - set to true if there was a carry from bit 7 (an overflow)
 #[derive(Debug, Clone, Copy)]
-struct FlagsRegister {
-    zero: bool,
-    subtract: bool,
-    half_carry: bool,
-    carry: bool,
+pub struct FlagsRegister {
+    pub zero: bool,
+    pub subtract: bool,
+    pub half_carry: bool,
+    pub carry: bool,
 }
 
 impl std::convert::From<FlagsRegister> for u8 {
