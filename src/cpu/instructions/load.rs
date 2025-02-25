@@ -23,6 +23,7 @@ pub(super) enum LoadType {
 }
 
 impl CPU {
+    /// Handles the load instruction for the given [LoadType].
     pub fn handle_load_instruction(&mut self, type_of_load: LoadType) -> u16 {
         match type_of_load {
             LoadType::Byte(target, source) => {

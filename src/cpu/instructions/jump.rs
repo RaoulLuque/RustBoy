@@ -11,6 +11,7 @@ pub(super) enum JumpCondition {
 }
 
 impl CPU {
+    /// Handles the jump instruction for the given [JumpCondition].
     pub fn handle_jump_instruction(&mut self, condition: JumpCondition) -> u16 {
         let should_jump = match condition {
             JumpCondition::NotZero => !self.registers.f.zero,
@@ -22,6 +23,8 @@ impl CPU {
         self.jump(should_jump)
     }
 
+    /// Jumps (the program counter) to the given address if should_jump is true. Otherwise, it just
+    /// moves to the next instruction.
     fn jump(&self, should_jump: bool) -> u16 {
         if should_jump {
             // The Gameboy is little endian so the least significant byte is stored first. However,
