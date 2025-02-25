@@ -16,6 +16,25 @@ pub struct CPU {
     bus: MemoryBus,
 }
 
+/// Struct to represent the memory bus.
+/// It is an array that represents the memory of the RustBoy.
+/// 0xFFFF = 65536 is the size of the memory in bytes
+struct MemoryBus {
+    memory: [u8; 0xFFFF],
+}
+
+impl MemoryBus {
+    /// Read a byte from the memory at the given address.
+    fn read_byte(&self, address: u16) -> u8 {
+        self.memory[address as usize]
+    }
+
+    /// Write a byte to the memory at the given address.
+    fn write_byte(&mut self, address: u16, value: u8) {
+        self.memory[address as usize] = value;
+    }
+}
+
 impl CPU {
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
@@ -41,24 +60,5 @@ impl CPU {
         };
 
         self.pc = next_pc;
-    }
-}
-
-/// Struct to represent the memory bus.
-/// It is an array that represents the memory of the RustBoy.
-/// 0xFFFF = 65536 is the size of the memory in bytes
-struct MemoryBus {
-    memory: [u8; 0xFFFF],
-}
-
-impl MemoryBus {
-    /// Read a byte from the memory at the given address.
-    fn read_byte(&self, address: u16) -> u8 {
-        self.memory[address as usize]
-    }
-
-    /// Write a byte to the memory at the given address.
-    fn write_byte(&mut self, address: u16, value: u8) {
-        self.memory[address as usize] = value;
     }
 }

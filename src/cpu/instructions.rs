@@ -1,4 +1,10 @@
+mod add;
+mod jump;
+mod load;
+
 use super::CPU;
+use crate::cpu::instructions::jump::JumpCondition;
+use crate::cpu::instructions::load::LoadType;
 use crate::cpu::registers::Registers;
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
@@ -21,37 +27,6 @@ enum Register {
     E,
     H,
     L,
-}
-
-/// Represents the possible conditions for a jump instruction.
-#[derive(Clone, Copy, Debug)]
-enum JumpCondition {
-    NotZero,
-    Zero,
-    NotCarry,
-    Carry,
-    Always,
-}
-
-/// Represents the possible targets for a byte load instruction.
-#[derive(Clone, Copy, Debug)]
-enum LoadByteTarget {
-    REGISTER(Register),
-    HLI,
-}
-
-/// Represents the possible sources for a byte load instruction.
-#[derive(Clone, Copy, Debug)]
-enum LoadByteSource {
-    REGISTER(Register),
-    D8,
-    HLI,
-}
-
-/// Represents the possible types of load instructions.
-#[derive(Clone, Copy, Debug)]
-enum LoadType {
-    Byte(LoadByteTarget, LoadByteSource),
 }
 
 impl Instruction {
@@ -131,77 +106,13 @@ impl CPU {
     /// Executes the instruction on the CPU.
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
-            Instruction::ADD(target) => {
-                let value = target.get_register(&mut self.registers);
-                let new_value = self.add(value);
-                self.registers.a = new_value;
-                self.pc.wrapping_add(1)
-            }
-            Instruction::JP(condition) => {
-                let should_jump = match condition {
-                    JumpCondition::NotZero => !self.registers.f.zero,
-                    JumpCondition::Zero => self.registers.f.zero,
-                    JumpCondition::NotCarry => !self.registers.f.carry,
-                    JumpCondition::Carry => self.registers.f.carry,
-                    JumpCondition::Always => true,
-                };
-                self.jump(should_jump)
-            }
-            Instruction::LD(type_of_load) => match type_of_load {
-                LoadType::Byte(target, source) => {
-                    let value = match source {
-                        LoadByteSource::REGISTER(register) => {
-                            register.get_register(&self.registers)
-                        }
-                        LoadByteSource::D8 => self.bus.read_byte(self.pc + 1),
-                        LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
-                    };
-                    match target {
-                        LoadByteTarget::REGISTER(register) => {
-                            register.set_register(&mut self.registers, value);
-                        }
-                        LoadByteTarget::HLI => {
-                            self.bus.write_byte(self.registers.get_hl(), value);
-                        }
-                    }
-                    match source {
-                        LoadByteSource::D8 => self.pc.wrapping_add(2),
-                        _ => self.pc.wrapping_add(1),
-                    }
-                }
-            },
+            Instruction::ADD(target) => self.handle_add_instruction(target),
+            Instruction::JP(condition) => self.handle_jump_instruction(condition),
+            Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
             _ => {
                 /* TODO: Support more instructions */
                 self.pc
             }
-        }
-    }
-
-    /// Adds a value to the A register and sets the corresponding flags in the flags register
-    /// [super::registers::FlagsRegister].
-    fn add(&mut self, value: u8) -> u8 {
-        let (new_value, overflow_flag) = self.registers.a.overflowing_add(value);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.carry = overflow_flag;
-        // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
-        // This is the case if the sum of the lower 4 bits of the A register and the value are greater
-        // than 0xF = 0b 0000 1111 (binary).
-        self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) > 0xF;
-        new_value
-    }
-
-    fn jump(&self, should_jump: bool) -> u16 {
-        if should_jump {
-            // The Gameboy is little endian so the least significant byte is stored first. However,
-            // in the correct order, so we can just patch them together.
-            let low_byte = self.bus.read_byte(self.pc + 1) as u16;
-            let high_byte = self.bus.read_byte(self.pc + 2) as u16;
-            (high_byte << 8) | low_byte
-        } else {
-            // If we don't jump we just move to the next instruction.
-            // The jump instruction is 3 bytes long (1 byte for the instruction and 2 bytes for the address).
-            self.pc.wrapping_add(3)
         }
     }
 }
