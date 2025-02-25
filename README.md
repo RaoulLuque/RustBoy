@@ -13,6 +13,7 @@ The app also runs in the web using WASM.
 For a more interactive view,
 see [here](https://meganesu.github.io/generate-gb-opcodes/).
 
+```markdown
 |    | x0            | x1            | x2             | x3            | x4              | x5            | x6             | x7            | x8              | x9            | xA             | xB          | xC             | xD           | xE             | xF          |
 |----|---------------|---------------|----------------|---------------|-----------------|---------------|----------------|---------------|-----------------|---------------|----------------|-------------|----------------|--------------|----------------|-------------|
 | 0x | [ ] NOP       | [ ] LD BC,d16 | [ ] LD (BC),A  | [ ] INC BC    | [ ] INC B       | [ ] DEC B     | [ ] LD B,d8    | [ ] RLCA      | [ ] LD (a16),SP | [ ] ADD HL,BC | [ ] LD A,(BC)  | [ ] DEC BC  | [ ] INC C      | [ ] DEC C    | [ ] LD C,d8    | [ ] RRCA    |
@@ -31,7 +32,9 @@ see [here](https://meganesu.github.io/generate-gb-opcodes/).
 | Dx | [ ] RET NC    | [ ] POP DE    | [ ] JP NC,a16  |               | [ ] CALL NC,a16 | [ ] PUSH DE   | [ ] SUB A,d8   | [ ] RST 10H   | [ ] RET C       | [ ] RETI      | [ ] JP C,a16   |             | [ ] CALL C,a16 |              | [ ] SBC A,d8   | [ ] RST 18H |
 | Ex | [ ] LD (a8),A | [ ] POP HL    | [ ] LD (C),A   |               |                 | [ ] PUSH HL   | [ ] AND d8     | [ ] RST 20H   | [ ] ADD SP,r8   | [ ] JP (HL)   | [ ] LD (a16),A |             |                |              | [ ] XOR d8     | [ ] RST 28H |
 | Fx | [ ] LD A,(a8) | [ ] POP AF    | [ ] LD A,(C)   | [ ] DI        |                 | [ ] PUSH AF   | [ ] OR d8      | [ ] RST 30H   | [ ] LD HL,SP+r8 | [ ] LD SP,HL  | [ ] LD A,(a16) | [ ] EI      |                |              | [ ] CP d8      | [ ] RST 38H |
+```
 
+```markdown
 |    | x0          | x1          | x2          | x3          | x4          | x5          | x6             | x7          | x8          | x9          | xA          | xB          | xC          | xD          | xE             | xF          |
 |----|-------------|-------------|-------------|-------------|-------------|-------------|----------------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|----------------|-------------|
 | 0x | [ ] RLC B   | [ ] RLC C   | [ ] RLC D   | [ ] RLC E   | [ ] RLC H   | [ ] RLC L   | [ ] RLC (HL)   | [ ] RLC A   | [ ] RRC B   | [ ] RRC C   | [ ] RRC D   | [ ] RRC E   | [ ] RRC H   | [ ] RRC L   | [ ] RRC (HL)   | [ ] RRC A   |
@@ -50,5 +53,4 @@ see [here](https://meganesu.github.io/generate-gb-opcodes/).
 | Dx | [ ] SET 2,B | [ ] SET 2,C | [ ] SET 2,D | [ ] SET 2,E | [ ] SET 2,H | [ ] SET 2,L | [ ] SET 2,(HL) | [ ] SET 2,A | [ ] SET 3,B | [ ] SET 3,C | [ ] SET 3,D | [ ] SET 3.E | [ ] SET 3,H | [ ] SET 3.L | [ ] SET 3,(HL) | [ ] SET 3,A |
 | Ex | [ ] SET 4,B | [ ] SET 4,C | [ ] SET 4,D | [ ] SET 4,E | [ ] SET 4,H | [ ] SET 4,L | [ ] SET 4,(HL) | [ ] SET 4,A | [ ] SET 5,B | [ ] SET 5.C | [ ] SET 5,D | [ ] SET 5,E | [ ] SET 5,H | [ ] SET 5,L | [ ] SET 5,(HL) | [ ] SET 5,A |
 | Fx | [ ] SET 6,B | [ ] SET 6,C | [ ] SET 6,D | [ ] SET 6,E | [ ] SET 6,H | [ ] SET 6,L | [ ] SET 6,(HL) | [ ] SET 6,A | [ ] SET 7,B | [ ] SET 7,C | [ ] SET 7,D | [ ] SET 7,E | [ ] SET 7,H | [ ] SET 7,L | [ ] SET 7,(HL) | [ ] SET 7,A |
-
- 
+```
