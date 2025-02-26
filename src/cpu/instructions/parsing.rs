@@ -6,7 +6,7 @@ impl Instruction {
     /// Returns the non-prefix instruction corresponding to the given byte in group 0.
     /// Group 0 consists of the non-prefixed instructions where the higher nibble is 0, 1, 2 or 3.
     /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
-    /// for details.
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
     ///
     /// Group 0 consists of miscellaneous instructions.
     pub(super) fn from_byte_not_prefixed_group_0(byte: u8) -> Option<Instruction> {
@@ -19,7 +19,7 @@ impl Instruction {
     /// Returns the non-prefix instruction corresponding to the given byte in group 1.
     /// Group 1 consists of the non-prefixed instructions where the higher nibble is 4, 5, 6 or 7.
     /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
-    /// for details.
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
     ///
     /// Group 1 consists of LD instructions and the HALT instruction.
     pub(super) fn from_byte_not_prefixed_group_1(byte: u8) -> Option<Instruction> {
@@ -217,32 +217,32 @@ impl Instruction {
                 LoadByteSource::REGISTER(Register::A),
             ))),
             0x70 => Some(Instruction::LD(LoadType::Byte(
-                LoadByteTarget::HL,
+                LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::B),
             ))),
             0x71 => Some(Instruction::LD(LoadType::Byte(
-                LoadByteTarget::HL,
+                LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::C),
             ))),
             0x72 => Some(Instruction::LD(LoadType::Byte(
-                LoadByteTarget::HL,
+                LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::D),
             ))),
             0x73 => Some(Instruction::LD(LoadType::Byte(
-                LoadByteTarget::HL,
+                LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::E),
             ))),
             0x74 => Some(Instruction::LD(LoadType::Byte(
-                LoadByteTarget::HL,
+                LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::H),
             ))),
             0x75 => Some(Instruction::LD(LoadType::Byte(
-                LoadByteTarget::HL,
+                LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::L),
             ))),
             // TODO: Add HALT Instruction
             0x77 => Some(Instruction::LD(LoadType::Byte(
-                LoadByteTarget::HL,
+                LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::A),
             ))),
             0x78 => Some(Instruction::LD(LoadType::Byte(
@@ -283,7 +283,7 @@ impl Instruction {
 
     /// Returns the non-prefix instruction corresponding to the given byte in group 2.
     /// Group 2 consists of the non-prefixed instructions where the higher nibble is 8, 9, A or B.
-    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
+    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/) or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7)  or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7)
     /// for details.
     ///
     /// Group 2 consists of arithmetic instructions.
@@ -363,7 +363,7 @@ impl Instruction {
 
     /// Returns the non-prefix instruction corresponding to the given byte in group 3.
     /// Group 3 consists of the non-prefixed instructions where the higher nibble is C, D, E or F.
-    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
+    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/) or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7)
     /// for details.
     ///
     /// Group 3 consists of control flow and miscellaneous instructions.

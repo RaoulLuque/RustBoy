@@ -7,6 +7,8 @@ The app also runs in the web using WASM.
 
 - [Learn Wgpu](https://sotrh.github.io/learn-wgpu/)
 - [Pan Docs](https://gbdev.io/pandocs/)
+- [RGBDS: gbz80(7) - CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7)
+- [Interactive GB Opcode Table](https://meganesu.github.io/generate-gb-opcodes/)
 
 ## Implemented Instructions
 

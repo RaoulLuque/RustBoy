@@ -5,9 +5,9 @@ use crate::cpu::CPU;
 #[derive(Clone, Copy, Debug)]
 pub enum LoadByteTarget {
     REGISTER(Register),
-    HL,
-    HLIncrement,
-    HLDecrement,
+    HLRef,
+    HLRefIncrement,
+    HLRefDecrement,
 }
 
 /// Represents the possible sources for a byte load instruction.
@@ -41,7 +41,7 @@ impl CPU {
                     LoadByteTarget::REGISTER(register) => {
                         register.set_register(&mut self.registers, value);
                     }
-                    LoadByteTarget::HL => {
+                    LoadByteTarget::HLRef => {
                         self.bus.write_byte(self.registers.get_hl(), value);
                     }
                     _ => todo!("Not Implemented"),

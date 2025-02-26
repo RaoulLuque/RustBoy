@@ -2,8 +2,9 @@
 //! the CPU struct has a method to execute the instruction.
 //!
 //! The instructions are divided into two categories: prefix and non-prefix instructions.
-//! For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
-//! the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
+//! For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
+//! the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/) or the
+//! [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7).
 //!
 //! The instructions are implemented in separate modules for better organization and readability.
 //! In the cases where instructions share the same target or source for their operations
@@ -25,8 +26,9 @@ use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
-/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
-/// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
+/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
+/// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/) or
+/// the [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7).
 #[derive(Clone, Copy, Debug)]
 pub enum Instruction {
     NOP,
@@ -78,8 +80,8 @@ enum InstructionCondition {
 
 impl Instruction {
     /// Returns the (prefix or non-prefix) instruction corresponding to the given byte. See
-    /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
-    /// for details.
+    /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/) or
+    /// [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
     ///
     /// Checks the prefix bools to determine if a prefix instruction should be returned or not.
     /// That is, the u8 byte should only contain the instruction byte and not include the prefix byte.
@@ -95,7 +97,7 @@ impl Instruction {
 
     /// Returns the prefix instruction corresponding to the given byte. See
     /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
-    /// for details.
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
     pub fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
         match byte {
             // TODO: Add more instructions
@@ -105,7 +107,7 @@ impl Instruction {
 
     /// Returns the non-prefix instruction corresponding to the given byte. See
     /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
-    /// for details.
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
     ///
     /// - Group 0 are miscellaneous instructions.
     /// - Group 1 are load instructions and the HALT instruction.
