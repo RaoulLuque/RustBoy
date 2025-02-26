@@ -97,6 +97,21 @@ impl Instruction {
     }
 }
 
+impl CPU {
+    /// Executes the instruction on the CPU.
+    pub fn execute(&mut self, instruction: Instruction) -> u16 {
+        match instruction {
+            Instruction::ADD(target) => self.handle_add_instruction(target),
+            Instruction::JP(condition) => self.handle_jump_instruction(condition),
+            Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
+            _ => {
+                /* TODO: Support more instructions */
+                self.pc
+            }
+        }
+    }
+}
+
 impl Register {
     /// Returns the value of the register corresponding to the enum variant.
     fn get_register(&self, registers: &Registers) -> u8 {
@@ -121,21 +136,6 @@ impl Register {
             Register::E => registers.e = value,
             Register::H => registers.h = value,
             Register::L => registers.l = value,
-        }
-    }
-}
-
-impl CPU {
-    /// Executes the instruction on the CPU.
-    pub fn execute(&mut self, instruction: Instruction) -> u16 {
-        match instruction {
-            Instruction::ADD(target) => self.handle_add_instruction(target),
-            Instruction::JP(condition) => self.handle_jump_instruction(condition),
-            Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
-            _ => {
-                /* TODO: Support more instructions */
-                self.pc
-            }
         }
     }
 }
