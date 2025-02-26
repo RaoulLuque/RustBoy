@@ -65,4 +65,12 @@ impl CPU {
 
         self.pc = next_pc;
     }
+
+    /// Reads the next word (2 bytes) from the memory in little endian order and returns the result.
+    /// That is, the least significant byte is read first.
+    pub fn read_next_word_little_endian(&self) -> u16 {
+        let low_byte = self.bus.read_byte(self.pc + 1) as u16;
+        let high_byte = self.bus.read_byte(self.pc + 2) as u16;
+        (high_byte << 8) | low_byte
+    }
 }

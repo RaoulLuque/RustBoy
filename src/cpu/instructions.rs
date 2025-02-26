@@ -8,14 +8,14 @@
 //! The instructions are implemented in separate modules for better organization and readability.
 
 mod add;
+mod call_and_ret;
 mod jump;
 mod load;
 mod parsing;
 mod push_and_pop;
 
 use super::CPU;
-use crate::cpu::registers::Registers;
-use jump::JumpCondition;
+use crate::cpu::registers::{FlagsRegister, Registers};
 use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
 
@@ -25,10 +25,12 @@ use push_and_pop::{PopTarget, PushSource};
 #[derive(Clone, Copy, Debug)]
 pub enum Instruction {
     ADD(Register),
-    JP(JumpCondition),
+    JP(InstructionCondition),
     LD(LoadType),
     PUSH(PushSource),
     POP(PopTarget),
+    CALL(InstructionCondition),
+    RET(InstructionCondition),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -41,6 +43,16 @@ enum Register {
     E,
     H,
     L,
+}
+
+/// Represents the possible conditions for an instruction to execute or not (e.g. JP or CALL).
+#[derive(Clone, Copy, Debug)]
+enum InstructionCondition {
+    NotZero,
+    Zero,
+    NotCarry,
+    Carry,
+    Always,
 }
 
 impl Instruction {
@@ -125,5 +137,20 @@ impl CPU {
                 self.pc
             }
         }
+    }
+}
+
+/// Checks the condition of the instruction using the registers and returns true if the instruction should
+/// execute, false otherwise.
+fn check_instruction_condition(
+    condition: InstructionCondition,
+    flags_register: &FlagsRegister,
+) -> bool {
+    match condition {
+        InstructionCondition::NotZero => !flags_register.zero,
+        InstructionCondition::Zero => flags_register.zero,
+        InstructionCondition::NotCarry => !flags_register.carry,
+        InstructionCondition::Carry => flags_register.carry,
+        InstructionCondition::Always => true,
     }
 }

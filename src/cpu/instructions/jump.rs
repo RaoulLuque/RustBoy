@@ -1,25 +1,10 @@
+use super::{check_instruction_condition, InstructionCondition};
 use crate::cpu::CPU;
 
-/// Represents the possible conditions for a jump instruction.
-#[derive(Clone, Copy, Debug)]
-pub(super) enum JumpCondition {
-    NotZero,
-    Zero,
-    NotCarry,
-    Carry,
-    Always,
-}
-
 impl CPU {
-    /// Handles the jump instruction for the given [JumpCondition].
-    pub fn handle_jump_instruction(&mut self, condition: JumpCondition) -> u16 {
-        let should_jump = match condition {
-            JumpCondition::NotZero => !self.registers.f.zero,
-            JumpCondition::Zero => self.registers.f.zero,
-            JumpCondition::NotCarry => !self.registers.f.carry,
-            JumpCondition::Carry => self.registers.f.carry,
-            JumpCondition::Always => true,
-        };
+    /// Handles the jump instruction for the given [InstructionCondition].
+    pub fn handle_jump_instruction(&mut self, condition: InstructionCondition) -> u16 {
+        let should_jump = check_instruction_condition(condition, &self.registers.f);
         self.jump(should_jump)
     }
 
