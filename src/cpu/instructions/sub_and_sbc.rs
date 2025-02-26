@@ -2,6 +2,7 @@ use super::ArithmeticSource;
 use crate::cpu::CPU;
 
 impl CPU {
+    /// Handles the sub instruction for the given [ArithmeticSource](super::ArithmeticSource).
     pub fn handle_sub_instruction(&mut self, source: ArithmeticSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.sub(value, false);
@@ -9,7 +10,9 @@ impl CPU {
         self.pc.wrapping_add(1)
     }
 
-    fn sub(&mut self, value: u8, carry_flag: bool) -> u8 {
+    /// Subtracts a value from the A register and sets the corresponding flags in the flags register
+    /// [super::registers::FlagsRegister].
+    pub fn sub(&mut self, value: u8, carry_flag: bool) -> u8 {
         let new_value = self.registers.a.wrapping_sub(value);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = true;
@@ -24,6 +27,7 @@ impl CPU {
         new_value
     }
 
+    /// Handles the sbc instruction for the given [ArithmeticSource](super::ArithmeticSource).
     pub fn handle_sbc_instruction(&mut self, source: ArithmeticSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.sub(value, self.registers.f.carry);

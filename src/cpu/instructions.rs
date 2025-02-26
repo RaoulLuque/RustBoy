@@ -14,6 +14,7 @@ mod add_and_adc;
 mod call_and_ret;
 mod jump;
 mod load;
+mod logical_operators;
 mod parsing;
 mod push_and_pop;
 mod sub_and_sbc;
@@ -32,6 +33,10 @@ pub enum Instruction {
     ADC(ArithmeticSource),
     SUB(ArithmeticSource),
     SBC(ArithmeticSource),
+    AND(ArithmeticSource),
+    OR(ArithmeticSource),
+    XOR(ArithmeticSource),
+    CP(ArithmeticSource),
     JP(InstructionCondition),
     LD(LoadType),
     PUSH(PushSource),
