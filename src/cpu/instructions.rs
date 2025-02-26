@@ -24,6 +24,7 @@ mod sub_and_sbc;
 use super::{MemoryBus, CPU};
 use crate::cpu::registers::{FlagsRegister, Registers};
 use inc_and_dec::IncDecTarget;
+use jump::JumpType;
 use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
 
@@ -44,7 +45,7 @@ pub enum Instruction {
     CP(ArithmeticOrLogicalSource),
     INC(IncDecTarget),
     DEC(IncDecTarget),
-    JP(InstructionCondition),
+    JP(JumpType),
     LD(LoadType),
     PUSH(PushSource),
     POP(PopTarget),
@@ -135,15 +136,15 @@ impl CPU {
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
             Instruction::NOP => self.pc.wrapping_add(1),
-            Instruction::ADDToA(target) => self.handle_add_instruction(target),
-            Instruction::ADC(target) => self.handle_adc_instruction(target),
-            Instruction::SUB(target) => self.handle_sub_instruction(target),
-            Instruction::SBC(target) => self.handle_sbc_instruction(target),
-            Instruction::AND(target) => self.handle_and_instruction(target),
-            Instruction::OR(target) => self.handle_or_instruction(target),
-            Instruction::XOR(target) => self.handle_xor_instruction(target),
-            Instruction::CP(target) => self.handle_cp_instruction(target),
-            Instruction::JP(condition) => self.handle_jump_instruction(condition),
+            Instruction::ADDToA(source) => self.handle_add_instruction(source),
+            Instruction::ADC(source) => self.handle_adc_instruction(source),
+            Instruction::SUB(source) => self.handle_sub_instruction(source),
+            Instruction::SBC(source) => self.handle_sbc_instruction(source),
+            Instruction::AND(source) => self.handle_and_instruction(source),
+            Instruction::OR(source) => self.handle_or_instruction(source),
+            Instruction::XOR(source) => self.handle_xor_instruction(source),
+            Instruction::CP(source) => self.handle_cp_instruction(source),
+            Instruction::JP(type_of_jump) => self.handle_jump_instruction(type_of_jump),
             Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
             Instruction::INC(target) => self.handle_inc_instruction(target),
             Instruction::DEC(target) => self.handle_dec_instruction(target),

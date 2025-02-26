@@ -1,11 +1,27 @@
 use super::{check_instruction_condition, InstructionCondition};
 use crate::cpu::CPU;
 
+/// Represents the possible targets for the jump instruction.
+///
+#[derive(Clone, Copy, Debug)]
+pub(super) enum JumpType {
+    JumpToImmediateOperand(InstructionCondition),
+    JumpToHL,
+}
+
 impl CPU {
     /// Handles the jump instruction for the given [InstructionCondition].
-    pub fn handle_jump_instruction(&mut self, condition: InstructionCondition) -> u16 {
-        let should_jump = check_instruction_condition(condition, &self.registers.f);
-        self.jump(should_jump)
+    pub fn handle_jump_instruction(&mut self, jump_type: JumpType) -> u16 {
+        match jump_type {
+            JumpType::JumpToImmediateOperand(condition) => {
+                let should_jump = check_instruction_condition(condition, &self.registers.f);
+                self.jump(should_jump)
+            }
+            JumpType::JumpToHL => {
+                self.pc = self.registers.get_hl();
+                self.pc
+            }
+        }
     }
 
     /// Jumps (the program counter) to the given address if should_jump is true. Otherwise, it just

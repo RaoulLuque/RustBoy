@@ -1,5 +1,7 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
-use super::{IncDecTarget, Instruction, PopTarget, PushSource, Register};
+use super::{
+    IncDecTarget, Instruction, InstructionCondition, JumpType, PopTarget, PushSource, Register,
+};
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
 impl Instruction {
@@ -601,21 +603,63 @@ impl Instruction {
     /// Group 3 consists of control flow and miscellaneous instructions.
     pub(super) fn from_byte_not_prefixed_group_3(byte: u8) -> Option<Instruction> {
         match byte {
+            0xC0 => Some(Instruction::RET(InstructionCondition::NotZero)),
             0xC1 => Some(Instruction::POP(PopTarget::BC)),
-            // TODO: Add missing instructions
+            0xC2 => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
+                InstructionCondition::NotZero,
+            ))),
+            0xC3 => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
+                InstructionCondition::Always,
+            ))),
+            0xC4 => Some(Instruction::CALL(InstructionCondition::NotZero)),
             0xC5 => Some(Instruction::PUSH(PushSource::BC)),
+            0xC6 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::D8)),
             // TODO: Add missing instructions
+            0xC8 => Some(Instruction::RET(InstructionCondition::Zero)),
+            0xC9 => Some(Instruction::RET(InstructionCondition::Always)),
+            0xCA => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
+                InstructionCondition::Zero,
+            ))),
+            0xCC => Some(Instruction::CALL(InstructionCondition::Zero)),
+            0xCD => Some(Instruction::CALL(InstructionCondition::Always)),
+            0xCE => Some(Instruction::ADC(ArithmeticOrLogicalSource::D8)),
+            // TODO: Add missing instructions
+            0xD0 => Some(Instruction::RET(InstructionCondition::NotCarry)),
             0xD1 => Some(Instruction::POP(PopTarget::DE)),
-            // TODO: Add missing instructions
+            0xD2 => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
+                InstructionCondition::NotCarry,
+            ))),
+            0xD4 => Some(Instruction::CALL(InstructionCondition::NotCarry)),
             0xD5 => Some(Instruction::PUSH(PushSource::DE)),
+            0xD6 => Some(Instruction::SUB(ArithmeticOrLogicalSource::D8)),
+            // TODO: Add missing instructions
+            0xD8 => Some(Instruction::RET(InstructionCondition::Carry)),
+            // TODO: Add missing instructions
+            0xDA => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
+                InstructionCondition::Carry,
+            ))),
+            0xDC => Some(Instruction::CALL(InstructionCondition::Carry)),
+            0xDE => Some(Instruction::SBC(ArithmeticOrLogicalSource::D8)),
+            // TODO: Add missing instructions
+
             // TODO: Add missing instructions
             0xE1 => Some(Instruction::POP(PopTarget::HL)),
             // TODO: Add missing instructions
             0xE5 => Some(Instruction::PUSH(PushSource::HL)),
+            0xE6 => Some(Instruction::AND(ArithmeticOrLogicalSource::D8)),
+            // TODO: Add missing instructions
+            0xE9 => Some(Instruction::JP(JumpType::JumpToHL)),
+            // TODO: Add missing instructions
+            0xEE => Some(Instruction::XOR(ArithmeticOrLogicalSource::D8)),
+            // TODO: Add missing instructions
+
             // TODO: Add missing instructions
             0xF1 => Some(Instruction::POP(PopTarget::AF)),
             // TODO: Add missing instructions
             0xF5 => Some(Instruction::PUSH(PushSource::AF)),
+            0xF6 => Some(Instruction::OR(ArithmeticOrLogicalSource::D8)),
+            // TODO: Add missing instructions
+            0xFE => Some(Instruction::CP(ArithmeticOrLogicalSource::D8)),
             _ => None,
         }
     }
