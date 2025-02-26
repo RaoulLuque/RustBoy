@@ -35,6 +35,7 @@ impl CPU {
                     LoadByteSource::REGISTER(register) => register.get_register(&self.registers),
                     LoadByteSource::D8 => self.bus.read_byte(self.pc + 1),
                     LoadByteSource::HL => self.bus.read_byte(self.registers.get_hl()),
+                    _ => todo!("Not implemented"),
                 };
                 match target {
                     LoadByteTarget::REGISTER(register) => {
@@ -43,6 +44,7 @@ impl CPU {
                     LoadByteTarget::HL => {
                         self.bus.write_byte(self.registers.get_hl(), value);
                     }
+                    _ => todo!("Not Implemented"),
                 }
                 match source {
                     LoadByteSource::D8 => self.pc.wrapping_add(2),
