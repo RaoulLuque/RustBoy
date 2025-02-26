@@ -17,6 +17,7 @@ use super::CPU;
 use crate::cpu::registers::Registers;
 use jump::JumpCondition;
 use load::LoadType;
+use push_and_pop::{PopTarget, PushSource};
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
@@ -26,6 +27,8 @@ pub enum Instruction {
     ADD(Register),
     JP(JumpCondition),
     LD(LoadType),
+    PUSH(PushSource),
+    POP(PopTarget),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.

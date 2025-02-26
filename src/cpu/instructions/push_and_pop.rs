@@ -2,6 +2,7 @@ use crate::cpu::registers::Registers;
 use crate::cpu::CPU;
 
 /// Represents the possible sources for the values of a push instruction.
+#[derive(Clone, Copy, Debug)]
 pub enum PushSource {
     BC,
     DE,
@@ -10,6 +11,7 @@ pub enum PushSource {
 }
 
 /// Represents the possible targets of a pop instruction.
+#[derive(Clone, Copy, Debug)]
 pub enum PopTarget {
     BC,
     DE,
