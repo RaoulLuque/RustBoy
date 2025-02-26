@@ -1,5 +1,5 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
-use super::{IncDecTarget, Instruction, Register, PopTarget, PushSource};
+use super::{IncDecTarget, Instruction, PopTarget, PushSource, Register};
 use crate::cpu::instructions::ArithmeticSource;
 
 impl Instruction {
