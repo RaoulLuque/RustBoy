@@ -146,10 +146,10 @@ impl CPU {
             Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
             Instruction::INC(target) => self.handle_inc_instruction(target),
             Instruction::DEC(target) => self.handle_dec_instruction(target),
-            _ => {
-                /* TODO: Support more instructions */
-                self.pc
-            }
+            Instruction::CALL(condition) => self.handle_call_instruction(condition),
+            Instruction::RET(condition) => self.handle_ret_instruction(condition),
+            Instruction::PUSH(source) => self.handle_push_instruction(source),
+            Instruction::POP(target) => self.handle_pop_instruction(target),
         }
     }
 }
