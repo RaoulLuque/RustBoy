@@ -1,9 +1,9 @@
-use super::ArithmeticSource;
+use super::ArithmeticOrLogicalSource;
 use crate::cpu::CPU;
 
 impl CPU {
-    /// Handles the sub instruction for the given [ArithmeticSource](super::ArithmeticSource).
-    pub fn handle_sub_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    /// Handles the sub instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    pub fn handle_sub_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.sub(value, false);
         self.registers.a = new_value;
@@ -27,8 +27,8 @@ impl CPU {
         new_value
     }
 
-    /// Handles the sbc instruction for the given [ArithmeticSource](super::ArithmeticSource).
-    pub fn handle_sbc_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    /// Handles the sbc instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    pub fn handle_sbc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.sub(value, self.registers.f.carry);
         self.registers.a = new_value;

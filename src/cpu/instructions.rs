@@ -8,7 +8,7 @@
 //!
 //! The instructions are implemented in separate modules for better organization and readability.
 //! In the cases where instructions share the same target or source for their operations
-//! (e.g. ADD and ADC, [ArithmeticSource]), they use a common type to represent the target or source which is then
+//! (e.g. ADD and ADC, [ArithmeticOrLogicalSource]), they use a common type to represent the target or source which is then
 //! implemented in this module.
 
 mod add_and_adc;
@@ -34,14 +34,14 @@ use push_and_pop::{PopTarget, PushSource};
 #[derive(Clone, Copy, Debug)]
 pub enum Instruction {
     NOP,
-    ADDToA(ArithmeticSource),
-    ADC(ArithmeticSource),
-    SUB(ArithmeticSource),
-    SBC(ArithmeticSource),
-    AND(ArithmeticSource),
-    OR(ArithmeticSource),
-    XOR(ArithmeticSource),
-    CP(ArithmeticSource),
+    ADDToA(ArithmeticOrLogicalSource),
+    ADC(ArithmeticOrLogicalSource),
+    SUB(ArithmeticOrLogicalSource),
+    SBC(ArithmeticOrLogicalSource),
+    AND(ArithmeticOrLogicalSource),
+    OR(ArithmeticOrLogicalSource),
+    XOR(ArithmeticOrLogicalSource),
+    CP(ArithmeticOrLogicalSource),
     INC(IncDecTarget),
     DEC(IncDecTarget),
     JP(InstructionCondition),
@@ -64,9 +64,10 @@ enum Register {
     L,
 }
 
-/// Represents the possible targets for a arithmetic instructions such as ADD, ADC, SUB, and SBC.
+/// Represents the possible targets for arithmetic or logical instructions such as
+/// ADD, ADC, SUB, SBC, AND, OR, XOR or CP.
 #[derive(Clone, Copy, Debug)]
-pub(in crate::cpu::instructions) enum ArithmeticSource {
+pub(in crate::cpu::instructions) enum ArithmeticOrLogicalSource {
     Register(Register),
     D8,
     HL,
@@ -182,13 +183,13 @@ impl Register {
     }
 }
 
-impl ArithmeticSource {
+impl ArithmeticOrLogicalSource {
     /// Returns the value of the source corresponding to the enum variant.
     fn get_value(&self, registers: &Registers, bus: &MemoryBus, pc: u16) -> u8 {
         match &self {
-            ArithmeticSource::Register(register) => register.get_register(registers),
-            ArithmeticSource::D8 => bus.read_byte(pc + 1),
-            ArithmeticSource::HL => bus.read_byte(registers.get_hl()),
+            ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
+            ArithmeticOrLogicalSource::D8 => bus.read_byte(pc + 1),
+            ArithmeticOrLogicalSource::HL => bus.read_byte(registers.get_hl()),
         }
     }
 }

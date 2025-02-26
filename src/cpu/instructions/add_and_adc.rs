@@ -1,9 +1,9 @@
-use crate::cpu::instructions::{ArithmeticSource, Register};
+use crate::cpu::instructions::{ArithmeticOrLogicalSource, Register};
 use crate::cpu::CPU;
 
 impl CPU {
     /// Handles the add instruction for the given [Register].
-    pub fn handle_add_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    pub fn handle_add_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.add(value, false);
         self.registers.a = new_value;
@@ -33,7 +33,7 @@ impl CPU {
 
     /// Handles the adc instruction for the given [Register].
     /// Does the same as [handle_add_instruction] but adds the carry flag to the value.
-    pub fn handle_adc_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    pub fn handle_adc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.add(value, self.registers.f.carry);
         self.registers.a = new_value;

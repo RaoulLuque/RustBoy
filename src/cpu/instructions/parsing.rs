@@ -1,6 +1,6 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
 use super::{IncDecTarget, Instruction, PopTarget, PushSource, Register};
-use crate::cpu::instructions::ArithmeticSource;
+use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
 impl Instruction {
     /// Returns the non-prefix instruction corresponding to the given byte in group 0.
@@ -409,73 +409,185 @@ impl Instruction {
     /// Group 2 consists of arithmetic instructions.
     pub(super) fn from_byte_not_prefixed_group_2(byte: u8) -> Option<Instruction> {
         match byte {
-            0x80 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::B))),
-            0x81 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::C))),
-            0x82 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::D))),
-            0x83 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::E))),
-            0x84 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::H))),
-            0x85 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::L))),
-            0x86 => Some(Instruction::ADDToA(ArithmeticSource::HL)),
-            0x87 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::A))),
-            0x88 => Some(Instruction::ADC(ArithmeticSource::Register(Register::B))),
-            0x89 => Some(Instruction::ADC(ArithmeticSource::Register(Register::C))),
-            0x8A => Some(Instruction::ADC(ArithmeticSource::Register(Register::D))),
-            0x8B => Some(Instruction::ADC(ArithmeticSource::Register(Register::E))),
-            0x8C => Some(Instruction::ADC(ArithmeticSource::Register(Register::H))),
-            0x8D => Some(Instruction::ADC(ArithmeticSource::Register(Register::L))),
-            0x8E => Some(Instruction::ADC(ArithmeticSource::HL)),
-            0x8F => Some(Instruction::ADC(ArithmeticSource::Register(Register::A))),
+            0x80 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0x81 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0x82 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0x83 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0x84 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0x85 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0x86 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::HL)),
+            0x87 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
+            0x88 => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0x89 => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0x8A => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0x8B => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0x8C => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0x8D => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0x8E => Some(Instruction::ADC(ArithmeticOrLogicalSource::HL)),
+            0x8F => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
 
-            0x90 => Some(Instruction::SUB(ArithmeticSource::Register(Register::B))),
-            0x91 => Some(Instruction::SUB(ArithmeticSource::Register(Register::C))),
-            0x92 => Some(Instruction::SUB(ArithmeticSource::Register(Register::D))),
-            0x93 => Some(Instruction::SUB(ArithmeticSource::Register(Register::E))),
-            0x94 => Some(Instruction::SUB(ArithmeticSource::Register(Register::H))),
-            0x95 => Some(Instruction::SUB(ArithmeticSource::Register(Register::L))),
-            0x96 => Some(Instruction::SUB(ArithmeticSource::HL)),
-            0x97 => Some(Instruction::SUB(ArithmeticSource::Register(Register::A))),
-            0x98 => Some(Instruction::SBC(ArithmeticSource::Register(Register::B))),
-            0x99 => Some(Instruction::SBC(ArithmeticSource::Register(Register::C))),
-            0x9A => Some(Instruction::SBC(ArithmeticSource::Register(Register::D))),
-            0x9B => Some(Instruction::SBC(ArithmeticSource::Register(Register::E))),
-            0x9C => Some(Instruction::SBC(ArithmeticSource::Register(Register::H))),
-            0x9D => Some(Instruction::SBC(ArithmeticSource::Register(Register::L))),
-            0x9E => Some(Instruction::SBC(ArithmeticSource::HL)),
-            0x9F => Some(Instruction::SBC(ArithmeticSource::Register(Register::A))),
+            0x90 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0x91 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0x92 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0x93 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0x94 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0x95 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0x96 => Some(Instruction::SUB(ArithmeticOrLogicalSource::HL)),
+            0x97 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
+            0x98 => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0x99 => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0x9A => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0x9B => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0x9C => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0x9D => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0x9E => Some(Instruction::SBC(ArithmeticOrLogicalSource::HL)),
+            0x9F => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
 
-            0xA0 => Some(Instruction::AND(ArithmeticSource::Register(Register::B))),
-            0xA1 => Some(Instruction::AND(ArithmeticSource::Register(Register::C))),
-            0xA2 => Some(Instruction::AND(ArithmeticSource::Register(Register::D))),
-            0xA3 => Some(Instruction::AND(ArithmeticSource::Register(Register::E))),
-            0xA4 => Some(Instruction::AND(ArithmeticSource::Register(Register::H))),
-            0xA5 => Some(Instruction::AND(ArithmeticSource::Register(Register::L))),
-            0xA6 => Some(Instruction::AND(ArithmeticSource::HL)),
-            0xA7 => Some(Instruction::AND(ArithmeticSource::Register(Register::A))),
-            0xA8 => Some(Instruction::XOR(ArithmeticSource::Register(Register::B))),
-            0xA9 => Some(Instruction::XOR(ArithmeticSource::Register(Register::C))),
-            0xAA => Some(Instruction::XOR(ArithmeticSource::Register(Register::D))),
-            0xAB => Some(Instruction::XOR(ArithmeticSource::Register(Register::E))),
-            0xAC => Some(Instruction::XOR(ArithmeticSource::Register(Register::H))),
-            0xAD => Some(Instruction::XOR(ArithmeticSource::Register(Register::L))),
-            0xAE => Some(Instruction::XOR(ArithmeticSource::HL)),
-            0xAF => Some(Instruction::XOR(ArithmeticSource::Register(Register::A))),
+            0xA0 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0xA1 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0xA2 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0xA3 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0xA4 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0xA5 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0xA6 => Some(Instruction::AND(ArithmeticOrLogicalSource::HL)),
+            0xA7 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
+            0xA8 => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0xA9 => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0xAA => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0xAB => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0xAC => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0xAD => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0xAE => Some(Instruction::XOR(ArithmeticOrLogicalSource::HL)),
+            0xAF => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
 
-            0xB0 => Some(Instruction::OR(ArithmeticSource::Register(Register::B))),
-            0xB1 => Some(Instruction::OR(ArithmeticSource::Register(Register::C))),
-            0xB2 => Some(Instruction::OR(ArithmeticSource::Register(Register::D))),
-            0xB3 => Some(Instruction::OR(ArithmeticSource::Register(Register::E))),
-            0xB4 => Some(Instruction::OR(ArithmeticSource::Register(Register::H))),
-            0xB5 => Some(Instruction::OR(ArithmeticSource::Register(Register::L))),
-            0xB6 => Some(Instruction::OR(ArithmeticSource::HL)),
-            0xB7 => Some(Instruction::OR(ArithmeticSource::Register(Register::A))),
-            0xB8 => Some(Instruction::CP(ArithmeticSource::Register(Register::B))),
-            0xB9 => Some(Instruction::CP(ArithmeticSource::Register(Register::C))),
-            0xBA => Some(Instruction::CP(ArithmeticSource::Register(Register::D))),
-            0xBB => Some(Instruction::CP(ArithmeticSource::Register(Register::E))),
-            0xBC => Some(Instruction::CP(ArithmeticSource::Register(Register::H))),
-            0xBD => Some(Instruction::CP(ArithmeticSource::Register(Register::L))),
-            0xBE => Some(Instruction::CP(ArithmeticSource::HL)),
-            0xBF => Some(Instruction::CP(ArithmeticSource::Register(Register::A))),
+            0xB0 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0xB1 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0xB2 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0xB3 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0xB4 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0xB5 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0xB6 => Some(Instruction::OR(ArithmeticOrLogicalSource::HL)),
+            0xB7 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
+            0xB8 => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
+                Register::B,
+            ))),
+            0xB9 => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
+                Register::C,
+            ))),
+            0xBA => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
+                Register::D,
+            ))),
+            0xBB => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
+                Register::E,
+            ))),
+            0xBC => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
+                Register::H,
+            ))),
+            0xBD => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
+                Register::L,
+            ))),
+            0xBE => Some(Instruction::CP(ArithmeticOrLogicalSource::HL)),
+            0xBF => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
+                Register::A,
+            ))),
 
             _ => None,
         }

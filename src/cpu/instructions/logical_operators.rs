@@ -1,9 +1,9 @@
-use super::ArithmeticSource;
+use super::ArithmeticOrLogicalSource;
 use crate::cpu::CPU;
 
 impl CPU {
-    /// Handles the AND instruction for the given [ArithmeticSource](super::ArithmeticSource).
-    pub fn handle_and_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    /// Handles the AND instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    pub fn handle_and_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.and(value);
         self.registers.a = new_value;
@@ -21,8 +21,8 @@ impl CPU {
         new_value
     }
 
-    /// Handles the XOR instruction for the given [ArithmeticSource](super::ArithmeticSource).
-    pub fn handle_xor_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    /// Handles the XOR instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    pub fn handle_xor_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.xor(value);
         self.registers.a = new_value;
@@ -40,8 +40,8 @@ impl CPU {
         new_value
     }
 
-    /// Handles the OR instruction for the given [ArithmeticSource](super::ArithmeticSource).
-    pub fn handle_or_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    /// Handles the OR instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    pub fn handle_or_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.or(value);
         self.registers.a = new_value;
@@ -59,8 +59,8 @@ impl CPU {
         new_value
     }
 
-    /// Handles the CP instruction for the given [ArithmeticSource](super::ArithmeticSource).
-    pub fn handle_cp_instruction(&mut self, source: ArithmeticSource) -> u16 {
+    /// Handles the CP instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    pub fn handle_cp_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         self.sub(value, false);
         self.pc.wrapping_add(1)
