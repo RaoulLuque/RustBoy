@@ -1,5 +1,5 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
-use super::{IncDecTarget, Instruction, Register};
+use super::{IncDecTarget, Instruction, Register, PopTarget, PushSource};
 use crate::cpu::instructions::ArithmeticSource;
 
 impl Instruction {
@@ -489,6 +489,21 @@ impl Instruction {
     /// Group 3 consists of control flow and miscellaneous instructions.
     pub(super) fn from_byte_not_prefixed_group_3(byte: u8) -> Option<Instruction> {
         match byte {
+            0xC1 => Some(Instruction::POP(PopTarget::BC)),
+            // TODO: Add missing instructions
+            0xC5 => Some(Instruction::PUSH(PushSource::BC)),
+            // TODO: Add missing instructions
+            0xD1 => Some(Instruction::POP(PopTarget::DE)),
+            // TODO: Add missing instructions
+            0xD5 => Some(Instruction::PUSH(PushSource::DE)),
+            // TODO: Add missing instructions
+            0xE1 => Some(Instruction::POP(PopTarget::HL)),
+            // TODO: Add missing instructions
+            0xE5 => Some(Instruction::PUSH(PushSource::HL)),
+            // TODO: Add missing instructions
+            0xF1 => Some(Instruction::POP(PopTarget::AF)),
+            // TODO: Add missing instructions
+            0xF5 => Some(Instruction::PUSH(PushSource::AF)),
             _ => None,
         }
     }
