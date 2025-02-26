@@ -3,14 +3,14 @@ use crate::cpu::CPU;
 
 /// Represents the possible targets for a byte load instruction.
 #[derive(Clone, Copy, Debug)]
-enum LoadByteTarget {
+pub enum LoadByteTarget {
     REGISTER(Register),
     HLI,
 }
 
 /// Represents the possible sources for a byte load instruction.
 #[derive(Clone, Copy, Debug)]
-enum LoadByteSource {
+pub enum LoadByteSource {
     REGISTER(Register),
     D8,
     HLI,

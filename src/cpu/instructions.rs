@@ -10,12 +10,14 @@
 mod add;
 mod jump;
 mod load;
+mod parsing;
 mod push_and_pop;
 
 use super::CPU;
-use crate::cpu::instructions::jump::JumpCondition;
-use crate::cpu::instructions::load::LoadType;
+use crate::cpu::instructions::load::LoadByteSource;
 use crate::cpu::registers::Registers;
+use jump::JumpCondition;
+use load::{LoadByteTarget, LoadType};
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
@@ -70,15 +72,12 @@ impl Instruction {
     /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
     /// for details.
     pub fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
-        match byte {
-            // TODO: Add more instructions
-            0x87 => Some(Instruction::ADD(Register::A)),
-            0x80 => Some(Instruction::ADD(Register::B)),
-            0x81 => Some(Instruction::ADD(Register::C)),
-            0x82 => Some(Instruction::ADD(Register::D)),
-            0x83 => Some(Instruction::ADD(Register::E)),
-            0x84 => Some(Instruction::ADD(Register::H)),
-            0x85 => Some(Instruction::ADD(Register::L)),
+        let higher_nibble = (byte & 0xF0) >> 4;
+        match higher_nibble {
+            0x0 | 0x1 | 0x2 | 0x3 => Self::from_byte_not_prefixed_group_0(byte),
+            0x4 | 0x5 | 0x6 | 0x7 => Self::from_byte_not_prefixed_group_1(byte),
+            0x8 | 0x9 | 0xA | 0xB => Self::from_byte_not_prefixed_group_2(byte),
+            0xC | 0xD | 0xE | 0xF => Self::from_byte_not_prefixed_group_3(byte),
             _ => None,
         }
     }
