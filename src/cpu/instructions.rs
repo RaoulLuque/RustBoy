@@ -7,7 +7,7 @@
 //!
 //! The instructions are implemented in separate modules for better organization and readability.
 
-mod add;
+mod add_and_adc;
 mod call_and_ret;
 mod jump;
 mod load;

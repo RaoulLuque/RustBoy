@@ -78,7 +78,7 @@ impl Registers {
 /// - zero (Z) - set to true if the result of the last operation was zero
 /// - subtract (N) - set to true if the last operation was a subtraction
 /// - half carry (H) - set to true if there was a carry from bit 3 to bit 4
-/// - carry (C) - set to true if there was a carry from bit 7 (an overflow)
+/// - carry (C/CY) - set to true if there was a carry from bit 7 (an overflow)
 #[derive(Debug)]
 pub struct FlagsRegister {
     pub zero: bool,
