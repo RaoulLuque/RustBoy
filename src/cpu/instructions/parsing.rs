@@ -6,7 +6,7 @@ impl Instruction {
     /// Group 0 consists of the non-prefixed instructions where the higher nibble is 0, 1, 2 or 3.
     /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
     /// for details.
-    fn from_byte_not_prefixed_group_0(byte: u8) -> Option<Instruction> {
+    pub(super) fn from_byte_not_prefixed_group_0(byte: u8) -> Option<Instruction> {
         match byte {
             _ => None,
         }
@@ -16,7 +16,7 @@ impl Instruction {
     /// Group 1 consists of the non-prefixed instructions where the higher nibble is 4, 5, 6 or 7.
     /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
     /// for details.
-    fn from_byte_not_prefixed_group_1(byte: u8) -> Option<Instruction> {
+    pub(super) fn from_byte_not_prefixed_group_1(byte: u8) -> Option<Instruction> {
         match byte {
             0x40 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::B),
@@ -42,7 +42,7 @@ impl Instruction {
     /// Group 2 consists of the non-prefixed instructions where the higher nibble is 8, 9, A or B.
     /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
     /// for details.
-    fn from_byte_not_prefixed_group_2(byte: u8) -> Option<Instruction> {
+    pub(super) fn from_byte_not_prefixed_group_2(byte: u8) -> Option<Instruction> {
         match byte {
             0x80 => Some(Instruction::ADD(Register::B)),
             0x81 => Some(Instruction::ADD(Register::C)),
@@ -59,7 +59,7 @@ impl Instruction {
     /// Group 3 consists of the non-prefixed instructions where the higher nibble is C, D, E or F.
     /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
     /// for details.
-    fn from_byte_not_prefixed_group_3(byte: u8) -> Option<Instruction> {
+    pub(super) fn from_byte_not_prefixed_group_3(byte: u8) -> Option<Instruction> {
         match byte {
             _ => None,
         }
