@@ -13,6 +13,7 @@ mod jump;
 mod load;
 mod parsing;
 mod push_and_pop;
+mod sub_and_sbc;
 
 use super::{MemoryBus, CPU};
 use crate::cpu::registers::{FlagsRegister, Registers};
@@ -26,6 +27,8 @@ use push_and_pop::{PopTarget, PushSource};
 pub enum Instruction {
     ADDToA(ArithmeticSource),
     ADC(ArithmeticSource),
+    SUB(ArithmeticSource),
+    SBC(ArithmeticSource),
     JP(InstructionCondition),
     LD(LoadType),
     PUSH(PushSource),
