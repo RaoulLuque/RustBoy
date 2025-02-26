@@ -130,6 +130,10 @@ impl CPU {
             Instruction::ADC(target) => self.handle_adc_instruction(target),
             Instruction::SUB(target) => self.handle_sub_instruction(target),
             Instruction::SBC(target) => self.handle_sbc_instruction(target),
+            Instruction::AND(target) => self.handle_and_instruction(target),
+            Instruction::OR(target) => self.handle_or_instruction(target),
+            Instruction::XOR(target) => self.handle_xor_instruction(target),
+            Instruction::CP(target) => self.handle_cp_instruction(target),
             Instruction::JP(condition) => self.handle_jump_instruction(condition),
             Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
             _ => {
