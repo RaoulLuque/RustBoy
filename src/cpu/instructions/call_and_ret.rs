@@ -15,7 +15,7 @@ impl CPU {
         let next_pc = self.pc.wrapping_add(3);
         if should_call {
             self.push(next_pc);
-            self.read_next_word_little_endian()
+            self.bus.read_next_word_little_endian(self.pc)
         } else {
             next_pc
         }
