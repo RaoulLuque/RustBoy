@@ -27,7 +27,7 @@ impl CPU {
     /// moves to the next instruction.
     fn jump(&self, should_jump: bool) -> u16 {
         if should_jump {
-            // The Gameboy is little endian so the least significant byte is stored first. However,
+            // The Game Boy is little endian so the least significant byte is stored first. However,
             // in the correct order, so we can just patch them together.
             let low_byte = self.bus.read_byte(self.pc + 1) as u16;
             let high_byte = self.bus.read_byte(self.pc + 2) as u16;

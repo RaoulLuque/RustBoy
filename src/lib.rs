@@ -7,7 +7,7 @@
 #![warn(rust_2021_compatibility)] // Warn about issues with Rust 2021 edition
 #![warn(clippy::all)] // Enable all Clippy lints
 
-//! This crate provides the methods used to run a Gameboy emulator written in Rust, so it can be run both natively and on the web using WebAssembly.
+//! This crate provides the methods used to run a Game Boy emulator written in Rust, so it can be run both natively and on the web using WebAssembly.
 
 mod cpu;
 

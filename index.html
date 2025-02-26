@@ -4,19 +4,23 @@
     <meta charset="utf-8">
     <title>Gameboy Emulator</title>
     <style>
-        canvas { background-color: black; }
+        canvas {
+            background-color: black;
+        }
     </style>
 </head>
 <body id="emulator-body">
 <canvas id="screen" width="160" height="144"></canvas>
 <script type="module">
-    import initSync, { run } from './pkg/rustboy.js';
+    import initSync, {run} from './pkg/rustboy.js';
+
     async function main() {
-        console.log("Loading Gameboy Emulator...");
+        console.log("Loading Game Boy Emulator...");
         await initSync();
         run();
-        console.log("Gameboy Emulator Loaded");
+        console.log("Game Boy Emulator Loaded");
     }
+
     main();
 </script>
 </body>
