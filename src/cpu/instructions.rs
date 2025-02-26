@@ -85,6 +85,11 @@ impl Instruction {
     /// Returns the non-prefix instruction corresponding to the given byte. See
     /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
     /// for details.
+    ///
+    /// - Group 0 are miscellaneous instructions.
+    /// - Group 1 are load instructions and the HALT instruction.
+    /// - Group 2 are arithmetic instructions.
+    /// - Group 3 are control flow and miscellaneous instructions.
     pub fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         let higher_nibble = (byte & 0xF0) >> 4;
         match higher_nibble {

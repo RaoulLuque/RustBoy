@@ -5,7 +5,9 @@ use crate::cpu::CPU;
 #[derive(Clone, Copy, Debug)]
 pub enum LoadByteTarget {
     REGISTER(Register),
-    HLI,
+    HL,
+    HLIncrement,
+    HLDecrement,
 }
 
 /// Represents the possible sources for a byte load instruction.
@@ -13,7 +15,9 @@ pub enum LoadByteTarget {
 pub enum LoadByteSource {
     REGISTER(Register),
     D8,
-    HLI,
+    HL,
+    HLIncrement,
+    HLDecrement,
 }
 
 /// Represents the possible types of load instructions.
@@ -30,13 +34,13 @@ impl CPU {
                 let value = match source {
                     LoadByteSource::REGISTER(register) => register.get_register(&self.registers),
                     LoadByteSource::D8 => self.bus.read_byte(self.pc + 1),
-                    LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
+                    LoadByteSource::HL => self.bus.read_byte(self.registers.get_hl()),
                 };
                 match target {
                     LoadByteTarget::REGISTER(register) => {
                         register.set_register(&mut self.registers, value);
                     }
-                    LoadByteTarget::HLI => {
+                    LoadByteTarget::HL => {
                         self.bus.write_byte(self.registers.get_hl(), value);
                     }
                 }
