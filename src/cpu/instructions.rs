@@ -14,10 +14,9 @@ mod parsing;
 mod push_and_pop;
 
 use super::CPU;
-use crate::cpu::instructions::load::LoadByteSource;
 use crate::cpu::registers::Registers;
 use jump::JumpCondition;
-use load::{LoadByteTarget, LoadType};
+use load::LoadType;
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html) or
