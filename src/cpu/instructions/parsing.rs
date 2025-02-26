@@ -1,4 +1,4 @@
-use super::load::{LoadByteSource, LoadByteTarget, LoadType};
+use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
 use super::{Instruction, Register};
 use crate::cpu::instructions::ArithmeticSource;
 
@@ -12,6 +12,110 @@ impl Instruction {
     pub(super) fn from_byte_not_prefixed_group_0(byte: u8) -> Option<Instruction> {
         match byte {
             0x00 => Some(Instruction::NOP),
+            0x01 => Some(Instruction::LD(LoadType::Word(
+                LoadWordTarget::BC,
+                LoadWordSource::D16,
+            ))),
+            0x02 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::BCRef,
+                LoadByteSource::REGISTER(Register::A),
+            ))),
+            // TODO: Add missing instructions
+            0x06 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::B),
+                LoadByteSource::D8,
+            ))),
+            // TODO: Add missing instructions
+            0x08 => Some(Instruction::LD(LoadType::Word(
+                LoadWordTarget::A16Ref,
+                LoadWordSource::SP,
+            ))),
+            // TODO: Add missing instructions
+            0x0A => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::A),
+                LoadByteSource::BCRef,
+            ))),
+            // TODO: Add missing instructions
+            0x0E => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::C),
+                LoadByteSource::D8,
+            ))),
+
+            // TODO: Add missing instructions
+            0x11 => Some(Instruction::LD(LoadType::Word(
+                LoadWordTarget::DE,
+                LoadWordSource::D16,
+            ))),
+            0x12 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::DERef,
+                LoadByteSource::REGISTER(Register::A),
+            ))),
+            // TODO: Add missing instructions
+            0x16 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::D),
+                LoadByteSource::D8,
+            ))),
+            // TODO: Add missing instructions
+            0x1A => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::A),
+                LoadByteSource::DERef,
+            ))),
+            // TODO: Add missing instructions
+            0x1E => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::E),
+                LoadByteSource::D8,
+            ))),
+            // TODO: Add missing instructions
+
+            // TODO: Add missing instructions
+            0x21 => Some(Instruction::LD(LoadType::Word(
+                LoadWordTarget::HL,
+                LoadWordSource::D16,
+            ))),
+            0x22 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::HLRefIncrement,
+                LoadByteSource::REGISTER(Register::A),
+            ))),
+            // TODO: Add missing instructions
+            0x26 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::H),
+                LoadByteSource::D8,
+            ))),
+            // TODO: Add missing instructions
+            0x2A => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::A),
+                LoadByteSource::HLRefIncrement,
+            ))),
+            // TODO: Add missing instructions
+            0x2E => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::L),
+                LoadByteSource::D8,
+            ))),
+            // TODO: Add missing instructions
+            0x31 => Some(Instruction::LD(LoadType::Word(
+                LoadWordTarget::SP,
+                LoadWordSource::D16,
+            ))),
+            0x32 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::HLRefDecrement,
+                LoadByteSource::REGISTER(Register::A),
+            ))),
+            // TODO: Add missing instructions
+            0x36 => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::HLRef,
+                LoadByteSource::D8,
+            ))),
+            // TODO: Add missing instructions
+            0x3A => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::A),
+                LoadByteSource::HLRefDecrement,
+            ))),
+            // TODO: Add missing instructions
+            0x3E => Some(Instruction::LD(LoadType::Byte(
+                LoadByteTarget::REGISTER(Register::A),
+                LoadByteSource::D8,
+            ))),
+            // TODO: Add missing instructions
             _ => None,
         }
     }
@@ -50,7 +154,7 @@ impl Instruction {
             ))),
             0x46 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::B),
-                LoadByteSource::HL,
+                LoadByteSource::HLRef,
             ))),
             0x47 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::B),
@@ -82,7 +186,7 @@ impl Instruction {
             ))),
             0x4E => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::C),
-                LoadByteSource::HL,
+                LoadByteSource::HLRef,
             ))),
             0x4F => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::C),
@@ -114,7 +218,7 @@ impl Instruction {
             ))),
             0x56 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::D),
-                LoadByteSource::HL,
+                LoadByteSource::HLRef,
             ))),
             0x57 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::D),
@@ -146,7 +250,7 @@ impl Instruction {
             ))),
             0x5E => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::E),
-                LoadByteSource::HL,
+                LoadByteSource::HLRef,
             ))),
             0x5F => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::E),
@@ -178,7 +282,7 @@ impl Instruction {
             ))),
             0x66 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::H),
-                LoadByteSource::HL,
+                LoadByteSource::HLRef,
             ))),
             0x67 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::H),
@@ -210,7 +314,7 @@ impl Instruction {
             ))),
             0x6E => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::L),
-                LoadByteSource::HL,
+                LoadByteSource::HLRef,
             ))),
             0x6F => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::L),
@@ -271,7 +375,7 @@ impl Instruction {
             ))),
             0x7E => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::A),
-                LoadByteSource::HL,
+                LoadByteSource::HLRef,
             ))),
             0x7F => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::A),

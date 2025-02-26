@@ -17,9 +17,11 @@ pub enum LoadByteTarget {
 pub enum LoadByteSource {
     REGISTER(Register),
     D8,
-    HL,
-    HLIncrement,
-    HLDecrement,
+    HLRef,
+    HLRefIncrement,
+    HLRefDecrement,
+    BCRef,
+    DERef,
 }
 
 /// Represents the possible targets for a word load instruction.
@@ -29,7 +31,7 @@ pub enum LoadWordTarget {
     DE,
     HL,
     SP,
-    A16,
+    A16Ref,
 }
 
 /// Represents the possible sources for a word load instruction.
@@ -59,7 +61,22 @@ impl CPU {
                     LoadByteTarget::HLRef => {
                         self.bus.write_byte(self.registers.get_hl(), value);
                     }
-                    _ => todo!("Not Implemented"),
+                    LoadByteTarget::HLRefIncrement => {
+                        self.bus.write_byte(self.registers.get_hl(), value);
+                        self.registers
+                            .set_hl(self.registers.get_hl().wrapping_add(1));
+                    }
+                    LoadByteTarget::HLRefDecrement => {
+                        self.bus.write_byte(self.registers.get_hl(), value);
+                        self.registers
+                            .set_hl(self.registers.get_hl().wrapping_sub(1));
+                    }
+                    LoadByteTarget::BCRef => {
+                        self.bus.write_byte(self.registers.get_bc(), value);
+                    }
+                    LoadByteTarget::DERef => {
+                        self.bus.write_byte(self.registers.get_de(), value);
+                    }
                 }
                 match source {
                     LoadByteSource::D8 => self.pc.wrapping_add(2),
@@ -81,7 +98,7 @@ impl CPU {
                     LoadWordTarget::SP => {
                         self.set_sp(value);
                     }
-                    LoadWordTarget::A16 => {
+                    LoadWordTarget::A16Ref => {
                         let address_to_store_to = self.bus.read_next_word_little_endian(self.pc);
                         self.bus.write_byte(address_to_store_to, value as u8);
                         self.bus
@@ -93,12 +110,25 @@ impl CPU {
         }
     }
 
-    fn get_value_from_load_byte_source(&self, source: LoadByteSource) -> u8 {
+    fn get_value_from_load_byte_source(&mut self, source: LoadByteSource) -> u8 {
         match source {
             LoadByteSource::REGISTER(register) => register.get_register(&self.registers),
             LoadByteSource::D8 => self.bus.read_byte(self.pc + 1),
-            LoadByteSource::HL => self.bus.read_byte(self.registers.get_hl()),
-            _ => todo!("Not implemented"),
+            LoadByteSource::HLRef => self.bus.read_byte(self.registers.get_hl()),
+            LoadByteSource::HLRefIncrement => {
+                let hl = self.registers.get_hl();
+                let value = self.bus.read_byte(hl);
+                self.registers.set_hl(hl.wrapping_add(1));
+                value
+            }
+            LoadByteSource::HLRefDecrement => {
+                let hl = self.registers.get_hl();
+                let value = self.bus.read_byte(hl);
+                self.registers.set_hl(hl.wrapping_sub(1));
+                value
+            }
+            LoadByteSource::BCRef => self.bus.read_byte(self.registers.get_bc()),
+            LoadByteSource::DERef => self.bus.read_byte(self.registers.get_de()),
         }
     }
 
