@@ -53,8 +53,9 @@ impl CPU {
     }
 
     /// Pushes the given value onto the stack decreasing the stack pointer by 2 (increasing the
-    /// size of the stack).
-    fn push(&mut self, value_to_push: u16) {
+    /// size of the stack). The value is stored in little endian format, so the least significant byte is
+    /// stored first, that is, on top of the stack.
+    pub fn push(&mut self, value_to_push: u16) {
         self.sp = self.sp.wrapping_sub(1);
         self.bus
             .write_byte(self.sp, ((value_to_push & 0xF0) >> 8) as u8);
@@ -71,12 +72,13 @@ impl CPU {
     }
 
     /// Pops a value from the stack increasing the stack pointer by 2 (decreasing the size of the
-    /// stack).
-    fn pop(&mut self) -> u16 {
-        let upper_byte = self.bus.read_byte(self.sp) as u16;
+    /// stack). The value is stored in little endian format, so the least significant byte is read first,
+    /// that is, it is at the top of the stack.
+    pub fn pop(&mut self) -> u16 {
+        let lower_byte = self.bus.read_byte(self.sp) as u16;
         self.sp = self.sp.wrapping_add(1);
 
-        let lower_byte = self.bus.read_byte(self.sp) as u16;
+        let upper_byte = self.bus.read_byte(self.sp) as u16;
         self.sp = self.sp.wrapping_add(1);
         (upper_byte << 8) | lower_byte
     }
