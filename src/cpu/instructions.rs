@@ -6,6 +6,9 @@
 //! the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
 //!
 //! The instructions are implemented in separate modules for better organization and readability.
+//! In the cases where instructions share the same target or source for their operations
+//! (e.g. ADD and ADC, [ArithmeticSource]), they use a common type to represent the target or source which is then
+//! implemented in this module.
 
 mod add_and_adc;
 mod call_and_ret;
@@ -49,6 +52,7 @@ enum Register {
     L,
 }
 
+/// Represents the possible targets for a arithmetic instructions such as ADD, ADC, SUB, and SBC.
 #[derive(Clone, Copy, Debug)]
 pub(in crate::cpu::instructions) enum ArithmeticSource {
     Register(Register),
@@ -118,6 +122,9 @@ impl CPU {
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
             Instruction::ADDToA(target) => self.handle_add_instruction(target),
+            Instruction::ADC(target) => self.handle_adc_instruction(target),
+            Instruction::SUB(target) => self.handle_sub_instruction(target),
+            Instruction::SBC(target) => self.handle_sbc_instruction(target),
             Instruction::JP(condition) => self.handle_jump_instruction(condition),
             Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
             _ => {
