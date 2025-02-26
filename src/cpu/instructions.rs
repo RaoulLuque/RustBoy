@@ -14,7 +14,7 @@ mod load;
 mod parsing;
 mod push_and_pop;
 
-use super::CPU;
+use super::{MemoryBus, CPU};
 use crate::cpu::registers::{FlagsRegister, Registers};
 use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
@@ -24,7 +24,8 @@ use push_and_pop::{PopTarget, PushSource};
 /// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
 #[derive(Clone, Copy, Debug)]
 pub enum Instruction {
-    ADD(Register),
+    ADDToA(ArithmeticSource),
+    ADC(ArithmeticSource),
     JP(InstructionCondition),
     LD(LoadType),
     PUSH(PushSource),
@@ -43,6 +44,13 @@ enum Register {
     E,
     H,
     L,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(in crate::cpu::instructions) enum ArithmeticSource {
+    Register(Register),
+    D8,
+    HL,
 }
 
 /// Represents the possible conditions for an instruction to execute or not (e.g. JP or CALL).
@@ -106,7 +114,7 @@ impl CPU {
     /// Executes the instruction on the CPU.
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
-            Instruction::ADD(target) => self.handle_add_instruction(target),
+            Instruction::ADDToA(target) => self.handle_add_instruction(target),
             Instruction::JP(condition) => self.handle_jump_instruction(condition),
             Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
             _ => {
@@ -141,6 +149,17 @@ impl Register {
             Register::E => registers.e = value,
             Register::H => registers.h = value,
             Register::L => registers.l = value,
+        }
+    }
+}
+
+impl ArithmeticSource {
+    /// Returns the value of the source corresponding to the enum variant.
+    fn get_value(&self, registers: &Registers, bus: &MemoryBus, pc: u16) -> u8 {
+        match &self {
+            ArithmeticSource::Register(register) => register.get_register(registers),
+            ArithmeticSource::D8 => bus.read_byte(pc + 1),
+            ArithmeticSource::HL => bus.read_byte(registers.get_hl()),
         }
     }
 }
