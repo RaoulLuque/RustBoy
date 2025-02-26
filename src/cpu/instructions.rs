@@ -29,6 +29,7 @@ use push_and_pop::{PopTarget, PushSource};
 /// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/).
 #[derive(Clone, Copy, Debug)]
 pub enum Instruction {
+    NOP,
     ADDToA(ArithmeticSource),
     ADC(ArithmeticSource),
     SUB(ArithmeticSource),
@@ -126,6 +127,7 @@ impl CPU {
     /// Executes the instruction on the CPU.
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
+            Instruction::NOP => self.pc.wrapping_add(1),
             Instruction::ADDToA(target) => self.handle_add_instruction(target),
             Instruction::ADC(target) => self.handle_adc_instruction(target),
             Instruction::SUB(target) => self.handle_sub_instruction(target),

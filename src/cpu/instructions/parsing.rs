@@ -11,6 +11,7 @@ impl Instruction {
     /// Group 0 consists of miscellaneous instructions.
     pub(super) fn from_byte_not_prefixed_group_0(byte: u8) -> Option<Instruction> {
         match byte {
+            0x00 => Some(Instruction::NOP),
             _ => None,
         }
     }
