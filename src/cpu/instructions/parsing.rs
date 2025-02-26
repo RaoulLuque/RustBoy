@@ -614,6 +614,7 @@ impl Instruction {
             0xC4 => Some(Instruction::CALL(InstructionCondition::NotZero)),
             0xC5 => Some(Instruction::PUSH(PushSource::BC)),
             0xC6 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::D8)),
+            0xC7 => Some(Instruction::RST(0x00)),
             // TODO: Add missing instructions
             0xC8 => Some(Instruction::RET(InstructionCondition::Zero)),
             0xC9 => Some(Instruction::RET(InstructionCondition::Always)),
@@ -623,7 +624,8 @@ impl Instruction {
             0xCC => Some(Instruction::CALL(InstructionCondition::Zero)),
             0xCD => Some(Instruction::CALL(InstructionCondition::Always)),
             0xCE => Some(Instruction::ADC(ArithmeticOrLogicalSource::D8)),
-            // TODO: Add missing instructions
+            0xCF => Some(Instruction::RST(0x08)),
+
             0xD0 => Some(Instruction::RET(InstructionCondition::NotCarry)),
             0xD1 => Some(Instruction::POP(PopTarget::DE)),
             0xD2 => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
@@ -632,7 +634,7 @@ impl Instruction {
             0xD4 => Some(Instruction::CALL(InstructionCondition::NotCarry)),
             0xD5 => Some(Instruction::PUSH(PushSource::DE)),
             0xD6 => Some(Instruction::SUB(ArithmeticOrLogicalSource::D8)),
-            // TODO: Add missing instructions
+            0xD7 => Some(Instruction::RST(0x10)),
             0xD8 => Some(Instruction::RET(InstructionCondition::Carry)),
             // TODO: Add missing instructions
             0xDA => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
@@ -640,26 +642,29 @@ impl Instruction {
             ))),
             0xDC => Some(Instruction::CALL(InstructionCondition::Carry)),
             0xDE => Some(Instruction::SBC(ArithmeticOrLogicalSource::D8)),
-            // TODO: Add missing instructions
+            0xDF => Some(Instruction::RST(0x18)),
 
             // TODO: Add missing instructions
             0xE1 => Some(Instruction::POP(PopTarget::HL)),
             // TODO: Add missing instructions
             0xE5 => Some(Instruction::PUSH(PushSource::HL)),
             0xE6 => Some(Instruction::AND(ArithmeticOrLogicalSource::D8)),
+            0xE7 => Some(Instruction::RST(0x20)),
             // TODO: Add missing instructions
             0xE9 => Some(Instruction::JP(JumpType::JumpToHL)),
             // TODO: Add missing instructions
             0xEE => Some(Instruction::XOR(ArithmeticOrLogicalSource::D8)),
-            // TODO: Add missing instructions
+            0xEF => Some(Instruction::RST(0x28)),
 
             // TODO: Add missing instructions
             0xF1 => Some(Instruction::POP(PopTarget::AF)),
             // TODO: Add missing instructions
             0xF5 => Some(Instruction::PUSH(PushSource::AF)),
             0xF6 => Some(Instruction::OR(ArithmeticOrLogicalSource::D8)),
+            0xF7 => Some(Instruction::RST(0x30)),
             // TODO: Add missing instructions
             0xFE => Some(Instruction::CP(ArithmeticOrLogicalSource::D8)),
+            0xFF => Some(Instruction::RST(0x38)),
             _ => None,
         }
     }

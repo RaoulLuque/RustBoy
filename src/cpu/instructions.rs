@@ -12,7 +12,7 @@
 //! implemented in this module.
 
 mod add_and_adc;
-mod call_and_ret;
+mod call_ret_and_rst;
 mod inc_and_dec;
 mod jump;
 mod load;
@@ -51,6 +51,7 @@ pub enum Instruction {
     POP(PopTarget),
     CALL(InstructionCondition),
     RET(InstructionCondition),
+    RST(u16),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -152,6 +153,7 @@ impl CPU {
             Instruction::RET(condition) => self.handle_ret_instruction(condition),
             Instruction::PUSH(source) => self.handle_push_instruction(source),
             Instruction::POP(target) => self.handle_pop_instruction(target),
+            Instruction::RST(address) => self.handle_rst_instruction(address),
         }
     }
 }
