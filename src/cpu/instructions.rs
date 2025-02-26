@@ -13,6 +13,7 @@
 
 mod add_and_adc;
 mod call_and_ret;
+mod inc_and_dec;
 mod jump;
 mod load;
 mod logical_operators;
@@ -22,6 +23,7 @@ mod sub_and_sbc;
 
 use super::{MemoryBus, CPU};
 use crate::cpu::registers::{FlagsRegister, Registers};
+use inc_and_dec::IncDecTarget;
 use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
 
@@ -40,6 +42,8 @@ pub enum Instruction {
     OR(ArithmeticSource),
     XOR(ArithmeticSource),
     CP(ArithmeticSource),
+    INC(IncDecTarget),
+    DEC(IncDecTarget),
     JP(InstructionCondition),
     LD(LoadType),
     PUSH(PushSource),
@@ -140,6 +144,8 @@ impl CPU {
             Instruction::CP(target) => self.handle_cp_instruction(target),
             Instruction::JP(condition) => self.handle_jump_instruction(condition),
             Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
+            Instruction::INC(target) => self.handle_inc_instruction(target),
+            Instruction::DEC(target) => self.handle_dec_instruction(target),
             _ => {
                 /* TODO: Support more instructions */
                 self.pc

@@ -19,7 +19,7 @@ impl CPU {
         self.registers.f.carry = (self.registers.a as u16) < ((value as u16) + (carry_flag as u16));
         // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
         // This is the case if the subtraction of the lower 4 bits of the A register and the value is less
-        // than 0. That is, if the lower 4 bits of the A register are less than the lower 4 bits of the value.
+        // than 0. That is, if there is a wrap around and the new_value is greater than 0xF.
         self.registers.f.half_carry = (self.registers.a & 0xF)
             .wrapping_sub(value & 0xF)
             .wrapping_sub(carry_flag as u8)
