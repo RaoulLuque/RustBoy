@@ -1,5 +1,6 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType};
 use super::{Instruction, Register};
+use crate::cpu::instructions::ArithmeticSource;
 
 impl Instruction {
     /// Returns the non-prefix instruction corresponding to the given byte in group 0.
@@ -287,13 +288,22 @@ impl Instruction {
     /// Group 2 consists of arithmetic instructions.
     pub(super) fn from_byte_not_prefixed_group_2(byte: u8) -> Option<Instruction> {
         match byte {
-            0x80 => Some(Instruction::ADD(Register::B)),
-            0x81 => Some(Instruction::ADD(Register::C)),
-            0x82 => Some(Instruction::ADD(Register::D)),
-            0x83 => Some(Instruction::ADD(Register::E)),
-            0x84 => Some(Instruction::ADD(Register::H)),
-            0x85 => Some(Instruction::ADD(Register::L)),
-            0x87 => Some(Instruction::ADD(Register::A)),
+            0x80 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::B))),
+            0x81 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::C))),
+            0x82 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::D))),
+            0x83 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::E))),
+            0x84 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::H))),
+            0x85 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::L))),
+            0x86 => Some(Instruction::ADDToA(ArithmeticSource::HL)),
+            0x87 => Some(Instruction::ADDToA(ArithmeticSource::Register(Register::A))),
+            0x88 => Some(Instruction::ADC(ArithmeticSource::Register(Register::B))),
+            0x89 => Some(Instruction::ADC(ArithmeticSource::Register(Register::C))),
+            0x8A => Some(Instruction::ADC(ArithmeticSource::Register(Register::D))),
+            0x8B => Some(Instruction::ADC(ArithmeticSource::Register(Register::E))),
+            0x8C => Some(Instruction::ADC(ArithmeticSource::Register(Register::H))),
+            0x8D => Some(Instruction::ADC(ArithmeticSource::Register(Register::L))),
+            0x8E => Some(Instruction::ADC(ArithmeticSource::HL)),
+            0x8F => Some(Instruction::ADC(ArithmeticSource::Register(Register::A))),
             _ => None,
         }
     }
