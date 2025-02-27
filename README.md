@@ -33,7 +33,7 @@ see [here](https://meganesu.github.io/generate-gb-opcodes/).
 | Cx | [x] RET NZ     | [x] POP BC    | [x] JP NZ,a16  | [x] JP a16    | [x] CALL NZ,a16 | [x] PUSH BC   | [x] ADD A,d8   | [x] RST 0     | [x] RET Z       | [x] RET       | [x] JP Z,a16   |             | [x] CALL Z,a16 | [x] CALL a16 | [x] ADC A,d8   | [x] RST 1   |
 | Dx | [x] RET NC     | [x] POP DE    | [x] JP NC,a16  |               | [x] CALL NC,a16 | [x] PUSH DE   | [x] SUB A,d8   | [x] RST 2     | [x] RET C       | [ ] RETI      | [x] JP C,a16   |             | [x] CALL C,a16 |              | [x] SBC A,d8   | [x] RST 3   |
 | Ex | [x] LDH (a8),A | [x] POP HL    | [x] LDH (C),A  |               |                 | [x] PUSH HL   | [x] AND d8     | [x] RST 4     | [ ] ADD SP,r8   | [x] JP (HL)   | [x] LD (a16),A |             |                |              | [x] XOR d8     | [x] RST 5   |
-| Fx | [x] LDH A,(a8) | [x] POP AF    | [x] LDH A,(C)  | [ ] DI        |                 | [x] PUSH AF   | [x] OR d8      | [x] RST 6     | [ ] LD HL,SP+r8 | [ ] LD SP,HL  | [x] LD A,(a16) | [ ] EI      |                |              | [x] CP d8      | [x] RST 7   |
+| Fx | [x] LDH A,(a8) | [x] POP AF    | [x] LDH A,(C)  | [ ] DI        |                 | [x] PUSH AF   | [x] OR d8      | [x] RST 6     | [x] LD HL,SP+r8 | [x] LD SP,HL  | [x] LD A,(a16) | [ ] EI      |                |              | [x] CP d8      | [x] RST 7   |
 ```
 
 ```markdown

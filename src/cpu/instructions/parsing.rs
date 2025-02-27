@@ -686,7 +686,14 @@ impl Instruction {
             0xF5 => Some(Instruction::PUSH(PushSource::AF)),
             0xF6 => Some(Instruction::OR(ArithmeticOrLogicalSource::D8)),
             0xF7 => Some(Instruction::RST(0x30)),
-            // TODO: Add missing instructions
+            0xF8 => Some(Instruction::LD(LoadType::Word(
+                LoadWordTarget::HL,
+                LoadWordSource::SPPlusE8,
+            ))),
+            0xF9 => Some(Instruction::LD(LoadType::Word(
+                LoadWordTarget::SP,
+                LoadWordSource::HL,
+            ))),
             0xFA => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::A),
                 LoadByteSource::A16Ref,

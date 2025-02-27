@@ -41,6 +41,8 @@ pub enum LoadWordTarget {
 pub enum LoadWordSource {
     D16,
     SP,
+    SPPlusE8,
+    HL,
 }
 
 /// Represents the possible types of load instructions.
@@ -105,9 +107,13 @@ impl CPU {
                 }
             }
             LoadType::Word(target, source) => {
-                // All word loads take 3 cycles except for the A16Ref target which takes 5.
-                // So add 2 cycles here and then add 2 more if the target is A16Ref.
-                self.increment_cycle_counter(2);
+                // All word loads take 3 cycles except for the A16Ref target which takes 5 and
+                // LD SP, HL which takes 2.
+                // So add 2 cycles here if not LD SP, HL and then add 2 more if the target is A16Ref.
+                match (target, source) {
+                    (LoadWordTarget::SP, LoadWordSource::HL) => self.increment_cycle_counter(1),
+                    _ => self.increment_cycle_counter(2),
+                };
                 let value = self.get_value_from_load_word_source(source);
                 match target {
                     LoadWordTarget::BC => {
@@ -185,6 +191,11 @@ impl CPU {
         match source {
             LoadWordSource::D16 => self.bus.read_next_word_little_endian(self.pc + 1),
             LoadWordSource::SP => self.sp,
+            LoadWordSource::HL => self.registers.get_hl(),
+            LoadWordSource::SPPlusE8 => {
+                let value = (self.bus.read_byte(self.pc + 1) as i8) as i16;
+                (self.sp).wrapping_add_signed(value)
+            }
         }
     }
 }
