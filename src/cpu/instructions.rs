@@ -168,6 +168,7 @@ impl CPU {
             Instruction::DAA => self.handle_daa_instruction(),
             Instruction::SCF => self.handle_scf_instruction(),
             Instruction::CPL => self.handle_cpl_instruction(),
+            Instruction::CCF => self.handle_ccf_instruction(),
         }
     }
 }
