@@ -17,6 +17,7 @@ mod daa_scf_cpl_and_ccf;
 mod inc_and_dec;
 mod jr;
 mod jump;
+mod ldh;
 mod load;
 mod logical_operators;
 mod parsing;
@@ -27,6 +28,7 @@ use super::{MemoryBus, CPU};
 use crate::cpu::registers::{FlagsRegister, Registers};
 use inc_and_dec::IncDecTarget;
 use jump::JumpType;
+use ldh::LDHType;
 use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
 
@@ -49,6 +51,7 @@ pub enum Instruction {
     DEC(IncDecTarget),
     JP(JumpType),
     LD(LoadType),
+    LDH(LDHType),
     PUSH(PushSource),
     POP(PopTarget),
     CALL(InstructionCondition),
@@ -157,6 +160,7 @@ impl CPU {
             Instruction::CP(source) => self.handle_cp_instruction(source),
             Instruction::JP(type_of_jump) => self.handle_jump_instruction(type_of_jump),
             Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
+            Instruction::LDH(type_of_ldh) => self.handle_ldh_instruction(type_of_ldh),
             Instruction::INC(target) => self.handle_inc_instruction(target),
             Instruction::DEC(target) => self.handle_dec_instruction(target),
             Instruction::CALL(condition) => self.handle_call_instruction(condition),

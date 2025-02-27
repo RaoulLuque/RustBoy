@@ -1,7 +1,9 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
 use super::{
-    IncDecTarget, Instruction, InstructionCondition, JumpType, PopTarget, PushSource, Register,
+    IncDecTarget, Instruction, InstructionCondition, JumpType, LDHType, PopTarget, PushSource,
+    Register,
 };
+use crate::cpu::instructions::ldh::LDHSourceOrTarget;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
 impl Instruction {
@@ -650,9 +652,15 @@ impl Instruction {
             0xDE => Some(Instruction::SBC(ArithmeticOrLogicalSource::D8)),
             0xDF => Some(Instruction::RST(0x18)),
 
-            // TODO: Add missing instructions
+            0xE0 => Some(Instruction::LDH(LDHType::LDH(
+                LDHSourceOrTarget::A8Ref,
+                LDHSourceOrTarget::A,
+            ))),
             0xE1 => Some(Instruction::POP(PopTarget::HL)),
-            // TODO: Add missing instructions
+            0xE2 => Some(Instruction::LDH(LDHType::LDH(
+                LDHSourceOrTarget::CRef,
+                LDHSourceOrTarget::A,
+            ))),
             0xE5 => Some(Instruction::PUSH(PushSource::HL)),
             0xE6 => Some(Instruction::AND(ArithmeticOrLogicalSource::D8)),
             0xE7 => Some(Instruction::RST(0x20)),
@@ -662,9 +670,15 @@ impl Instruction {
             0xEE => Some(Instruction::XOR(ArithmeticOrLogicalSource::D8)),
             0xEF => Some(Instruction::RST(0x28)),
 
-            // TODO: Add missing instructions
+            0xF0 => Some(Instruction::LDH(LDHType::LDH(
+                LDHSourceOrTarget::A,
+                LDHSourceOrTarget::A8Ref,
+            ))),
             0xF1 => Some(Instruction::POP(PopTarget::AF)),
-            // TODO: Add missing instructions
+            0xF2 => Some(Instruction::LDH(LDHType::LDH(
+                LDHSourceOrTarget::A,
+                LDHSourceOrTarget::CRef,
+            ))),
             0xF5 => Some(Instruction::PUSH(PushSource::AF)),
             0xF6 => Some(Instruction::OR(ArithmeticOrLogicalSource::D8)),
             0xF7 => Some(Instruction::RST(0x30)),
