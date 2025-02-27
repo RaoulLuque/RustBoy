@@ -1,0 +1,30 @@
+use super::{check_instruction_condition, InstructionCondition};
+use crate::cpu::CPU;
+
+impl CPU {
+    /// Handles the JR instruction for the given [InstructionCondition].
+    pub fn handle_jr_instruction(&mut self, condition: InstructionCondition) -> u16 {
+        let should_jump = check_instruction_condition(condition, &self.registers.f);
+        self.cycle_counter += if should_jump { 3 } else { 2 };
+        self.jr(should_jump)
+    }
+
+    /// Jumps (the program counter) a relative distance if should_jump is true. Otherwise, it just
+    /// moves to the next instruction. The JR instruction is 2 bytes long (1 byte for the instruction
+    /// and 1 byte for relative jump which is encoded as a signed integer. This means that the jump
+    /// can be forward or backward. The jump is computed from the address of the following instruction
+    /// which is the address of the JR instruction plus 2.
+    fn jr(&mut self, should_jump: bool) -> u16 {
+        if should_jump {
+            // The relative jump is encoded as a signed integer.  Therefore, we add it using
+            // wrapping_add_signed. Note that the offset is calculated from the address of the
+            // instruction following the JR instruction.
+            let relative_jump = (self.bus.read_byte(self.pc + 1) as i8) as i16;
+            let new_pc = self.pc.wrapping_add(2).wrapping_add_signed(relative_jump);
+            new_pc
+        } else {
+            // If we don't jump we just move to the next instruction.
+            self.pc.wrapping_add(2)
+        }
+    }
+}

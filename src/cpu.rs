@@ -17,6 +17,7 @@ pub struct CPU {
     registers: Registers,
     pc: u16,
     sp: u16,
+    cycle_counter: u32,
     bus: MemoryBus,
 }
 

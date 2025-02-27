@@ -14,6 +14,7 @@
 mod add_and_adc;
 mod call_ret_and_rst;
 mod inc_and_dec;
+mod jr;
 mod jump;
 mod load;
 mod logical_operators;
@@ -52,6 +53,7 @@ pub enum Instruction {
     CALL(InstructionCondition),
     RET(InstructionCondition),
     RST(u16),
+    JR(InstructionCondition),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -154,6 +156,7 @@ impl CPU {
             Instruction::PUSH(source) => self.handle_push_instruction(source),
             Instruction::POP(target) => self.handle_pop_instruction(target),
             Instruction::RST(address) => self.handle_rst_instruction(address),
+            Instruction::JR(condition) => self.handle_jr_instruction(condition),
         }
     }
 }
