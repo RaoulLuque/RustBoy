@@ -10,6 +10,7 @@ pub enum LoadByteTarget {
     HLRefDecrement,
     BCRef,
     DERef,
+    A16Ref,
 }
 
 /// Represents the possible sources for a byte load instruction.
@@ -22,6 +23,7 @@ pub enum LoadByteSource {
     HLRefDecrement,
     BCRef,
     DERef,
+    A16Ref,
 }
 
 /// Represents the possible targets for a word load instruction.
@@ -89,9 +91,16 @@ impl CPU {
                         self.increment_cycle_counter(1);
                         self.bus.write_byte(self.registers.get_de(), value);
                     }
+                    LoadByteTarget::A16Ref => {
+                        self.increment_cycle_counter(3);
+                        let address = self.bus.read_next_word_little_endian(self.pc);
+                        self.bus.write_byte(address, value);
+                    }
                 }
-                match source {
-                    LoadByteSource::D8 => self.pc.wrapping_add(2),
+                match (source, target) {
+                    (LoadByteSource::D8, _) => self.pc.wrapping_add(2),
+                    (LoadByteSource::A16Ref, _) => self.pc.wrapping_add(3),
+                    (_, LoadByteTarget::A16Ref) => self.pc.wrapping_add(3),
                     _ => self.pc.wrapping_add(1),
                 }
             }
@@ -162,6 +171,11 @@ impl CPU {
             LoadByteSource::DERef => {
                 self.increment_cycle_counter(1);
                 self.bus.read_byte(self.registers.get_de())
+            }
+            LoadByteSource::A16Ref => {
+                self.increment_cycle_counter(3);
+                let address = self.bus.read_next_word_little_endian(self.pc);
+                self.bus.read_byte(address)
             }
         }
     }
