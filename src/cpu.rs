@@ -61,6 +61,11 @@ impl CPU {
         self.sp = value;
     }
 
+    /// Increment the cycle counter by the provided value.
+    fn increment_cycle_counter(&mut self, value: u32) {
+        self.cycle_counter += value;
+    }
+
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
     fn step(&mut self) {

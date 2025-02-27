@@ -3,8 +3,15 @@ use crate::cpu::CPU;
 
 impl CPU {
     /// Handles the call instruction for the given [InstructionCondition].
+    ///
+    /// The CALL instruction takes 6 cycles if the call is taken and 3 cycles if it is not.
     pub fn handle_call_instruction(&mut self, condition: InstructionCondition) -> u16 {
         let should_call = check_instruction_condition(condition, &self.registers.f);
+        if should_call {
+            self.increment_cycle_counter(6)
+        } else {
+            self.increment_cycle_counter(3)
+        };
         self.call(should_call, None)
     }
 
@@ -30,8 +37,21 @@ impl CPU {
         }
     }
 
+    /// Handles the RET instruction for the given [InstructionCondition].
+    ///
+    /// The RET instruction takes 5 cycles if the return is taken and 2 cycles if it is not.
+    /// Except for the RETI and RET::Always instruction which take 4 cycles.
     pub fn handle_ret_instruction(&mut self, condition: InstructionCondition) -> u16 {
         let should_return = check_instruction_condition(condition, &self.registers.f);
+        if condition == InstructionCondition::Always {
+            self.increment_cycle_counter(4)
+        } else {
+            if should_return {
+                self.increment_cycle_counter(5)
+            } else {
+                self.increment_cycle_counter(2)
+            }
+        };
         self.ret(should_return)
     }
 
@@ -46,7 +66,10 @@ impl CPU {
 
     /// Handles the RST instruction for the given address.
     /// This instruction is just a special case of the CALL instruction where the address is fixed.
+    ///
+    /// The RST instruction takes 4 cycles.
     pub fn handle_rst_instruction(&mut self, address: u16) -> u16 {
+        self.increment_cycle_counter(4);
         self.call(true, Some(address))
     }
 }

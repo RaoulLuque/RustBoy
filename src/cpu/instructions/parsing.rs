@@ -435,7 +435,7 @@ impl Instruction {
             0x85 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0x86 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::HL)),
+            0x86 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::HLRef)),
             0x87 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
@@ -457,7 +457,7 @@ impl Instruction {
             0x8D => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0x8E => Some(Instruction::ADC(ArithmeticOrLogicalSource::HL)),
+            0x8E => Some(Instruction::ADC(ArithmeticOrLogicalSource::HLRef)),
             0x8F => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
@@ -480,7 +480,7 @@ impl Instruction {
             0x95 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0x96 => Some(Instruction::SUB(ArithmeticOrLogicalSource::HL)),
+            0x96 => Some(Instruction::SUB(ArithmeticOrLogicalSource::HLRef)),
             0x97 => Some(Instruction::SUB(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
@@ -502,7 +502,7 @@ impl Instruction {
             0x9D => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0x9E => Some(Instruction::SBC(ArithmeticOrLogicalSource::HL)),
+            0x9E => Some(Instruction::SBC(ArithmeticOrLogicalSource::HLRef)),
             0x9F => Some(Instruction::SBC(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
@@ -525,7 +525,7 @@ impl Instruction {
             0xA5 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0xA6 => Some(Instruction::AND(ArithmeticOrLogicalSource::HL)),
+            0xA6 => Some(Instruction::AND(ArithmeticOrLogicalSource::HLRef)),
             0xA7 => Some(Instruction::AND(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
@@ -547,7 +547,7 @@ impl Instruction {
             0xAD => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0xAE => Some(Instruction::XOR(ArithmeticOrLogicalSource::HL)),
+            0xAE => Some(Instruction::XOR(ArithmeticOrLogicalSource::HLRef)),
             0xAF => Some(Instruction::XOR(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
@@ -570,7 +570,7 @@ impl Instruction {
             0xB5 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0xB6 => Some(Instruction::OR(ArithmeticOrLogicalSource::HL)),
+            0xB6 => Some(Instruction::OR(ArithmeticOrLogicalSource::HLRef)),
             0xB7 => Some(Instruction::OR(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
@@ -592,7 +592,7 @@ impl Instruction {
             0xBD => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0xBE => Some(Instruction::CP(ArithmeticOrLogicalSource::HL)),
+            0xBE => Some(Instruction::CP(ArithmeticOrLogicalSource::HLRef)),
             0xBF => Some(Instruction::CP(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),

@@ -3,10 +3,19 @@ use crate::cpu::CPU;
 
 impl CPU {
     /// Handles the add instruction for the given [Register].
+    ///
+    /// The ADD instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_add_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.add(value, false);
         self.registers.a = new_value;
+
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 
@@ -33,10 +42,18 @@ impl CPU {
 
     /// Handles the adc instruction for the given [Register].
     /// Does the same as [handle_add_instruction] but adds the carry flag to the value.
+    ///
+    /// The ADC instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_adc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.add(value, self.registers.f.carry);
         self.registers.a = new_value;
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 }

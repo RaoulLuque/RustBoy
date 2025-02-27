@@ -74,11 +74,11 @@ enum Register {
 pub(in crate::cpu::instructions) enum ArithmeticOrLogicalSource {
     Register(Register),
     D8,
-    HL,
+    HLRef,
 }
 
 /// Represents the possible conditions for an instruction to execute or not (e.g. JP or CALL).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum InstructionCondition {
     NotZero,
     Zero,
@@ -138,7 +138,10 @@ impl CPU {
     /// Executes the instruction on the CPU.
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
-            Instruction::NOP => self.pc.wrapping_add(1),
+            Instruction::NOP => {
+                self.increment_cycle_counter(1);
+                self.pc.wrapping_add(1)
+            }
             Instruction::ADDToA(source) => self.handle_add_instruction(source),
             Instruction::ADC(source) => self.handle_adc_instruction(source),
             Instruction::SUB(source) => self.handle_sub_instruction(source),
@@ -195,7 +198,7 @@ impl ArithmeticOrLogicalSource {
         match &self {
             ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
             ArithmeticOrLogicalSource::D8 => bus.read_byte(pc + 1),
-            ArithmeticOrLogicalSource::HL => bus.read_byte(registers.get_hl()),
+            ArithmeticOrLogicalSource::HLRef => bus.read_byte(registers.get_hl()),
         }
     }
 }

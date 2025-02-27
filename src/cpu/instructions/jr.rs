@@ -3,9 +3,15 @@ use crate::cpu::CPU;
 
 impl CPU {
     /// Handles the JR instruction for the given [InstructionCondition].
+    ///
+    /// The JR instruction takes 3 cycles if the jump is taken and 2 cycle if it is not.
     pub fn handle_jr_instruction(&mut self, condition: InstructionCondition) -> u16 {
         let should_jump = check_instruction_condition(condition, &self.registers.f);
-        self.cycle_counter += if should_jump { 3 } else { 2 };
+        if should_jump {
+            self.increment_cycle_counter(3)
+        } else {
+            self.increment_cycle_counter(2)
+        };
         self.jr(should_jump)
     }
 

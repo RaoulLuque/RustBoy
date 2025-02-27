@@ -14,32 +14,41 @@ pub(super) enum IncDecTarget {
 
 impl CPU {
     /// Handles the inc instruction for the given [IncDecTarget].
+    ///
+    /// The INC instruction takes 1 cycle if the target is a register, 3 if it is HLRef
+    /// and 2 if it is BC, DE, HL or SP.
     pub fn handle_inc_instruction(&mut self, target: IncDecTarget) -> u16 {
         match target {
             IncDecTarget::Register(register) => {
                 let new_value = self.inc(register.get_register(&self.registers));
                 register.set_register(&mut self.registers, new_value);
+                self.increment_cycle_counter(1);
             }
             IncDecTarget::HLRef => {
                 let address = self.registers.get_hl();
                 let value = self.bus.read_byte(address);
                 let new_value = self.inc(value);
                 self.bus.write_byte(address, new_value);
+                self.increment_cycle_counter(3);
             }
             IncDecTarget::BC => {
                 self.registers
                     .set_bc(self.registers.get_bc().wrapping_add(1));
+                self.increment_cycle_counter(2);
             }
             IncDecTarget::DE => {
                 self.registers
                     .set_de(self.registers.get_de().wrapping_add(1));
+                self.increment_cycle_counter(2);
             }
             IncDecTarget::HL => {
                 self.registers
                     .set_hl(self.registers.get_hl().wrapping_add(1));
+                self.increment_cycle_counter(2);
             }
             IncDecTarget::SP => {
                 self.set_sp(self.sp.wrapping_add(1));
+                self.increment_cycle_counter(2);
             }
         }
         self.pc.wrapping_add(1)
@@ -58,32 +67,40 @@ impl CPU {
     }
 
     /// Handles the dec instruction for the given [IncDecTarget].
+    /// The DEC instruction takes 1 cycle if the target is a register, 3 if it is HLRef
+    /// and 2 if it is BC, DE, HL or SP.
     pub fn handle_dec_instruction(&mut self, target: IncDecTarget) -> u16 {
         match target {
             IncDecTarget::Register(register) => {
                 let new_value = self.dec(register.get_register(&self.registers));
                 register.set_register(&mut self.registers, new_value);
+                self.increment_cycle_counter(1);
             }
             IncDecTarget::HLRef => {
                 let address = self.registers.get_hl();
                 let value = self.bus.read_byte(address);
                 let new_value = self.dec(value);
                 self.bus.write_byte(address, new_value);
+                self.increment_cycle_counter(3);
             }
             IncDecTarget::BC => {
                 self.registers
                     .set_bc(self.registers.get_bc().wrapping_sub(1));
+                self.increment_cycle_counter(2);
             }
             IncDecTarget::DE => {
                 self.registers
                     .set_de(self.registers.get_de().wrapping_sub(1));
+                self.increment_cycle_counter(2);
             }
             IncDecTarget::HL => {
                 self.registers
                     .set_hl(self.registers.get_hl().wrapping_sub(1));
+                self.increment_cycle_counter(2);
             }
             IncDecTarget::SP => {
                 self.set_sp(self.sp.wrapping_sub(1));
+                self.increment_cycle_counter(2);
             }
         }
         self.pc.wrapping_add(1)

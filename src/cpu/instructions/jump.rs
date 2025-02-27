@@ -11,14 +11,23 @@ pub(super) enum JumpType {
 
 impl CPU {
     /// Handles the jump instruction for the given [InstructionCondition].
+    ///
+    /// The JP instruction takes 4 cycles if the jump is taken and 3 cycles if it is not if the
+    /// target is an immediate operand. If the target is HL, it takes 1 cycle.
     pub fn handle_jump_instruction(&mut self, jump_type: JumpType) -> u16 {
         match jump_type {
             JumpType::JumpToImmediateOperand(condition) => {
                 let should_jump = check_instruction_condition(condition, &self.registers.f);
+                if should_jump {
+                    self.increment_cycle_counter(4)
+                } else {
+                    self.increment_cycle_counter(3)
+                };
                 self.jump(should_jump)
             }
             JumpType::JumpToHL => {
                 self.pc = self.registers.get_hl();
+                self.increment_cycle_counter(1);
                 self.pc
             }
         }

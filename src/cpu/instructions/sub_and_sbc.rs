@@ -3,10 +3,18 @@ use crate::cpu::CPU;
 
 impl CPU {
     /// Handles the sub instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    ///
+    /// The SUB instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_sub_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.sub(value, false);
         self.registers.a = new_value;
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 
@@ -28,10 +36,18 @@ impl CPU {
     }
 
     /// Handles the sbc instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    ///
+    /// The SBC instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_sbc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.sub(value, self.registers.f.carry);
         self.registers.a = new_value;
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 }

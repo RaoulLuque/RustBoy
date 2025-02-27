@@ -3,10 +3,18 @@ use crate::cpu::CPU;
 
 impl CPU {
     /// Handles the AND instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    ///
+    /// The AND instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_and_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.and(value);
         self.registers.a = new_value;
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 
@@ -22,10 +30,18 @@ impl CPU {
     }
 
     /// Handles the XOR instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    ///
+    /// The XOR instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_xor_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.xor(value);
         self.registers.a = new_value;
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 
@@ -41,10 +57,18 @@ impl CPU {
     }
 
     /// Handles the OR instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    ///
+    /// The OR instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_or_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         let new_value = self.or(value);
         self.registers.a = new_value;
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 
@@ -60,9 +84,17 @@ impl CPU {
     }
 
     /// Handles the CP instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
+    ///
+    /// The CP instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_cp_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self.bus, self.pc);
         self.sub(value, false);
+        match source {
+            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
+                self.increment_cycle_counter(2)
+            }
+            _ => self.increment_cycle_counter(1),
+        };
         self.pc.wrapping_add(1)
     }
 }
