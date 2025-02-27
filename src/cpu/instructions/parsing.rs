@@ -3,6 +3,7 @@ use super::{
     IncDecTarget, Instruction, InstructionCondition, JumpType, LDHType, PopTarget, PushSource,
     Register,
 };
+use crate::cpu::instructions::add_and_adc::{AddWordSource, AddWordTarget};
 use crate::cpu::instructions::ldh::LDHSourceOrTarget;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
@@ -36,7 +37,7 @@ impl Instruction {
                 LoadWordTarget::A16Ref,
                 LoadWordSource::SP,
             ))),
-            // TODO: Add missing instructions
+            0x09 => Some(Instruction::ADDWord(AddWordTarget::HL, AddWordSource::BC)),
             0x0A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::A),
                 LoadByteSource::BCRef,
@@ -67,7 +68,7 @@ impl Instruction {
             ))),
             // TODO: Add missing instructions
             0x18 => Some(Instruction::JR(InstructionCondition::Always)),
-            // TODO: Add missing instructions
+            0x19 => Some(Instruction::ADDWord(AddWordTarget::HL, AddWordSource::DE)),
             0x1A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::A),
                 LoadByteSource::DERef,
@@ -98,7 +99,7 @@ impl Instruction {
             ))),
             0x27 => Some(Instruction::DAA),
             0x28 => Some(Instruction::JR(InstructionCondition::Zero)),
-            // TODO: Add missing instructions
+            0x29 => Some(Instruction::ADDWord(AddWordTarget::HL, AddWordSource::HL)),
             0x2A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::A),
                 LoadByteSource::HLRefIncrement,
@@ -129,7 +130,7 @@ impl Instruction {
             ))),
             0x37 => Some(Instruction::SCF),
             0x38 => Some(Instruction::JR(InstructionCondition::Carry)),
-            // TODO: Add missing instructions
+            0x39 => Some(Instruction::ADDWord(AddWordTarget::HL, AddWordSource::SP)),
             0x3A => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::REGISTER(Register::A),
                 LoadByteSource::HLRefDecrement,
@@ -419,26 +420,26 @@ impl Instruction {
     /// Group 2 consists of arithmetic instructions.
     pub(super) fn from_byte_not_prefixed_group_2(byte: u8) -> Option<Instruction> {
         match byte {
-            0x80 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+            0x80 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::Register(
                 Register::B,
             ))),
-            0x81 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+            0x81 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::Register(
                 Register::C,
             ))),
-            0x82 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+            0x82 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::Register(
                 Register::D,
             ))),
-            0x83 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+            0x83 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::Register(
                 Register::E,
             ))),
-            0x84 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+            0x84 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::Register(
                 Register::H,
             ))),
-            0x85 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+            0x85 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::Register(
                 Register::L,
             ))),
-            0x86 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::HLRef)),
-            0x87 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::Register(
+            0x86 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::HLRef)),
+            0x87 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::Register(
                 Register::A,
             ))),
             0x88 => Some(Instruction::ADC(ArithmeticOrLogicalSource::Register(
@@ -621,7 +622,7 @@ impl Instruction {
             ))),
             0xC4 => Some(Instruction::CALL(InstructionCondition::NotZero)),
             0xC5 => Some(Instruction::PUSH(PushSource::BC)),
-            0xC6 => Some(Instruction::ADDToA(ArithmeticOrLogicalSource::D8)),
+            0xC6 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::D8)),
             0xC7 => Some(Instruction::RST(0x00)),
             // TODO: Add missing instructions
             0xC8 => Some(Instruction::RET(InstructionCondition::Zero)),
@@ -664,7 +665,7 @@ impl Instruction {
             0xE5 => Some(Instruction::PUSH(PushSource::HL)),
             0xE6 => Some(Instruction::AND(ArithmeticOrLogicalSource::D8)),
             0xE7 => Some(Instruction::RST(0x20)),
-            // TODO: Add missing instructions
+            0xE8 => Some(Instruction::ADDWord(AddWordTarget::SP, AddWordSource::E8)),
             0xE9 => Some(Instruction::JP(JumpType::JumpToHL)),
             // TODO: Add missing instructions
             0xEA => Some(Instruction::LD(LoadType::Byte(

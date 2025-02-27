@@ -26,6 +26,7 @@ mod sub_and_sbc;
 
 use super::{MemoryBus, CPU};
 use crate::cpu::registers::{FlagsRegister, Registers};
+use add_and_adc::{AddWordSource, AddWordTarget};
 use inc_and_dec::IncDecTarget;
 use jump::JumpType;
 use ldh::LDHType;
@@ -39,7 +40,8 @@ use push_and_pop::{PopTarget, PushSource};
 #[derive(Clone, Copy, Debug)]
 pub enum Instruction {
     NOP,
-    ADDToA(ArithmeticOrLogicalSource),
+    ADDByte(ArithmeticOrLogicalSource),
+    ADDWord(AddWordTarget, AddWordSource),
     ADC(ArithmeticOrLogicalSource),
     SUB(ArithmeticOrLogicalSource),
     SBC(ArithmeticOrLogicalSource),
@@ -150,7 +152,10 @@ impl CPU {
                 self.increment_cycle_counter(1);
                 self.pc.wrapping_add(1)
             }
-            Instruction::ADDToA(source) => self.handle_add_instruction(source),
+            Instruction::ADDByte(source) => self.handle_add_byte_instruction(source),
+            Instruction::ADDWord(target, source) => {
+                self.handle_add_word_instruction((target, source))
+            }
             Instruction::ADC(source) => self.handle_adc_instruction(source),
             Instruction::SUB(source) => self.handle_sub_instruction(source),
             Instruction::SBC(source) => self.handle_sbc_instruction(source),
