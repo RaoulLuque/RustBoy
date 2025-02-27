@@ -13,6 +13,7 @@
 
 mod add_and_adc;
 mod call_ret_and_rst;
+mod daa_scf_cpl_and_ccf;
 mod inc_and_dec;
 mod jr;
 mod jump;
@@ -54,6 +55,10 @@ pub enum Instruction {
     RET(InstructionCondition),
     RST(u16),
     JR(InstructionCondition),
+    DAA,
+    SCF,
+    CPL,
+    CCF,
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -160,6 +165,9 @@ impl CPU {
             Instruction::POP(target) => self.handle_pop_instruction(target),
             Instruction::RST(address) => self.handle_rst_instruction(address),
             Instruction::JR(condition) => self.handle_jr_instruction(condition),
+            Instruction::DAA => self.handle_daa_instruction(),
+            Instruction::SCF => self.handle_scf_instruction(),
+            Instruction::CPL => self.handle_cpl_instruction(),
         }
     }
 }
