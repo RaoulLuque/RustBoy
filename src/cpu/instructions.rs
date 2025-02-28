@@ -24,7 +24,8 @@ mod parsing;
 mod push_and_pop;
 mod sub_and_sbc;
 
-use super::{MemoryBus, CPU};
+use super::CPU;
+use crate::cpu::memory_bus::MemoryBus;
 use crate::cpu::registers::{FlagsRegister, Registers};
 use add_and_adc::{AddWordSource, AddWordTarget};
 use inc_and_dec::IncDecTarget;
