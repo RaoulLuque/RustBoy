@@ -28,13 +28,13 @@ impl CPU {
                     self.pc.wrapping_add(1)
                 }
                 (LDHSourceOrTarget::A, LDHSourceOrTarget::A8Ref) => {
-                    let address = self.bus.read_byte(self.pc + 1) as u16;
+                    let address = self.bus.read_byte(self.pc.wrapping_add(1)) as u16;
                     self.registers.a = self.bus.read_byte(0xFF00 + address);
                     self.increment_cycle_counter(3);
                     self.pc.wrapping_add(2)
                 }
                 (LDHSourceOrTarget::A8Ref, LDHSourceOrTarget::A) => {
-                    let address = self.bus.read_byte(self.pc + 1) as u16;
+                    let address = self.bus.read_byte(self.pc.wrapping_add(1)) as u16;
                     self.bus.write_byte(0xFF00 + address, self.registers.a);
                     self.increment_cycle_counter(3);
                     self.pc.wrapping_add(2)

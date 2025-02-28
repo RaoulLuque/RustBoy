@@ -25,7 +25,7 @@ impl CPU {
             // The relative jump is encoded as a signed integer.  Therefore, we add it using
             // wrapping_add_signed. Note that the offset is calculated from the address of the
             // instruction following the JR instruction.
-            let relative_jump = (self.bus.read_byte(self.pc + 1) as i8) as i16;
+            let relative_jump = (self.bus.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
             let new_pc = self.pc.wrapping_add(2).wrapping_add_signed(relative_jump);
             new_pc
         } else {

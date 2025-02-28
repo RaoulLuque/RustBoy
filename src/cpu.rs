@@ -64,7 +64,7 @@ impl CPU {
         // Check if the instruction is a CB instruction (prefix)
         let prefixed = instruction_byte == 0xCB;
         if prefixed {
-            instruction_byte = self.bus.read_byte(self.pc + 1);
+            instruction_byte = self.bus.read_byte(self.pc.wrapping_add(1));
         }
 
         let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)

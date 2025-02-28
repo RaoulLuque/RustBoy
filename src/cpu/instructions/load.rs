@@ -150,7 +150,7 @@ impl CPU {
             LoadByteSource::REGISTER(register) => register.get_register(&self.registers),
             LoadByteSource::D8 => {
                 self.increment_cycle_counter(1);
-                self.bus.read_byte(self.pc + 1)
+                self.bus.read_byte(self.pc.wrapping_add(1))
             }
             LoadByteSource::HLRef => {
                 self.increment_cycle_counter(1);
@@ -189,11 +189,13 @@ impl CPU {
     /// Returns the value from the given [LoadWordSource].
     fn get_value_from_load_word_source(&self, source: LoadWordSource) -> u16 {
         match source {
-            LoadWordSource::D16 => self.bus.read_next_word_little_endian(self.pc + 1),
+            LoadWordSource::D16 => self
+                .bus
+                .read_next_word_little_endian(self.pc.wrapping_add(1)),
             LoadWordSource::SP => self.sp,
             LoadWordSource::HL => self.registers.get_hl(),
             LoadWordSource::SPPlusE8 => {
-                let value = (self.bus.read_byte(self.pc + 1) as i8) as i16;
+                let value = (self.bus.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
                 (self.sp).wrapping_add_signed(value)
             }
         }
