@@ -25,22 +25,40 @@ pub struct CPU {
 }
 
 impl CPU {
-    /// Creates a new instance of the CPU struct.
+    /// Creates a new instance of the CPU struct. The registers and pointers are all set to their
+    /// defaults, as they are before the boot rom has been executed. More specifically,
     /// The registers are set to 0, the program counter (PC) is set to 0x0000,
     /// the stack pointer (SP) is set to 0xFFFE, and the cycle counter is set to 0.
     /// The memory bus is also initialized.
-    pub fn new() -> CPU {
+    pub fn new_before_boot() -> CPU {
         CPU {
-            registers: Registers::default(),
+            registers: Registers::new_zero(),
             pc: 0x0000,
             sp: 0xFFFE,
             cycle_counter: 0,
             bus: MemoryBus {
-                memory: [0; 0xFFFF],
+                memory: [0; 65536],
                 bios: [0; 0x0100],
                 starting_up: true,
             },
         }
+    }
+
+    pub fn new_after_boot() -> CPU {
+        let mut cpu = CPU {
+            registers: Registers::new_after_boot(),
+            pc: 0x0100,
+            sp: 0xFFFE,
+            cycle_counter: 0,
+            bus: MemoryBus {
+                memory: [0; 65536],
+                bios: [0; 0x0100],
+                starting_up: false,
+            },
+        };
+
+        cpu.initialize_hardware_registers();
+        cpu
     }
 
     /// Loads a program into the memory bus at address 0x0000.
@@ -92,5 +110,49 @@ impl CPU {
         };
 
         self.pc = next_pc;
+    }
+
+    /// Initializes the hardware registers to their default values.
+    /// See [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
+    fn initialize_hardware_registers(&mut self) {
+        self.bus.write_byte(0xFF00, 0xCF);
+        self.bus.write_byte(0xFF01, 0x00);
+        self.bus.write_byte(0xFF02, 0x7E);
+        self.bus.write_byte(0xFF04, 0xAB);
+        self.bus.write_byte(0xFF05, 0x00);
+        self.bus.write_byte(0xFF06, 0x00);
+        self.bus.write_byte(0xFF07, 0xF8);
+        self.bus.write_byte(0xFF0F, 0xE1);
+        self.bus.write_byte(0xFF10, 0x80);
+        self.bus.write_byte(0xFF11, 0xBF);
+        self.bus.write_byte(0xFF12, 0xF3);
+        self.bus.write_byte(0xFF13, 0xFF);
+        self.bus.write_byte(0xFF14, 0xBF);
+        self.bus.write_byte(0xFF16, 0x3F);
+        self.bus.write_byte(0xFF17, 0x00);
+        self.bus.write_byte(0xFF19, 0xBF);
+        self.bus.write_byte(0xFF1A, 0x7F);
+        self.bus.write_byte(0xFF1B, 0xFF);
+        self.bus.write_byte(0xFF1C, 0x9F);
+        self.bus.write_byte(0xFF1D, 0xFF);
+        self.bus.write_byte(0xFF1E, 0xBF);
+        self.bus.write_byte(0xFF20, 0xFF);
+        self.bus.write_byte(0xFF21, 0x00);
+        self.bus.write_byte(0xFF22, 0x00);
+        self.bus.write_byte(0xFF23, 0xBF);
+        self.bus.write_byte(0xFF24, 0x77);
+        self.bus.write_byte(0xFF25, 0xF3);
+        self.bus.write_byte(0xFF26, 0xF1);
+        self.bus.write_byte(0xFF40, 0x91);
+        self.bus.write_byte(0xFF41, 0x85);
+        self.bus.write_byte(0xFF42, 0x00);
+        self.bus.write_byte(0xFF43, 0x00);
+        self.bus.write_byte(0xFF44, 0x00);
+        self.bus.write_byte(0xFF45, 0x00);
+        self.bus.write_byte(0xFF46, 0xFF);
+        self.bus.write_byte(0xFF47, 0xFC);
+        self.bus.write_byte(0xFF4A, 0x00);
+        self.bus.write_byte(0xFF4B, 0x00);
+        self.bus.write_byte(0xFFFF, 0x00);
     }
 }

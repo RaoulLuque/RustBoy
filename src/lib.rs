@@ -11,9 +11,11 @@
 
 mod cpu;
 
+use log::trace;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
+use crate::cpu::CPU;
 use winit::{
     event::*,
     event_loop::EventLoop,
@@ -207,6 +209,9 @@ pub async fn run() {
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
 
+    let mut cpu = setup_cpu();
+
+    cpu.run();
     event_loop
         .run(move |event, control_flow| match event {
             Event::WindowEvent {
@@ -268,4 +273,15 @@ pub async fn run() {
             _ => {}
         })
         .expect("Event loop should be able to run");
+}
+
+fn setup_cpu() -> CPU {
+    let mut cpu = cpu::CPU::new_after_boot();
+    trace!("CPU Bus initial state: {}", cpu.bus);
+
+    cpu.load_program("roms/test_roms/bgbtest.gb");
+    // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
+    trace!("CPU Bus after loading program: {}", cpu.bus);
+
+    cpu
 }
