@@ -624,7 +624,6 @@ impl Instruction {
             0xC5 => Some(Instruction::PUSH(PushSource::BC)),
             0xC6 => Some(Instruction::ADDByte(ArithmeticOrLogicalSource::D8)),
             0xC7 => Some(Instruction::RST(0x00)),
-            // TODO: Add missing instructions
             0xC8 => Some(Instruction::RET(InstructionCondition::Zero)),
             0xC9 => Some(Instruction::RET(InstructionCondition::Always)),
             0xCA => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
@@ -667,7 +666,6 @@ impl Instruction {
             0xE7 => Some(Instruction::RST(0x20)),
             0xE8 => Some(Instruction::ADDWord(AddWordTarget::SP, AddWordSource::E8)),
             0xE9 => Some(Instruction::JP(JumpType::JumpToHL)),
-            // TODO: Add missing instructions
             0xEA => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::A16Ref,
                 LoadByteSource::REGISTER(Register::A),
@@ -684,6 +682,7 @@ impl Instruction {
                 LDHSourceOrTarget::A,
                 LDHSourceOrTarget::CRef,
             ))),
+            0xF3 => Some(Instruction::DI),
             0xF5 => Some(Instruction::PUSH(PushSource::AF)),
             0xF6 => Some(Instruction::OR(ArithmeticOrLogicalSource::D8)),
             0xF7 => Some(Instruction::RST(0x30)),
@@ -699,7 +698,7 @@ impl Instruction {
                 LoadByteTarget::REGISTER(Register::A),
                 LoadByteSource::A16Ref,
             ))),
-            // TODO: Add missing instructions
+            0xFB => Some(Instruction::EI),
             0xFE => Some(Instruction::CP(ArithmeticOrLogicalSource::D8)),
             0xFF => Some(Instruction::RST(0x38)),
             _ => None,
