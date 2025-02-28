@@ -26,6 +26,25 @@ pub struct Registers {
 }
 
 impl Registers {
+    /// Creates a new instance of the Registers struct with all registers set to 0.
+    pub fn default() -> Self {
+        Registers {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
+            f: FlagsRegister {
+                zero: false,
+                subtract: false,
+                half_carry: false,
+                carry: false,
+            },
+            h: 0,
+            l: 0,
+        }
+    }
+
     /// Returns the value of the AF register pair.
     pub fn get_af(&self) -> u16 {
         ((self.a as u16) << 8) | (u16::from(&self.f))
