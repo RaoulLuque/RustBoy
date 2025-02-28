@@ -77,7 +77,8 @@ impl CPU {
                 let value = value.expect(
                     "Should be a valid add instruction and therefore value should be present",
                 );
-                self.set_hl(self.registers.get_hl().wrapping_add(value));
+                self.registers
+                    .set_hl(self.registers.get_hl().wrapping_add(value));
                 self.increment_cycle_counter(2);
                 self.pc.wrapping_add(1)
             }
@@ -87,7 +88,7 @@ impl CPU {
                 self.increment_cycle_counter(4);
                 self.pc.wrapping_add(2)
             }
-        };
+        }
     }
 
     /// Adds a 16bit value to the target and sets the corresponding flags in the flags register
