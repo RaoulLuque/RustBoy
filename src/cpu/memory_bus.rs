@@ -11,9 +11,9 @@ const VRAM_END: u16 = 0x9FFF;
 
 /// Struct to represent the memory bus.
 /// It is an array that represents the memory of the RustBoy.
-/// 0xFFFF = 65536 is the size of the memory in bytes
+/// 65536 is the size of the memory in bytes
 pub struct MemoryBus {
-    pub memory: [u8; 0xFFFF],
+    pub memory: [u8; 65536],
     pub bios: [u8; 0x0100],
     pub starting_up: bool,
 }
