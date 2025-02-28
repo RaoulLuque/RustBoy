@@ -7,6 +7,7 @@ mod memory_bus;
 mod registers;
 
 use instructions::Instruction;
+use log::trace;
 use memory_bus::MemoryBus;
 use registers::Registers;
 
@@ -36,14 +37,24 @@ impl CPU {
             cycle_counter: 0,
             bus: MemoryBus {
                 memory: [0; 0xFFFF],
+                bios: [0; 0x0100],
+                starting_up: true,
             },
         }
     }
 
+    /// Loads a program into the memory bus at address 0x0000.
     pub fn load_program(&mut self, program_directory: &str) {
         let program = std::fs::read(program_directory)
             .expect(&format!("Should be able to read file {program_directory}"));
         self.bus.load(0x0000, &program);
+    }
+
+    /// Runs the CPU.
+    pub fn run(&mut self) {
+        loop {
+            self.step();
+        }
     }
 
     /// Sets the stackpointer (SP) to the provided value.
@@ -59,7 +70,7 @@ impl CPU {
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
     fn step(&mut self) {
-        let mut instruction_byte = self.bus.read_byte(self.pc);
+        let mut instruction_byte = self.bus.read_instruction_byte(self.pc);
 
         // Check if the instruction is a CB instruction (prefix)
         let prefixed = instruction_byte == 0xCB;
@@ -69,6 +80,7 @@ impl CPU {
 
         let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
         {
+            println!("Executing instruction: {:?} ", instruction);
             self.execute(instruction)
         } else {
             let panic_description = format!(
