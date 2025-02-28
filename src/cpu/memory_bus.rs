@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Struct to represent the memory bus.
 /// It is an array that represents the memory of the RustBoy.
 /// 0xFFFF = 65536 is the size of the memory in bytes
@@ -36,5 +38,35 @@ impl MemoryBus {
         for (i, &byte) in data.iter().enumerate() {
             self.write_byte(address + i as u16, byte);
         }
+    }
+}
+
+impl fmt::Display for MemoryBus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut string = String::new();
+        string.push_str("MemoryBus: \n");
+        for i in 0..self.memory.len() / 8 {
+            if i == 4096 {
+                string.push_str("End of ROM Bank reached \n");
+                break;
+            }
+            if i % 2 == 0 {
+                string.push_str("\n");
+            }
+            let tmp_string = format!(
+                "{:#04X} {:#04X} {:#04X} {:#04X} {:#04X} {:#04X} {:#04X} {:#04X} ",
+                self.memory[i],
+                self.memory[i + 1],
+                self.memory[i + 2],
+                self.memory[i + 3],
+                self.memory[i + 4],
+                self.memory[i + 5],
+                self.memory[i + 6],
+                self.memory[i + 7]
+            );
+            string.push_str(&tmp_string);
+        }
+        string.push('\n');
+        write!(f, "{}", string)
     }
 }
