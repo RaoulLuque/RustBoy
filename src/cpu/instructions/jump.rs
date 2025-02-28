@@ -3,7 +3,7 @@ use crate::cpu::CPU;
 
 /// Represents the possible targets for the jump instruction.
 ///
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum JumpType {
     JumpToImmediateOperand(InstructionCondition),
     JumpToHL,

@@ -2,7 +2,7 @@ use super::Register;
 use crate::cpu::CPU;
 
 /// Represents the possible targets for an inc or dec instruction.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum IncDecTarget {
     Register(Register),
     HLRef,

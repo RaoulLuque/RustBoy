@@ -2,7 +2,7 @@ use crate::cpu::instructions::Register;
 use crate::cpu::CPU;
 
 /// Represents the possible targets for a byte load instruction.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadByteTarget {
     REGISTER(Register),
     HLRef,
@@ -14,7 +14,7 @@ pub enum LoadByteTarget {
 }
 
 /// Represents the possible sources for a byte load instruction.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadByteSource {
     REGISTER(Register),
     D8,
@@ -27,7 +27,7 @@ pub enum LoadByteSource {
 }
 
 /// Represents the possible targets for a word load instruction.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadWordTarget {
     BC,
     DE,
@@ -37,7 +37,7 @@ pub enum LoadWordTarget {
 }
 
 /// Represents the possible sources for a word load instruction.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadWordSource {
     D16,
     SP,
@@ -46,7 +46,7 @@ pub enum LoadWordSource {
 }
 
 /// Represents the possible types of load instructions.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum LoadType {
     Byte(LoadByteTarget, LoadByteSource),
     Word(LoadWordTarget, LoadWordSource),

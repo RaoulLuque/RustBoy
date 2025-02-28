@@ -33,12 +33,13 @@ use jump::JumpType;
 use ldh::LDHType;
 use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
+use std::cmp::PartialEq;
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
 /// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/) or
 /// the [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Instruction {
     NOP,
     ADDByte(ArithmeticOrLogicalSource),
@@ -65,10 +66,12 @@ pub enum Instruction {
     SCF,
     CPL,
     CCF,
+    DI,
+    EI,
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Register {
     A,
     B,
@@ -81,7 +84,7 @@ enum Register {
 
 /// Represents the possible targets for arithmetic or logical instructions such as
 /// ADD, ADC, SUB, SBC, AND, OR, XOR or CP.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::cpu::instructions) enum ArithmeticOrLogicalSource {
     Register(Register),
     D8,
@@ -148,7 +151,7 @@ impl Instruction {
 impl CPU {
     /// Executes the instruction on the CPU.
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
-        match instruction {
+        let next_pc = match instruction {
             Instruction::NOP => {
                 self.increment_cycle_counter(1);
                 self.pc.wrapping_add(1)
@@ -179,7 +182,24 @@ impl CPU {
             Instruction::SCF => self.handle_scf_instruction(),
             Instruction::CPL => self.handle_cpl_instruction(),
             Instruction::CCF => self.handle_ccf_instruction(),
+            Instruction::DI => {
+                self.increment_cycle_counter(1);
+                self.ime = false;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::EI => {
+                self.increment_cycle_counter(1);
+                self.ime_to_be_set = true;
+                self.pc.wrapping_add(1)
+            }
+        };
+
+        if instruction != Instruction::EI && self.ime_to_be_set {
+            self.ime = true;
+            self.ime_to_be_set = false;
         }
+
+        next_pc
     }
 }
 

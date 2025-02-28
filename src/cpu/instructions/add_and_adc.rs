@@ -1,13 +1,13 @@
 use crate::cpu::instructions::{ArithmeticOrLogicalSource, Register};
 use crate::cpu::CPU;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AddWordTarget {
     HL,
     SP,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AddWordSource {
     BC,
     DE,

@@ -1,13 +1,13 @@
 use crate::cpu::CPU;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LDHSourceOrTarget {
     A,
     CRef,
     A8Ref,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LDHType {
     LDH(LDHSourceOrTarget, LDHSourceOrTarget),
 }
