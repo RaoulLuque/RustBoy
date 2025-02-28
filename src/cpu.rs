@@ -14,6 +14,9 @@ use registers::Registers;
 /// Struct to represent the CPU.
 /// The CPU has 8 registers, a program counter (PC), a stack pointer (SP), and a memory bus.
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+/// The CPU also has a cycle counter to keep track of the number of cycles executed. Additionally
+/// the CPU has an interrupt master enable (IME) flag to control the handling of interrupts, see
+/// [Pan Docs](https://gbdev.io/pandocs/Interrupts.html).
 ///
 /// For implementations of the CPU instructions please see [instructions].
 pub struct CPU {
@@ -22,6 +25,7 @@ pub struct CPU {
     sp: u16,
     cycle_counter: u32,
     pub bus: MemoryBus,
+    ime: bool,
 }
 
 impl CPU {
@@ -41,6 +45,7 @@ impl CPU {
                 bios: [0; 0x0100],
                 starting_up: true,
             },
+            ime: false,
         }
     }
 
@@ -55,6 +60,7 @@ impl CPU {
                 bios: [0; 0x0100],
                 starting_up: false,
             },
+            ime: false,
         };
 
         cpu.initialize_hardware_registers();
