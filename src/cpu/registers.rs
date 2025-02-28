@@ -26,8 +26,9 @@ pub struct Registers {
 }
 
 impl Registers {
-    /// Creates a new instance of the Registers struct with all registers set to 0.
-    pub fn default() -> Self {
+    /// Creates a new instance of the Registers struct with all registers set to 0. This
+    /// is the state of the registers before the boot rom has been executed.
+    pub fn new_zero() -> Self {
         Registers {
             a: 0,
             b: 0,
@@ -42,6 +43,21 @@ impl Registers {
             },
             h: 0,
             l: 0,
+        }
+    }
+
+    /// Creates a new instance of the Registers struct with the registers set to their values
+    /// after the boot rom has been executed.
+    pub fn new_after_boot() -> Self {
+        Registers {
+            a: 0x01,
+            b: 0x00,
+            c: 0x13,
+            d: 0x00,
+            e: 0xD8,
+            f: FlagsRegister::from(0xB0u16),
+            h: 0x01,
+            l: 0x4D,
         }
     }
 
