@@ -7,7 +7,6 @@ mod memory_bus;
 mod registers;
 
 use instructions::Instruction;
-use log::trace;
 use memory_bus::MemoryBus;
 use registers::Registers;
 

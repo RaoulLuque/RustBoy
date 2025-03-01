@@ -12,6 +12,7 @@
 mod cpu;
 mod frontend;
 
+use std::path::Path;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
@@ -134,12 +135,17 @@ pub async fn run() {
 }
 
 fn setup_cpu() -> CPU {
-    let mut cpu = cpu::CPU::new_after_boot();
+    let mut cpu = CPU::new_after_boot();
     log::trace!("CPU Bus initial state: {}", cpu.bus);
 
-    cpu.load_program("roms/tetris.gb");
-    // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
-    log::trace!("CPU Bus after loading program: {}", cpu.bus);
+    match Path::new("/etc/hosts").exists() {
+        true => {
+            cpu.load_program("roms/tetris.gb");
+            // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
+            log::trace!("CPU Bus after loading program: {}", cpu.bus);
+        }
+        false => log::warn!("No rom found"),
+    };
 
     cpu
 }
