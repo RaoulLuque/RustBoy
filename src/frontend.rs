@@ -1,5 +1,10 @@
+mod shader;
+
+use wgpu::util::DeviceExt;
 use winit::event::WindowEvent;
 use winit::window::Window;
+
+use shader::{Vertex, VERTICES};
 
 pub struct State<'a> {
     surface: wgpu::Surface<'a>,
@@ -12,6 +17,8 @@ pub struct State<'a> {
     // unsafe references to the window's resources.
     pub(super) window: &'a Window,
     render_pipeline: wgpu::RenderPipeline,
+    vertex_buffer: wgpu::Buffer,
+    num_vertices: u32,
 }
 
 impl<'a> State<'a> {
@@ -94,7 +101,7 @@ impl<'a> State<'a> {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[],
+                buffers: &[Vertex::desc()],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -126,6 +133,14 @@ impl<'a> State<'a> {
             cache: None,
         });
 
+        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(VERTICES),
+            usage: wgpu::BufferUsages::VERTEX,
+        });
+
+        let num_vertices = VERTICES.len() as u32;
+
         Self {
             surface,
             device,
@@ -134,6 +149,8 @@ impl<'a> State<'a> {
             size,
             window,
             render_pipeline,
+            vertex_buffer,
+            num_vertices,
         }
     }
 
@@ -193,7 +210,8 @@ impl<'a> State<'a> {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.draw(0..3, 0..1);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.draw(0..self.num_vertices, 0..1);
         }
 
         // submit will accept anything that implements IntoIter
