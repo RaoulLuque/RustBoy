@@ -99,7 +99,7 @@ impl CPU {
 
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
-    fn step(&mut self) {
+    pub fn step(&mut self) {
         let mut instruction_byte = self.bus.read_instruction_byte(self.pc);
 
         // Check if the instruction is a CB instruction (prefix)
