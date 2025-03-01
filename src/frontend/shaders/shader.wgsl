@@ -22,9 +22,12 @@ fn vs_main(
 // Fragment shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let resolution = vec2<f32>(800.0, 600.0);
-    let normalized = in.clip_position.xy / resolution;
-    return vec4<f32>(normalized, 0.0, 1.0);
+    let normalized = in.clip_position.xy / vec2<f32>(800.0, 600.0);
+    let color_linear = vec3<f32>(normalized, 0.0);
+    // Apply gamma correction
+    let gamma = 2.2;
+    let color_gamma_corrected = pow(color_linear, vec3<f32>(1.0 / gamma));
+    return vec4<f32>(color_gamma_corrected, 1.0);
 }
 
 
