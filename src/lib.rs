@@ -12,9 +12,9 @@ mod cpu;
 mod frontend;
 
 use std::path::Path;
-use std::time::Instant;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
+use wasm_timer::Instant;
 
 use crate::cpu::CPU;
 use frontend::State;
