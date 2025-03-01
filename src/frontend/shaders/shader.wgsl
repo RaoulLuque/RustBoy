@@ -22,7 +22,9 @@ fn vs_main(
 // Fragment shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(in.color, 1.0);
+    let resolution = vec2<f32>(800.0, 600.0);
+    let normalized = in.clip_position.xy / resolution;
+    return vec4<f32>(normalized, 0.0, 1.0);
 }
 
 
