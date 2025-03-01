@@ -6,24 +6,28 @@
 #![warn(non_snake_case)] // Warn about non-standard naming conventions
 #![warn(rust_2021_compatibility)] // Warn about issues with Rust 2021 edition
 #![warn(clippy::all)] // Enable all Clippy lints
-
 //! This crate provides the methods used to run a Game Boy emulator written in Rust, so it can be run both natively and on the web using WebAssembly.
 
 mod cpu;
 mod frontend;
 
 use std::path::Path;
+use std::time::Instant;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use crate::cpu::CPU;
 use frontend::State;
+use winit::event_loop::ControlFlow;
 use winit::{
     event::*,
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
     window::{Window, WindowBuilder},
 };
+
+const TARGET_FPS: u32 = 1;
+const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
 
 /// Run the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
@@ -68,6 +72,8 @@ pub async fn run() {
 
     let mut cpu = setup_cpu();
 
+    let mut last_frame_time = Instant::now();
+
     event_loop
         .run(move |event, control_flow| match event {
             Event::WindowEvent {
@@ -95,33 +101,41 @@ pub async fn run() {
                             // This tells winit that we want another frame after this one
                             state.window().request_redraw();
 
-                            cpu.step();
-                            std::thread::sleep(std::time::Duration::from_secs(1));
-
                             if !surface_configured {
                                 log::warn!("Surface not configured");
                                 return;
                             }
 
-                            state.update();
-                            match state.render() {
-                                Ok(_) => {}
-                                // Reconfigure the surface if it's lost or outdated
-                                Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                                    log::warn!("Surface is Lost or Outdated");
-                                    state.resize(state.size)
-                                }
-                                // The system is out of memory, we should probably quit
-                                Err(
-                                    wgpu::SurfaceError::OutOfMemory | wgpu::SurfaceError::Other,
-                                ) => {
-                                    log::error!("OutOfMemory");
-                                    control_flow.exit();
-                                }
+                            // Calculate the time since the last frame and check if a new frame
+                            // should be drawn or we still wait
+                            let now = Instant::now();
+                            let elapsed = now.duration_since(last_frame_time);
+                            if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
+                                last_frame_time = Instant::now();
+                                cpu.step();
 
-                                // This happens when a frame takes too long to present
-                                Err(wgpu::SurfaceError::Timeout) => {
-                                    log::warn!("Surface timeout")
+                                state.update();
+                                match state.render() {
+                                    Ok(_) => {}
+                                    // Reconfigure the surface if it's lost or outdated
+                                    Err(
+                                        wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated,
+                                    ) => {
+                                        log::warn!("Surface is Lost or Outdated");
+                                        state.resize(state.size)
+                                    }
+                                    // The system is out of memory, we should probably quit
+                                    Err(
+                                        wgpu::SurfaceError::OutOfMemory | wgpu::SurfaceError::Other,
+                                    ) => {
+                                        log::error!("OutOfMemory");
+                                        control_flow.exit();
+                                    }
+
+                                    // This happens when a frame takes too long to present
+                                    Err(wgpu::SurfaceError::Timeout) => {
+                                        log::warn!("Surface timeout")
+                                    }
                                 }
                             }
                         }
