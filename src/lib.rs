@@ -18,9 +18,10 @@ use wasm_timer::Instant;
 
 use crate::cpu::CPU;
 use frontend::State;
-use winit::event_loop::ControlFlow;
 use winit::{
+    dpi::PhysicalSize,
     event::*,
+    event_loop::ControlFlow,
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
     window::{Window, WindowBuilder},
@@ -28,6 +29,8 @@ use winit::{
 
 const TARGET_FPS: u32 = 1;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
+const SCREEN_WIDTH: u32 = 160;
+const SCREEN_HEIGHT: u32 = 144;
 
 /// Run the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
@@ -46,14 +49,14 @@ pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title("RustBoy");
+    let _ = window.request_inner_size(PhysicalSize::new(SCREEN_WIDTH, SCREEN_HEIGHT));
 
     // Add a canvas to the HTML document
     #[cfg(target_arch = "wasm32")]
     {
         // Winit prevents sizing with CSS, so we have to set
         // the size manually when on web.
-        use winit::dpi::PhysicalSize;
-        let _ = window.request_inner_size(PhysicalSize::new(450, 400));
+        let _ = window.request_inner_size(PhysicalSize::new(SCREEN_WIDTH, SCREEN_HEIGHT));
 
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()
