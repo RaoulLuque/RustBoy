@@ -103,7 +103,7 @@ pub fn setup_shader_pipeline(
     let tilemap_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Tilemap Buffer"),
         contents: bytemuck::cast_slice(&tilemap_data),
-        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -127,12 +127,12 @@ pub fn setup_shader_pipeline(
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
             },
-            // Tilemap Storage Buffer (binding 2)
+            // Tilemap Uniform Buffer (binding 2)
             wgpu::BindGroupLayoutEntry {
                 binding: 2,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: None,
                 },
