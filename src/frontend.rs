@@ -18,6 +18,7 @@ pub struct State<'a> {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     num_vertices: u32,
+    bind_group: wgpu::BindGroup,
 }
 
 impl<'a> State<'a> {
@@ -82,7 +83,7 @@ impl<'a> State<'a> {
             desired_maximum_frame_latency: 2,
         };
 
-        let (render_pipeline, vertex_buffer, num_vertices) =
+        let (render_pipeline, vertex_buffer, num_vertices, bind_group) =
             setup_shader_pipeline(&device, &config);
 
         Self {
@@ -95,6 +96,7 @@ impl<'a> State<'a> {
             render_pipeline,
             vertex_buffer,
             num_vertices,
+            bind_group,
         }
     }
 
@@ -154,6 +156,7 @@ impl<'a> State<'a> {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.set_bind_group(0, &self.bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.draw(0..self.num_vertices, 0..1);
         }

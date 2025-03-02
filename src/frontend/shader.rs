@@ -1,6 +1,9 @@
 use wgpu::util::DeviceExt;
 use wgpu::{Device, SurfaceConfiguration};
 
+const TILE_SIZE: u32 = 8;
+const ATLAS_COLS: u32 = 16;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub(super) struct Vertex {
@@ -59,7 +62,99 @@ impl Vertex {
 pub fn setup_shader_pipeline(
     device: &Device,
     config: &SurfaceConfiguration,
-) -> (wgpu::RenderPipeline, wgpu::Buffer, u32) {
+) -> (wgpu::RenderPipeline, wgpu::Buffer, u32, wgpu::BindGroup) {
+    // This holds all possible tiles (16x16 tiles, 8x8 pixels each)
+    let tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Tile Atlas"),
+        size: wgpu::Extent3d {
+            // Each tile is 8x8 pixels, and we have 16x16 tiles
+            width: TILE_SIZE * ATLAS_COLS,
+            height: TILE_SIZE * ATLAS_COLS,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb, // Game Boy uses 4 colors (RGBA for simplicity)
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+
+    // Configuration for the sampler
+    let atlas_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        label: Some("Atlas Sampler"),
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        mag_filter: wgpu::FilterMode::Nearest, // Critical for crisp pixels
+        min_filter: wgpu::FilterMode::Nearest,
+        ..Default::default()
+    });
+
+    // Represents which tiles are displayed where (Game Boy: 32x32 tile grid)
+    // Initialize blank tilemap (0th tile always)
+    let tilemap_data = vec![0u32; 32 * 32];
+    let tilemap_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Tilemap Buffer"),
+        contents: bytemuck::cast_slice(&tilemap_data),
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+    });
+
+    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("Main Bind Group Layout"),
+        entries: &[
+            // Tile Atlas Texture (binding 0)
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            // Atlas Sampler (binding 1)
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+            // Tilemap Storage Buffer (binding 2)
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    });
+
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("Main Bind Group"),
+        layout: &bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(
+                    &tile_atlas_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                ),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(&atlas_sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: tilemap_buffer.as_entire_binding(),
+            },
+        ],
+    });
+
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Shader"),
         source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shader.wgsl").into()),
@@ -67,7 +162,7 @@ pub fn setup_shader_pipeline(
 
     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Render Pipeline Layout"),
-        bind_group_layouts: &[],
+        bind_group_layouts: &[&bind_group_layout],
         push_constant_ranges: &[],
     });
 
@@ -117,5 +212,5 @@ pub fn setup_shader_pipeline(
 
     let num_vertices = VERTICES.len() as u32;
 
-    (render_pipeline, vertex_buffer, num_vertices)
+    (render_pipeline, vertex_buffer, num_vertices, bind_group)
 }
