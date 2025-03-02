@@ -1,8 +1,8 @@
 use wgpu::util::DeviceExt;
-use wgpu::{Device, SurfaceConfiguration};
+use wgpu::{Buffer, Device, SurfaceConfiguration};
 
-const TILE_SIZE: u32 = 8;
-const ATLAS_COLS: u32 = 16;
+pub(super) const TILE_SIZE: u32 = 8;
+pub(super) const ATLAS_COLS: u32 = 16;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -62,7 +62,14 @@ impl Vertex {
 pub fn setup_shader_pipeline(
     device: &Device,
     config: &SurfaceConfiguration,
-) -> (wgpu::RenderPipeline, wgpu::Buffer, u32, wgpu::BindGroup) {
+) -> (
+    wgpu::RenderPipeline,
+    Buffer,
+    u32,
+    wgpu::BindGroup,
+    Buffer,
+    wgpu::Texture,
+) {
     // This holds all possible tiles (16x16 tiles, 8x8 pixels each)
     let tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Tile Atlas"),
@@ -93,7 +100,7 @@ pub fn setup_shader_pipeline(
     // Represents which tiles are displayed where (Game Boy: 32x32 tile grid)
     // Initialize blank tilemap (0th tile always)
     let tilemap_data = vec![0u32; 32 * 32];
-    let tilemap_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    let tilemap_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Tilemap Buffer"),
         contents: bytemuck::cast_slice(&tilemap_data),
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
@@ -212,5 +219,12 @@ pub fn setup_shader_pipeline(
 
     let num_vertices = VERTICES.len() as u32;
 
-    (render_pipeline, vertex_buffer, num_vertices, bind_group)
+    (
+        render_pipeline,
+        vertex_buffer,
+        num_vertices,
+        bind_group,
+        tilemap_buffer,
+        tile_atlas_texture,
+    )
 }
