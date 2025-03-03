@@ -6,6 +6,7 @@ mod instructions;
 mod memory_bus;
 pub mod registers;
 
+use super::GPU;
 use crate::RustBoy;
 use instructions::Instruction;
 use registers::Registers;
@@ -27,6 +28,7 @@ impl RustBoy {
             starting_up: true,
             ime: false,
             ime_to_be_set: false,
+            gpu: GPU::new_empty(),
         }
     }
 
@@ -41,6 +43,7 @@ impl RustBoy {
             starting_up: false,
             ime: false,
             ime_to_be_set: false,
+            gpu: GPU::new_empty(),
         };
 
         cpu.initialize_hardware_registers();

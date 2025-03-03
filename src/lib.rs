@@ -10,6 +10,7 @@
 
 mod cpu;
 mod frontend;
+mod gpu;
 mod memory_bus;
 
 use std::path::Path;
@@ -19,6 +20,7 @@ use wasm_timer::Instant;
 
 use cpu::registers::Registers;
 use frontend::State;
+use gpu::GPU;
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -66,7 +68,9 @@ pub struct RustBoy {
     // Memory
     memory: [u8; 65536],
     bios: [u8; 0x0100],
+
     // GPU
+    gpu: GPU,
 }
 
 /// Run the emulator.

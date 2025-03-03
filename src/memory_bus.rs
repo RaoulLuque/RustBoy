@@ -6,8 +6,8 @@ const BIOS_BEGIN: u16 = 0x0000;
 const BIOS_END: u16 = 0x00FF;
 const ROM_BANK_1_BEGIN: u16 = 0x4000;
 const ROM_BANK_1_END: u16 = 0x8000;
-const VRAM_BEGIN: u16 = 0x8000;
-const VRAM_END: u16 = 0x9FFF;
+pub const VRAM_BEGIN: u16 = 0x8000;
+pub const VRAM_END: u16 = 0x9FFF;
 
 impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
@@ -38,14 +38,19 @@ impl RustBoy {
                 }
             }
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
-            VRAM_BEGIN..VRAM_END => self.memory[address as usize],
+            VRAM_BEGIN..VRAM_END => self.gpu.read_vram(address - VRAM_BEGIN),
             _ => self.memory[address as usize],
         }
     }
 
     /// Write a byte to the memory at the given address.
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
-        self.memory[address as usize] = value;
+        match address {
+            VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address - VRAM_BEGIN, value),
+            _ => {
+                self.memory[address as usize] = value;
+            }
+        }
     }
 
     /// Reads the word (2 bytes) at the provided address from the memory in little endian order
