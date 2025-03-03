@@ -59,6 +59,35 @@ impl Vertex {
     }
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct PackedTileData {
+    pub indices: [u32; 4],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub(super) struct TilemapUniform {
+    pub(super) tiles: [PackedTileData; 256], // 32x32 grid
+}
+
+impl TilemapUniform {
+    pub fn from_array(input: &[u32; 1024]) -> Self {
+        let mut tiles = [PackedTileData { indices: [0; 4] }; 256];
+
+        for i in 0..256 {
+            tiles[i].indices = [
+                input[i * 4],
+                input[i * 4 + 1],
+                input[i * 4 + 2],
+                input[i * 4 + 3],
+            ];
+        }
+
+        TilemapUniform { tiles }
+    }
+}
+
 pub fn setup_shader_pipeline(
     device: &Device,
     config: &SurfaceConfiguration,
@@ -99,10 +128,11 @@ pub fn setup_shader_pipeline(
 
     // Represents which tiles are displayed where (Game Boy: 32x32 tile grid)
     // Initialize blank tilemap (0th tile always)
-    let tilemap_data = vec![0u32; 32 * 32];
+    let tilemap_data = [0u32; 32 * 32];
+    let tilemap = TilemapUniform::from_array(&tilemap_data);
     let tilemap_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Tilemap Buffer"),
-        contents: bytemuck::cast_slice(&tilemap_data),
+        contents: bytemuck::cast_slice(&[tilemap]),
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 

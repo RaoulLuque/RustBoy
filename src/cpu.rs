@@ -22,13 +22,16 @@ use registers::Registers;
 ///
 /// For implementations of the CPU instructions please see [instructions].
 pub struct CPU {
+    // CPU
     registers: Registers,
     pc: u16,
     sp: u16,
     cycle_counter: u32,
-    pub bus: MemoryBus,
     ime: bool,
     ime_to_be_set: bool,
+    // Memory
+    pub bus: MemoryBus,
+    // GPU
 }
 
 impl CPU {
