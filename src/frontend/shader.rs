@@ -111,7 +111,7 @@ pub fn setup_shader_pipeline(
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb, // Game Boy uses 4 colors (RGBA for simplicity)
+        format: wgpu::TextureFormat::Rgba8UnormSrgb, // Rust Boy uses 4 colors (RGBA for simplicity)
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
         view_formats: &[],
     });
@@ -126,7 +126,7 @@ pub fn setup_shader_pipeline(
         ..Default::default()
     });
 
-    // Represents which tiles are displayed where (Game Boy: 32x32 tile grid)
+    // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
     // Initialize blank tilemap (0th tile always)
     let tilemap_data = [0u32; 32 * 32];
     let tilemap = TilemapUniform::from_array(&tilemap_data);

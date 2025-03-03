@@ -37,7 +37,7 @@ impl RustBoy {
     /// moves to the next instruction.
     fn jump(&self, should_jump: bool) -> u16 {
         if should_jump {
-            // The Game Boy is little endian so the least significant byte is stored first. However,
+            // The Rust Boy is little endian so the least significant byte is stored first. However,
             // in the correct order, so we can just patch them together.
             let low_byte = self.read_byte(self.pc.wrapping_add(1)) as u16;
             let high_byte = self.read_byte(self.pc.wrapping_add(2)) as u16;
