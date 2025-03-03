@@ -198,7 +198,7 @@ fn setup_rust_boy() -> RustBoy {
 
     match Path::new("/etc/hosts").exists() {
         true => {
-            rust_boy.load_program("roms/tetris.gb");
+            rust_boy.load_program("roms/test_roms/cpu_instrs.gb");
             // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
             log::trace!(
                 "CPU Bus after loading program: {}",

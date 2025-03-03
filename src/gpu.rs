@@ -65,9 +65,9 @@ impl GPU {
     pub fn write_vram(&mut self, address: u16, value: u8) {
         self.vram[address as usize] = value;
 
-        // If our index is greater than 0x1800 we are not writing to the tile set storage
+        // If our index is greater than or equal to 0x1800, we are not writing to the tile set storage
         // so we can simply return
-        if address > 0x1800 {
+        if address >= 0x1800 {
             return;
         } else {
             self.handle_tile_data_change(address);
@@ -87,6 +87,7 @@ impl GPU {
 
         // Then we need to get the tile index from the address.
         let tile_index = (normalized_address / 16) as usize;
+
         // Address % 16 gives us the row index in the tile. However, two consecutive bytes encode
         // a row so we need to divide by 2.
         let row_index = ((address % 16) / 2) as usize;
