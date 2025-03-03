@@ -30,7 +30,7 @@ impl TilePixelValue {
 }
 
 /// Represents a tile in the tile set. Is a 2D array of 8x8 tile pixel values.
-type Tile = [[TilePixelValue; 8]; 8];
+pub type Tile = [[TilePixelValue; 8]; 8];
 fn empty_tile() -> Tile {
     [[TilePixelValue::Zero; 8]; 8]
 }
@@ -43,7 +43,7 @@ fn empty_tile() -> Tile {
 /// Also has a tile_data_changed flag to indicate if the tile data has changed.
 pub struct GPU {
     vram: [u8; VRAM_END as usize - VRAM_BEGIN as usize + 1],
-    tile_set: [Tile; 384],
+    pub tile_set: [Tile; 384],
     tile_data_changed: bool,
     tile_map: [[u8; 32]; 32],
     tile_map_changed: bool,

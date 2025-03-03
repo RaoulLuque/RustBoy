@@ -29,7 +29,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-const TARGET_FPS: u32 = 1;
+const TARGET_FPS: u32 = 60;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
 const SCREEN_WIDTH: u32 = 160;
 const SCREEN_HEIGHT: u32 = 144;
@@ -114,7 +114,7 @@ pub async fn run() {
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
 
-    let mut cpu = setup_rust_boy();
+    let mut rust_boy = setup_rust_boy();
 
     let mut last_frame_time = Instant::now();
 
@@ -156,10 +156,10 @@ pub async fn run() {
                             let elapsed = now.duration_since(last_frame_time);
                             if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
                                 last_frame_time = Instant::now();
-                                cpu.step();
+                                rust_boy.step();
 
                                 state.update();
-                                match state.render() {
+                                match state.render(&rust_boy.gpu) {
                                     Ok(_) => {}
                                     // Reconfigure the surface if it's lost or outdated
                                     Err(
