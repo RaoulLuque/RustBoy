@@ -121,7 +121,7 @@ pub async fn run() {
     let mut total_num_cpu_cycles = 0;
 
     // Flag if we are idling to wait for the next frame
-    let mut waiting_for_next_frame = false;
+    let mut redraw_request = false;
 
     let mut last_frame_time = Instant::now();
 
@@ -159,7 +159,8 @@ pub async fn run() {
                                 return;
                             }
 
-                            if !waiting_for_next_frame {
+                            // Make multiple steps per redraw request until something has to be rendered
+                            while !redraw_request {
                                 rust_boy.step();
                                 let last_num_of_cycles =
                                     rust_boy.cycle_counter - total_num_cpu_cycles;
@@ -168,19 +169,19 @@ pub async fn run() {
                                 match rust_boy.gpu.step(last_num_of_cycles as u32) {
                                     RenderTask::None => {}
                                     RenderTask::Render => {
-                                        waiting_for_next_frame = true;
+                                        redraw_request = true;
                                     }
                                 };
                             }
 
-                            if waiting_for_next_frame {
+                            if redraw_request {
                                 // Calculate the time since the last frame and check if a new frame
                                 // should be drawn or we still wait
                                 let now = Instant::now();
                                 let elapsed = now.duration_since(last_frame_time);
                                 if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
                                     last_frame_time = Instant::now();
-                                    waiting_for_next_frame = false;
+                                    redraw_request = false;
                                     flag_for_debugging_waiting_for_next_frame = false;
 
                                     state.update();
