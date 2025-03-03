@@ -18,6 +18,7 @@ use std::path::Path;
 use wasm_bindgen::prelude::*;
 use wasm_timer::Instant;
 
+use crate::gpu::RenderTask;
 use cpu::registers::Registers;
 use frontend::State;
 use gpu::GPU;
@@ -60,7 +61,7 @@ pub struct RustBoy {
     registers: Registers,
     pc: u16,
     sp: u16,
-    cycle_counter: u32,
+    cycle_counter: u64,
     ime: bool,
     ime_to_be_set: bool,
     starting_up: bool,
@@ -116,7 +117,15 @@ pub async fn run() {
 
     let mut rust_boy = setup_rust_boy();
 
+    // Track the cpu cycles
+    let mut total_num_cpu_cycles = 0;
+
+    // Flag if we are idling to wait for the next frame
+    let mut waiting_for_next_frame = false;
+
     let mut last_frame_time = Instant::now();
+
+    let mut flag_for_debugging_waiting_for_next_frame = false;
 
     event_loop
         .run(move |event, control_flow| match event {
@@ -150,35 +159,58 @@ pub async fn run() {
                                 return;
                             }
 
-                            // Calculate the time since the last frame and check if a new frame
-                            // should be drawn or we still wait
-                            let now = Instant::now();
-                            let elapsed = now.duration_since(last_frame_time);
-                            if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
-                                last_frame_time = Instant::now();
+                            if !waiting_for_next_frame {
                                 rust_boy.step();
+                                let last_num_of_cycles =
+                                    rust_boy.cycle_counter - total_num_cpu_cycles;
+                                total_num_cpu_cycles = rust_boy.cycle_counter;
 
-                                state.update();
-                                match state.render(&rust_boy.gpu) {
-                                    Ok(_) => {}
-                                    // Reconfigure the surface if it's lost or outdated
-                                    Err(
-                                        wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated,
-                                    ) => {
-                                        log::warn!("Surface is Lost or Outdated");
-                                        state.resize(state.size)
+                                match rust_boy.gpu.step(last_num_of_cycles as u32) {
+                                    RenderTask::None => {}
+                                    RenderTask::Render => {
+                                        waiting_for_next_frame = true;
                                     }
-                                    // The system is out of memory, we should probably quit
-                                    Err(
-                                        wgpu::SurfaceError::OutOfMemory | wgpu::SurfaceError::Other,
-                                    ) => {
-                                        log::error!("OutOfMemory");
-                                        control_flow.exit();
-                                    }
+                                };
+                            }
 
-                                    // This happens when a frame takes too long to present
-                                    Err(wgpu::SurfaceError::Timeout) => {
-                                        log::warn!("Surface timeout")
+                            if waiting_for_next_frame {
+                                // Calculate the time since the last frame and check if a new frame
+                                // should be drawn or we still wait
+                                let now = Instant::now();
+                                let elapsed = now.duration_since(last_frame_time);
+                                if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
+                                    last_frame_time = Instant::now();
+                                    waiting_for_next_frame = false;
+                                    flag_for_debugging_waiting_for_next_frame = false;
+
+                                    state.update();
+                                    match state.render(&mut rust_boy.gpu) {
+                                        Ok(_) => {}
+                                        // Reconfigure the surface if it's lost or outdated
+                                        Err(
+                                            wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated,
+                                        ) => {
+                                            log::warn!("Surface is Lost or Outdated");
+                                            state.resize(state.size)
+                                        }
+                                        // The system is out of memory, we should probably quit
+                                        Err(
+                                            wgpu::SurfaceError::OutOfMemory
+                                            | wgpu::SurfaceError::Other,
+                                        ) => {
+                                            log::error!("OutOfMemory");
+                                            control_flow.exit();
+                                        }
+
+                                        // This happens when a frame takes too long to present
+                                        Err(wgpu::SurfaceError::Timeout) => {
+                                            log::warn!("Surface timeout")
+                                        }
+                                    }
+                                } else {
+                                    if !flag_for_debugging_waiting_for_next_frame {
+                                        println!("Waiting for next frame");
+                                        flag_for_debugging_waiting_for_next_frame = true;
                                     }
                                 }
                             }
@@ -198,7 +230,7 @@ fn setup_rust_boy() -> RustBoy {
 
     match Path::new("/etc/hosts").exists() {
         true => {
-            rust_boy.load_program("roms/test_roms/cpu_instrs.gb");
+            rust_boy.load_program("roms/tetris.gb");
             // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
             log::trace!(
                 "CPU Bus after loading program: {}",

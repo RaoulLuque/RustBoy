@@ -12,11 +12,13 @@ use instructions::Instruction;
 use registers::Registers;
 
 impl RustBoy {
-    /// Creates a new instance of the CPU struct. The registers and pointers are all set to their
+    /// Creates a new instance of the RustBoy struct.
+    /// The registers and pointers are all set to their
     /// defaults, as they are before the boot rom has been executed. More specifically,
     /// The registers are set to 0, the program counter (PC) is set to 0x0000,
     /// the stack pointer (SP) is set to 0xFFFE, and the cycle counter is set to 0.
     /// The memory bus is also initialized.
+    /// The GPU is initialized to an empty state.
     pub fn new_before_boot() -> RustBoy {
         RustBoy {
             registers: Registers::new_zero(),
@@ -71,7 +73,7 @@ impl RustBoy {
 
     /// Increment the cycle counter by the provided value.
     fn increment_cycle_counter(&mut self, value: u32) {
-        self.cycle_counter += value;
+        self.cycle_counter += value as u64;
     }
 
     /// Reads the next instruction and executes it in the CPU.
@@ -87,7 +89,7 @@ impl RustBoy {
 
         let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
         {
-            println!("Executing instruction: {:?} ", instruction);
+            log::trace!("Executing instruction: {:?} ", instruction);
             self.execute(instruction)
         } else {
             let panic_description = format!(

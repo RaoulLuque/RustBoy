@@ -130,7 +130,7 @@ impl<'a> State<'a> {
 
     pub fn update(&mut self) {}
 
-    pub fn render(&mut self, rust_boy_gpu: &GPU) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, rust_boy_gpu: &mut GPU) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -171,12 +171,14 @@ impl<'a> State<'a> {
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.draw(0..self.num_vertices, 0..1);
         }
-
-        // Update tilemap and tile atlas (e.g., VRAM changes)
-        let new_tilemap_data = [0u32; 32 * 32];
-        let tilemap = TilemapUniform::from_array(&new_tilemap_data);
-        self.queue
-            .write_buffer(&self.tilemap_buffer, 0, bytemuck::cast_slice(&[tilemap]));
+        if rust_boy_gpu.tile_map_changed() {
+            println!("Updating tilemap");
+            // Update tilemap and tile atlas (e.g., VRAM changes)
+            let new_tilemap_data = [0u32; 32 * 32];
+            let tilemap = TilemapUniform::from_array(&new_tilemap_data);
+            self.queue
+                .write_buffer(&self.tilemap_buffer, 0, bytemuck::cast_slice(&[tilemap]));
+        }
 
         // Each pixel is 4 bytes (RGBA)
         // Each tile is 8x8 pixels, and we have 16x16 tiles
@@ -227,24 +229,27 @@ impl<'a> State<'a> {
         //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
         //     0xFF, 0xFF, 0xFF, 0xFF,
         // ]);
-        let mut new_tile_data = tile_array_to_rgba_array::<256, { 256 * 8 * 8 * 4 }>(
-            <&[Tile; 256]>::try_from(&rust_boy_gpu.tile_set[0..256]).unwrap(),
-        );
-        self.queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &self.tile_atlas_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &new_tile_data,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * TILE_SIZE * ATLAS_COLS),
-                rows_per_image: None,
-            },
-            self.tile_atlas_texture.size(),
-        );
+        if rust_boy_gpu.tile_data_changed() {
+            println!("Updating tile data");
+            let new_tile_data = tile_array_to_rgba_array::<256, { 256 * 8 * 8 * 4 }>(
+                <&[Tile; 256]>::try_from(&rust_boy_gpu.tile_set[0..256]).unwrap(),
+            );
+            self.queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &self.tile_atlas_texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &new_tile_data,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4 * TILE_SIZE * ATLAS_COLS),
+                    rows_per_image: None,
+                },
+                self.tile_atlas_texture.size(),
+            );
+        }
 
         // Submit the rendering commands to the GPU
         // Submit will accept anything that implements IntoIter

@@ -47,9 +47,82 @@ pub struct GPU {
     tile_data_changed: bool,
     tile_map: [[u8; 32]; 32],
     tile_map_changed: bool,
+    rendering_info: RenderingInfo,
+}
+
+/// Struct to collect the information about the current rendering state of the GPU.
+pub struct RenderingInfo {
+    rendering_mode: RenderingMode,
+    dots_clock_sum: u32,
+    dots_clock: u32,
+    dots_for_transfer: u32,
+    scanline: u8,
+}
+
+/// Represents the possible rendering modes of the GPU.
+/// Rendering modes are used to determine what the GPU is currently doing.
+/// The GPU can be in one of four rendering modes:
+/// - HBlank: The GPU is currently in the horizontal blanking period.
+/// - VBlank: The GPU is currently in the vertical blanking period.
+/// - OAMSearch: The GPU is currently searching for sprites.
+/// - Transfer: The GPU is currently transferring data to the screen.
+enum RenderingMode {
+    HBlank0,
+    VBlank1,
+    OAMScan0,
+    Transfer3,
+}
+
+/// Represents the possible tasks of the GPU.
+pub enum RenderTask {
+    None,
+    Render,
 }
 
 impl GPU {
+    pub fn step(&mut self, cycles: u32) -> RenderTask {
+        self.rendering_info.dots_clock += cycles;
+        self.rendering_info.dots_clock_sum += cycles;
+        match self.rendering_info.rendering_mode {
+            RenderingMode::HBlank0 => {
+                // TODO: Implement rendering by lines instead of entire frame
+                if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer {
+                    self.rendering_info.dots_clock -= 456 - self.rendering_info.dots_for_transfer;
+                    self.rendering_info.rendering_mode = RenderingMode::OAMScan0;
+                    self.rendering_info.scanline += 1;
+                    // For now: Render the entire frame before entering VBlank
+                    if self.rendering_info.scanline == 144 {
+                        self.rendering_info.rendering_mode = RenderingMode::VBlank1;
+                        return RenderTask::Render;
+                    }
+                }
+            }
+            RenderingMode::VBlank1 => {
+                if self.rendering_info.dots_clock >= 4560 {
+                    self.rendering_info.dots_clock -= 4560;
+                    self.rendering_info.dots_clock_sum = 0;
+                    self.rendering_info.scanline = 0;
+                    self.rendering_info.rendering_mode = RenderingMode::OAMScan0;
+                }
+            }
+            RenderingMode::OAMScan0 => {
+                if self.rendering_info.dots_clock >= 80 {
+                    self.rendering_info.dots_clock -= 80;
+                    self.rendering_info.rendering_mode = RenderingMode::Transfer3;
+                }
+            }
+            RenderingMode::Transfer3 => {
+                // TODO: Implement possible delay in this Mode if background scrolling or sprite fetching happened
+                if self.rendering_info.dots_clock >= 172 {
+                    self.rendering_info.dots_clock -= 172;
+                    self.rendering_info.dots_for_transfer = 172;
+                    self.rendering_info.rendering_mode = RenderingMode::HBlank0;
+                }
+            }
+        }
+        RenderTask::None
+    }
+
     /// Reads a byte from the VRAM at the given address.
     /// The address is not the actual absolute address in the grand scheme of the total Rust Boy's
     /// memory but instead the address in the VRAM. That is the absolute address 0x8000 would be
@@ -74,6 +147,7 @@ impl GPU {
         }
     }
 
+    /// Handles a change in the tile data. The change is simply applied to the tile set.
     fn handle_tile_data_change(&mut self, address: u16) {
         // Tiles rows are encoded in two bytes with the first byte always
         // on an even address. Bitwise ANDing the address with 0xffe
@@ -121,6 +195,7 @@ impl GPU {
         self.tile_data_changed = true;
     }
 
+    /// Returns a new GPU with empty tile set and empty VRAM.
     pub fn new_empty() -> Self {
         Self {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
@@ -128,6 +203,13 @@ impl GPU {
             tile_data_changed: false,
             tile_map: [[0; 32]; 32],
             tile_map_changed: false,
+            rendering_info: RenderingInfo {
+                rendering_mode: RenderingMode::OAMScan0,
+                dots_clock_sum: 0,
+                dots_clock: 0,
+                dots_for_transfer: 0,
+                scanline: 0,
+            },
         }
     }
 
