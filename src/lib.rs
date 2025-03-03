@@ -60,11 +60,11 @@ pub struct RustBoy {
     cycle_counter: u32,
     ime: bool,
     ime_to_be_set: bool,
-    pub starting_up: bool,
+    starting_up: bool,
 
     // Memory
-    pub memory: [u8; 65536],
-    pub bios: [u8; 0x0100],
+    memory: [u8; 65536],
+    bios: [u8; 0x0100],
     // GPU
 }
 
