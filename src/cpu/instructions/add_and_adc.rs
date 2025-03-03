@@ -1,4 +1,4 @@
-use crate::cpu::instructions::{ArithmeticOrLogicalSource, Register};
+use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::cpu::CPU;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -5,7 +5,7 @@ const ROM_BANK_0_END: u16 = 0x4000;
 const BIOS_BEGIN: u16 = 0x0000;
 const BIOS_END: u16 = 0x00FF;
 const ROM_BANK_1_BEGIN: u16 = 0x4000;
-const ROM_BANK_1_END: u16 = 0x7FFF;
+const ROM_BANK_1_END: u16 = 0x8000;
 const VRAM_BEGIN: u16 = 0x8000;
 const VRAM_END: u16 = 0x9FFF;
 

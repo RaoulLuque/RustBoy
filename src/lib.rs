@@ -21,10 +21,9 @@ use frontend::State;
 use winit::{
     dpi::PhysicalSize,
     event::*,
-    event_loop::ControlFlow,
     event_loop::EventLoop,
     keyboard::{KeyCode, PhysicalKey},
-    window::{Window, WindowBuilder},
+    window::WindowBuilder,
 };
 
 const TARGET_FPS: u32 = 1;
