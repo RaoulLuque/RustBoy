@@ -10,6 +10,7 @@
 
 mod cpu;
 mod frontend;
+mod memory_bus;
 
 use std::path::Path;
 #[cfg(target_arch = "wasm32")]
