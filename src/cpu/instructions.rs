@@ -24,9 +24,8 @@ mod parsing;
 mod push_and_pop;
 mod sub_and_sbc;
 
-use super::CPU;
-use crate::cpu::memory_bus::MemoryBus;
 use crate::cpu::registers::{FlagsRegister, Registers};
+use crate::RustBoy;
 use add_and_adc::{AddWordSource, AddWordTarget};
 use inc_and_dec::IncDecTarget;
 use jump::JumpType;
@@ -148,7 +147,7 @@ impl Instruction {
     }
 }
 
-impl CPU {
+impl RustBoy {
     /// Executes the instruction on the CPU.
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         let next_pc = match instruction {
@@ -233,11 +232,11 @@ impl Register {
 
 impl ArithmeticOrLogicalSource {
     /// Returns the value of the source corresponding to the enum variant.
-    fn get_value(&self, registers: &Registers, bus: &MemoryBus, pc: u16) -> u8 {
+    fn get_value(&self, registers: &Registers, rust_boy: &RustBoy, pc: u16) -> u8 {
         match &self {
             ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
-            ArithmeticOrLogicalSource::D8 => bus.read_byte(pc + 1),
-            ArithmeticOrLogicalSource::HLRef => bus.read_byte(registers.get_hl()),
+            ArithmeticOrLogicalSource::D8 => rust_boy.read_byte(pc + 1),
+            ArithmeticOrLogicalSource::HLRef => rust_boy.read_byte(registers.get_hl()),
         }
     }
 }

@@ -1,5 +1,5 @@
 use super::{check_instruction_condition, InstructionCondition};
-use crate::cpu::CPU;
+use crate::RustBoy;
 
 /// Represents the possible targets for the jump instruction.
 ///
@@ -9,7 +9,7 @@ pub enum JumpType {
     JumpToHL,
 }
 
-impl CPU {
+impl RustBoy {
     /// Handles the jump instruction for the given [InstructionCondition].
     ///
     /// The JP instruction takes 4 cycles if the jump is taken and 3 cycles if it is not if the
@@ -39,8 +39,8 @@ impl CPU {
         if should_jump {
             // The Game Boy is little endian so the least significant byte is stored first. However,
             // in the correct order, so we can just patch them together.
-            let low_byte = self.bus.read_byte(self.pc.wrapping_add(1)) as u16;
-            let high_byte = self.bus.read_byte(self.pc + 2) as u16;
+            let low_byte = self.read_byte(self.pc.wrapping_add(1)) as u16;
+            let high_byte = self.read_byte(self.pc + 2) as u16;
             (high_byte << 8) | low_byte
         } else {
             // If we don't jump we just move to the next instruction.

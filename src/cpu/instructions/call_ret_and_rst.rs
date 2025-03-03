@@ -1,7 +1,7 @@
 use super::{check_instruction_condition, InstructionCondition};
-use crate::cpu::CPU;
+use crate::RustBoy;
 
-impl CPU {
+impl RustBoy {
     /// Handles the call instruction for the given [InstructionCondition].
     ///
     /// The CALL instruction takes 6 cycles if the call is taken and 3 cycles if it is not.
@@ -30,7 +30,7 @@ impl CPU {
                 address
             } else {
                 // If we are executing a CALL instruction, we use the address following the instruction
-                self.bus.read_next_word_little_endian(self.pc)
+                self.read_next_word_little_endian(self.pc)
             }
         } else {
             next_pc

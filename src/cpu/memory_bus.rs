@@ -1,4 +1,4 @@
-use std::fmt;
+use crate::RustBoy;
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
 const ROM_BANK_0_END: u16 = 0x4000;
@@ -9,16 +9,7 @@ const ROM_BANK_1_END: u16 = 0x8000;
 const VRAM_BEGIN: u16 = 0x8000;
 const VRAM_END: u16 = 0x9FFF;
 
-/// Struct to represent the memory bus.
-/// It is an array that represents the memory of the RustBoy.
-/// 65536 is the size of the memory in bytes
-pub struct MemoryBus {
-    pub memory: [u8; 65536],
-    pub bios: [u8; 0x0100],
-    pub starting_up: bool,
-}
-
-impl MemoryBus {
+impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
     /// if the CPU is starting up.
     ///
@@ -78,10 +69,10 @@ impl MemoryBus {
             self.write_byte(address + i as u16, byte);
         }
     }
-}
 
-impl fmt::Display for MemoryBus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// Returns a string representation of the memory bus.
+    /// The string is rows of 8 bytes each.
+    pub fn memory_to_string(&self) -> String {
         let mut string = String::new();
         string.push_str("MemoryBus: \n");
         for i in 0..self.memory.len() / 8 {
@@ -106,6 +97,6 @@ impl fmt::Display for MemoryBus {
             string.push_str(&tmp_string);
         }
         string.push('\n');
-        write!(f, "{}", string)
+        string
     }
 }

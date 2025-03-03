@@ -1,12 +1,12 @@
 use super::ArithmeticOrLogicalSource;
-use crate::cpu::CPU;
+use crate::RustBoy;
 
-impl CPU {
+impl RustBoy {
     /// Handles the sub instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The SUB instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_sub_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.sub(value, false);
         self.registers.a = new_value;
         match source {
@@ -39,7 +39,7 @@ impl CPU {
     ///
     /// The SBC instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_sbc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.sub(value, self.registers.f.carry);
         self.registers.a = new_value;
         match source {

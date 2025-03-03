@@ -1,5 +1,5 @@
 use crate::cpu::registers::Registers;
-use crate::cpu::CPU;
+use crate::RustBoy;
 
 /// Represents the possible sources for the values of a push instruction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,7 +43,7 @@ impl PopTarget {
     }
 }
 
-impl CPU {
+impl RustBoy {
     /// Handles the push instruction for the given [PushSource].
     ///
     /// The PUSH instruction takes 4 cycles.
@@ -60,11 +60,10 @@ impl CPU {
     /// stored first, that is, on top of the stack.
     pub fn push(&mut self, value_to_push: u16) {
         self.sp = self.sp.wrapping_sub(1);
-        self.bus
-            .write_byte(self.sp, ((value_to_push & 0xF0) >> 8) as u8);
+        self.write_byte(self.sp, ((value_to_push & 0xF0) >> 8) as u8);
 
         self.sp = self.sp.wrapping_sub(1);
-        self.bus.write_byte(self.sp, value_to_push as u8);
+        self.write_byte(self.sp, value_to_push as u8);
     }
 
     /// Handles the pop instruction for the given [PopTarget].
@@ -81,10 +80,10 @@ impl CPU {
     /// stack). The value is stored in little endian format, so the least significant byte is read first,
     /// that is, it is at the top of the stack.
     pub fn pop(&mut self) -> u16 {
-        let lower_byte = self.bus.read_byte(self.sp) as u16;
+        let lower_byte = self.read_byte(self.sp) as u16;
         self.sp = self.sp.wrapping_add(1);
 
-        let upper_byte = self.bus.read_byte(self.sp) as u16;
+        let upper_byte = self.read_byte(self.sp) as u16;
         self.sp = self.sp.wrapping_add(1);
         (upper_byte << 8) | lower_byte
     }

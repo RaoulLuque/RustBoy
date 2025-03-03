@@ -16,7 +16,7 @@ use std::path::Path;
 use wasm_bindgen::prelude::*;
 use wasm_timer::Instant;
 
-use crate::cpu::CPU;
+use cpu::registers::Registers;
 use frontend::State;
 use winit::{
     dpi::PhysicalSize,
@@ -30,6 +30,43 @@ const TARGET_FPS: u32 = 1;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
 const SCREEN_WIDTH: u32 = 160;
 const SCREEN_HEIGHT: u32 = 144;
+
+/// Struct to represent the Rust Boy.
+/// It is split into 3 main parts: The CPU, the memory bus, and the GPU.
+///
+/// The CPU has 8 registers, a program counter (PC), a stack pointer (SP), and a memory bus.
+/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+/// The CPU also has a cycle counter to keep track of the number of cycles executed.
+///
+/// Additionally, the CPU has an interrupt master enable (IME) flag to control the handling of
+/// interrupts, see [Pan Docs](https://gbdev.io/pandocs/Interrupts.html). ime_to_be_set is used
+/// to set the IME flag after the current instruction is executed which is necessary for the
+/// correct execution of the EI instruction.
+///
+/// At last the CPU has a starting_up flag to indicate if the CPU/System is starting up.
+///
+/// For implementations of the CPU instructions please see [instructions].
+///
+/// The memory bus is a struct that represents the memory of the Rust Boy.
+/// It is an array that represents the memory of the RustBoy.
+/// 65536 is the size of the memory in bytes
+/// The memory bus also has a bios array that represents the BIOS of the RustBoy which is used
+/// during startup instead of the first 0x0100 bytes of the memory.
+pub struct RustBoy {
+    // CPU
+    registers: Registers,
+    pc: u16,
+    sp: u16,
+    cycle_counter: u32,
+    ime: bool,
+    ime_to_be_set: bool,
+    pub starting_up: bool,
+
+    // Memory
+    pub memory: [u8; 65536],
+    pub bios: [u8; 0x0100],
+    // GPU
+}
 
 /// Run the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
@@ -72,7 +109,7 @@ pub async fn run() {
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
 
-    let mut cpu = setup_cpu();
+    let mut cpu = setup_rust_boy();
 
     let mut last_frame_time = Instant::now();
 
@@ -150,18 +187,21 @@ pub async fn run() {
         .expect("Event loop should be able to run");
 }
 
-fn setup_cpu() -> CPU {
-    let mut cpu = CPU::new_after_boot();
-    log::trace!("CPU Bus initial state: {}", cpu.bus);
+fn setup_rust_boy() -> RustBoy {
+    let mut rust_boy = RustBoy::new_after_boot();
+    log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());
 
     match Path::new("/etc/hosts").exists() {
         true => {
-            cpu.load_program("roms/tetris.gb");
+            rust_boy.load_program("roms/tetris.gb");
             // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
-            log::trace!("CPU Bus after loading program: {}", cpu.bus);
+            log::trace!(
+                "CPU Bus after loading program: {}",
+                rust_boy.memory_to_string()
+            );
         }
         false => log::warn!("No rom found"),
     };
 
-    cpu
+    rust_boy
 }

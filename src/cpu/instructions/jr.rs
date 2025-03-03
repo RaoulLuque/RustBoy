@@ -1,7 +1,7 @@
 use super::{check_instruction_condition, InstructionCondition};
-use crate::cpu::CPU;
+use crate::RustBoy;
 
-impl CPU {
+impl RustBoy {
     /// Handles the JR instruction for the given [InstructionCondition].
     ///
     /// The JR instruction takes 3 cycles if the jump is taken and 2 cycle if it is not.
@@ -25,7 +25,7 @@ impl CPU {
             // The relative jump is encoded as a signed integer.  Therefore, we add it using
             // wrapping_add_signed. Note that the offset is calculated from the address of the
             // instruction following the JR instruction.
-            let relative_jump = (self.bus.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
+            let relative_jump = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
             let new_pc = self.pc.wrapping_add(2).wrapping_add_signed(relative_jump);
             new_pc
         } else {

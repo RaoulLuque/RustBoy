@@ -1,12 +1,12 @@
 use super::ArithmeticOrLogicalSource;
-use crate::cpu::CPU;
+use crate::RustBoy;
 
-impl CPU {
+impl RustBoy {
     /// Handles the AND instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The AND instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_and_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.and(value);
         self.registers.a = new_value;
         match source {
@@ -33,7 +33,7 @@ impl CPU {
     ///
     /// The XOR instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_xor_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.xor(value);
         self.registers.a = new_value;
         match source {
@@ -60,7 +60,7 @@ impl CPU {
     ///
     /// The OR instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_or_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.or(value);
         self.registers.a = new_value;
         match source {
@@ -87,7 +87,7 @@ impl CPU {
     ///
     /// The CP instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_cp_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         self.sub(value, false);
         match source {
             ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {

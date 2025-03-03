@@ -1,5 +1,5 @@
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
-use crate::cpu::CPU;
+use crate::RustBoy;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AddWordTarget {
@@ -16,13 +16,13 @@ pub enum AddWordSource {
     E8,
 }
 
-impl CPU {
+impl RustBoy {
     /// Handles the add instruction for the given [Register] if it adds bytes. For all of these
     /// instructions it also holds that these add to the A register.
     ///
     /// The ADD instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_add_byte_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.add(value, false);
         self.registers.a = new_value;
 
@@ -83,7 +83,7 @@ impl CPU {
                 self.pc.wrapping_add(1)
             }
             AddWordTarget::SP => {
-                let value = (self.bus.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
+                let value = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
                 self.sp = self.sp.wrapping_add_signed(value);
                 self.increment_cycle_counter(4);
                 self.pc.wrapping_add(2)
@@ -116,7 +116,7 @@ impl CPU {
     ///
     /// The ADC instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_adc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
-        let value = source.get_value(&self.registers, &self.bus, self.pc);
+        let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.add(value, self.registers.f.carry);
         self.registers.a = new_value;
         match source {

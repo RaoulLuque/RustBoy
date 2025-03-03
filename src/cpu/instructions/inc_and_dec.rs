@@ -1,5 +1,5 @@
 use super::Register;
-use crate::cpu::CPU;
+use crate::RustBoy;
 
 /// Represents the possible targets for an inc or dec instruction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -12,7 +12,7 @@ pub enum IncDecTarget {
     SP,
 }
 
-impl CPU {
+impl RustBoy {
     /// Handles the inc instruction for the given [IncDecTarget].
     ///
     /// The INC instruction takes 1 cycle if the target is a register, 3 if it is HLRef
@@ -26,9 +26,9 @@ impl CPU {
             }
             IncDecTarget::HLRef => {
                 let address = self.registers.get_hl();
-                let value = self.bus.read_byte(address);
+                let value = self.read_byte(address);
                 let new_value = self.inc(value);
-                self.bus.write_byte(address, new_value);
+                self.write_byte(address, new_value);
                 self.increment_cycle_counter(3);
             }
             IncDecTarget::BC => {
@@ -78,9 +78,9 @@ impl CPU {
             }
             IncDecTarget::HLRef => {
                 let address = self.registers.get_hl();
-                let value = self.bus.read_byte(address);
+                let value = self.read_byte(address);
                 let new_value = self.dec(value);
-                self.bus.write_byte(address, new_value);
+                self.write_byte(address, new_value);
                 self.increment_cycle_counter(3);
             }
             IncDecTarget::BC => {
