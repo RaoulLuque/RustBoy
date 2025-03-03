@@ -47,7 +47,7 @@ pub enum LoadWordSource {
 
 /// Represents the possible types of load instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum LoadType {
+pub enum LoadType {
     Byte(LoadByteTarget, LoadByteSource),
     Word(LoadWordTarget, LoadWordSource),
 }

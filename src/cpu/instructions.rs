@@ -72,7 +72,7 @@ pub enum Instruction {
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Register {
+pub enum Register {
     A,
     B,
     C,
@@ -85,7 +85,7 @@ enum Register {
 /// Represents the possible targets for arithmetic or logical instructions such as
 /// ADD, ADC, SUB, SBC, AND, OR, XOR or CP.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(in crate::cpu::instructions) enum ArithmeticOrLogicalSource {
+pub enum ArithmeticOrLogicalSource {
     Register(Register),
     D8,
     HLRef,
@@ -93,7 +93,7 @@ pub(in crate::cpu::instructions) enum ArithmeticOrLogicalSource {
 
 /// Represents the possible conditions for an instruction to execute or not (e.g. JP or CALL).
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum InstructionCondition {
+pub enum InstructionCondition {
     NotZero,
     Zero,
     NotCarry,
