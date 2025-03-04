@@ -248,7 +248,7 @@ impl<'a> State<'a> {
         if rust_boy_gpu.tile_data_changed() {
             println!("Updating tile data");
             let new_tile_data = tile_array_to_rgba_array(
-                <&[Tile; 256]>::try_from(&rust_boy_gpu.tile_set[0..256]).unwrap(),
+                <&[Tile; 256]>::try_from(&rust_boy_gpu.get_window_and_tile_data()).unwrap(),
             );
             // let new_tile_data = tile_array_to_rgba_array(&empty_tiles);
             self.queue.write_texture(

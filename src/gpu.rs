@@ -205,4 +205,26 @@ impl GPU {
         self.tile_map_changed = false;
         res
     }
+
+    /// TODO
+    pub fn get_window_tile_map(&self) -> &[[u8; 32]; 32] {
+        todo!()
+    }
+
+    pub fn get_window_and_tile_data(&self) -> [Tile; 256] {
+        if self
+            .gpu_registers
+            .lcd_control
+            .background_and_window_tile_data
+        {
+            self.tile_set[0..256]
+                .try_into()
+                .expect("Slice should be of correct length, talk to me compiler")
+        } else {
+            [&self.tile_set[256..384], &self.tile_set[0..128]]
+                .concat()
+                .try_into()
+                .expect("Slice should be of correct length, talk to me compiler")
+        }
+    }
 }

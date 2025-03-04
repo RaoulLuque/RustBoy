@@ -25,7 +25,7 @@ const LYC_INT_SELECT_BYTE_POSITION: usize = 6;
 /// - 0xFF45: LYC - LY Compare Register TODO: Implement
 /// - 0xFF47: BGP - Background Palette Data Register TODO: Implement
 pub struct GPURegisters {
-    lcd_control: LCDCRegister,
+    pub(super) lcd_control: LCDCRegister,
     lcd_status: LCDStatusRegister,
     scroll_y: u8,
     scroll_x: u8,
@@ -46,14 +46,14 @@ pub struct GPURegisters {
 /// - Bit 6: Window tile map (0 = #0 (0x9800), 1 = #1 (0x9C00))
 /// - Bit 7: Display on/off (0 = off, 1 = on)
 pub struct LCDCRegister {
-    background_on_off: bool,
-    sprites_on_off: bool,
-    sprite_size: bool,
-    background_tile_map: bool,
-    background_and_window_tile_data: bool,
-    window_on_off: bool,
-    window_tile_map: bool,
-    display_on_off: bool,
+    pub(super) background_on_off: bool,
+    pub(super) sprites_on_off: bool,
+    pub(super) sprite_size: bool,
+    pub(super) background_tile_map: bool,
+    pub(super) background_and_window_tile_data: bool,
+    pub(super) window_on_off: bool,
+    pub(super) window_tile_map: bool,
+    pub(super) display_on_off: bool,
 }
 
 /// Represents the LCD status register of the GPU.
