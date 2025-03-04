@@ -15,7 +15,8 @@ pub struct GPU {
     vram: [u8; VRAM_END as usize - VRAM_BEGIN as usize + 1],
     pub tile_set: [Tile; 384],
     tile_data_changed: bool,
-    tile_map: [[u8; 32]; 32],
+    tile_map_one_9800: [u8; 1024],
+    tile_map_two_9c00: [u8; 1024],
     tile_map_changed: bool,
     rendering_info: RenderingInfo,
     gpu_registers: GPURegisters,
@@ -185,7 +186,8 @@ impl GPU {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
             tile_set: [tile_handling::empty_tile(); 384],
             tile_data_changed: false,
-            tile_map: [[0; 32]; 32],
+            tile_map_one_9800: [0; 1024],
+            tile_map_two_9c00: [0; 1024],
             tile_map_changed: false,
             rendering_info: RenderingInfo {
                 rendering_mode: RenderingMode::OAMScan2,
@@ -233,6 +235,16 @@ impl GPU {
                 .concat()
                 .try_into()
                 .expect("Slice should be of correct length, talk to me compiler")
+        }
+    }
+
+    /// Returns the current tile map for the background. Switches the addressing mode
+    /// automatically according to LCDC bit 3 (background_tile_map_display_select).
+    pub fn get_background_tile_map(&self) -> &[u8; 1024] {
+        if self.gpu_registers.lcd_control.background_tile_map {
+            &self.tile_map_one_9800
+        } else {
+            &self.tile_map_two_9c00
         }
     }
 }

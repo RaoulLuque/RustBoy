@@ -72,15 +72,15 @@ pub(super) struct TilemapUniform {
 }
 
 impl TilemapUniform {
-    pub fn from_array(input: &[u32; 1024]) -> Self {
+    pub fn from_array(input: &[u8; 1024]) -> Self {
         let mut tiles = [PackedTileData { indices: [0; 4] }; 256];
 
         for i in 0..256 {
             tiles[i].indices = [
-                input[i * 4],
-                input[i * 4 + 1],
-                input[i * 4 + 2],
-                input[i * 4 + 3],
+                input[i * 4] as u32,
+                input[i * 4 + 1] as u32,
+                input[i * 4 + 2] as u32,
+                input[i * 4 + 3] as u32,
             ];
         }
 
@@ -128,7 +128,7 @@ pub fn setup_shader_pipeline(
 
     // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
     // Initialize blank tilemap (0th tile always)
-    let tilemap_data = [0u32; 32 * 32];
+    let tilemap_data = [0u8; 32 * 32];
     let tilemap = TilemapUniform::from_array(&tilemap_data);
     let tilemap_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Tilemap Buffer"),

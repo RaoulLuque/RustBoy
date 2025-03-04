@@ -175,8 +175,8 @@ impl<'a> State<'a> {
         if rust_boy_gpu.tile_map_changed() {
             println!("Updating tilemap");
             // Update tilemap and tile atlas (e.g., VRAM changes)
-            let new_tilemap_data = [0u32; 32 * 32];
-            let tilemap = TilemapUniform::from_array(&new_tilemap_data);
+            let new_tilemap_data = rust_boy_gpu.get_background_tile_map();
+            let tilemap = TilemapUniform::from_array(new_tilemap_data);
             self.queue
                 .write_buffer(&self.tilemap_buffer, 0, bytemuck::cast_slice(&[tilemap]));
         }
