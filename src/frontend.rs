@@ -4,7 +4,8 @@ use winit::event::WindowEvent;
 use winit::window::Window;
 
 use crate::frontend::shader::{setup_shader_pipeline, TilemapUniform, ATLAS_COLS, TILE_SIZE};
-use crate::gpu::{tile_array_to_rgba_array, Tile, GPU};
+use crate::gpu::tile_handling::{tile_array_to_rgba_array, Tile};
+use crate::gpu::GPU;
 
 pub struct State<'a> {
     surface: wgpu::Surface<'a>,
@@ -231,17 +232,17 @@ impl<'a> State<'a> {
         // ]);
 
         let tile = [
-            [crate::gpu::TilePixelValue::Three; 8],
-            [crate::gpu::TilePixelValue::Zero; 8],
-            [crate::gpu::TilePixelValue::Three; 8],
-            [crate::gpu::TilePixelValue::Zero; 8],
-            [crate::gpu::TilePixelValue::Three; 8],
-            [crate::gpu::TilePixelValue::Zero; 8],
-            [crate::gpu::TilePixelValue::Three; 8],
-            [crate::gpu::TilePixelValue::Zero; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
+            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
         ];
 
-        let mut empty_tiles = [[[crate::gpu::TilePixelValue::Zero; 8]; 8]; 256];
+        let mut empty_tiles = [[[crate::gpu::tile_handling::TilePixelValue::Zero; 8]; 8]; 256];
         empty_tiles[0] = tile;
 
         if rust_boy_gpu.tile_data_changed() {
