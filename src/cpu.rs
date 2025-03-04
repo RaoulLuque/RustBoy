@@ -12,50 +12,6 @@ use instructions::Instruction;
 use registers::CPURegisters;
 
 impl RustBoy {
-    /// Creates a new instance of the RustBoy struct.
-    /// The registers and pointers are all set to their
-    /// defaults, as they are before the boot rom has been executed. More specifically,
-    /// The registers are set to 0, the program counter (PC) is set to 0x0000,
-    /// the stack pointer (SP) is set to 0xFFFE, and the cycle counter is set to 0.
-    /// The memory bus is also initialized.
-    /// The GPU is initialized to an empty state.
-    pub fn new_before_boot() -> RustBoy {
-        RustBoy {
-            registers: CPURegisters::new_zero(),
-            pc: 0x0000,
-            sp: 0xFFFE,
-            cycle_counter: 0,
-            memory: [0; 65536],
-            bios: [0; 0x0100],
-            starting_up: true,
-            ime: false,
-            ime_to_be_set: false,
-            gpu: GPU::new_empty(),
-        }
-    }
-
-    /// Creates a new instance of the RustBoy struct.
-    /// The registers and pointers are all set to their values which they would have after the
-    /// boot rom has been executed. For reference, see in the
-    /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
-    pub fn new_after_boot() -> RustBoy {
-        let mut cpu = RustBoy {
-            registers: CPURegisters::new_after_boot(),
-            pc: 0x0100,
-            sp: 0xFFFE,
-            cycle_counter: 0,
-            memory: [0; 65536],
-            bios: [0; 0x0100],
-            starting_up: false,
-            ime: false,
-            ime_to_be_set: false,
-            gpu: GPU::new_empty(),
-        };
-
-        cpu.initialize_hardware_registers();
-        cpu
-    }
-
     /// Loads a program into the memory bus at address 0x0000.
     pub fn load_program(&mut self, program_directory: &str) {
         let program = std::fs::read(program_directory)
@@ -109,7 +65,7 @@ impl RustBoy {
 
     /// Initializes the hardware registers to their default values.
     /// See [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
-    fn initialize_hardware_registers(&mut self) {
+    pub(crate) fn initialize_hardware_registers(&mut self) {
         self.write_byte(0xFF00, 0xCF);
         self.write_byte(0xFF01, 0x00);
         self.write_byte(0xFF02, 0x7E);

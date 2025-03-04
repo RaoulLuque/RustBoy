@@ -74,6 +74,52 @@ pub struct RustBoy {
     gpu: GPU,
 }
 
+impl RustBoy {
+    /// Creates a new instance of the RustBoy struct.
+    /// The registers and pointers are all set to their
+    /// defaults, as they are before the boot rom has been executed. More specifically,
+    /// The registers are set to 0, the program counter (PC) is set to 0x0000,
+    /// the stack pointer (SP) is set to 0xFFFE, and the cycle counter is set to 0.
+    /// The memory bus is also initialized.
+    /// The GPU is initialized to an empty state.
+    pub fn new_before_boot() -> RustBoy {
+        RustBoy {
+            registers: CPURegisters::new_zero(),
+            pc: 0x0000,
+            sp: 0xFFFE,
+            cycle_counter: 0,
+            memory: [0; 65536],
+            bios: [0; 0x0100],
+            starting_up: true,
+            ime: false,
+            ime_to_be_set: false,
+            gpu: GPU::new_empty(),
+        }
+    }
+
+    /// Creates a new instance of the RustBoy struct.
+    /// The registers and pointers are all set to their values which they would have after the
+    /// boot rom has been executed. For reference, see in the
+    /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
+    pub fn new_after_boot() -> RustBoy {
+        let mut cpu = RustBoy {
+            registers: CPURegisters::new_after_boot(),
+            pc: 0x0100,
+            sp: 0xFFFE,
+            cycle_counter: 0,
+            memory: [0; 65536],
+            bios: [0; 0x0100],
+            starting_up: false,
+            ime: false,
+            ime_to_be_set: false,
+            gpu: GPU::new_empty(),
+        };
+
+        cpu.initialize_hardware_registers();
+        cpu
+    }
+}
+
 /// Run the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub async fn run() {
@@ -224,7 +270,7 @@ fn setup_rust_boy() -> RustBoy {
     // TODO: Handle the WASM case where the rom cannot be loaded from the filesystem and instead served by the webserver
     match Path::new("roms/").exists() {
         true => {
-            rust_boy.load_program("roms/tetris.gb");
+            rust_boy.load_program("roms/test_roms/ttt.gb");
             // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
             log::trace!(
                 "CPU Bus after loading program: {}",
