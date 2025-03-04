@@ -9,7 +9,7 @@ pub mod registers;
 use super::GPU;
 use crate::RustBoy;
 use instructions::Instruction;
-use registers::Registers;
+use registers::CPURegisters;
 
 impl RustBoy {
     /// Creates a new instance of the RustBoy struct.
@@ -21,7 +21,7 @@ impl RustBoy {
     /// The GPU is initialized to an empty state.
     pub fn new_before_boot() -> RustBoy {
         RustBoy {
-            registers: Registers::new_zero(),
+            registers: CPURegisters::new_zero(),
             pc: 0x0000,
             sp: 0xFFFE,
             cycle_counter: 0,
@@ -36,7 +36,7 @@ impl RustBoy {
 
     pub fn new_after_boot() -> RustBoy {
         let mut cpu = RustBoy {
-            registers: Registers::new_after_boot(),
+            registers: CPURegisters::new_after_boot(),
             pc: 0x0100,
             sp: 0xFFFE,
             cycle_counter: 0,

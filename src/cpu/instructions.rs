@@ -24,7 +24,7 @@ mod parsing;
 mod push_and_pop;
 mod sub_and_sbc;
 
-use crate::cpu::registers::{FlagsRegister, Registers};
+use crate::cpu::registers::{FlagsRegister, CPURegisters};
 use crate::RustBoy;
 use add_and_adc::{AddWordSource, AddWordTarget};
 use inc_and_dec::IncDecTarget;
@@ -204,7 +204,7 @@ impl RustBoy {
 
 impl Register {
     /// Returns the value of the register corresponding to the enum variant.
-    fn get_register(&self, registers: &Registers) -> u8 {
+    fn get_register(&self, registers: &CPURegisters) -> u8 {
         match &self {
             Register::A => registers.a,
             Register::B => registers.b,
@@ -217,7 +217,7 @@ impl Register {
     }
 
     /// Sets the value of the register corresponding to the enum variant.
-    fn set_register(&self, registers: &mut Registers, value: u8) {
+    fn set_register(&self, registers: &mut CPURegisters, value: u8) {
         match &self {
             Register::A => registers.a = value,
             Register::B => registers.b = value,
@@ -232,7 +232,7 @@ impl Register {
 
 impl ArithmeticOrLogicalSource {
     /// Returns the value of the source corresponding to the enum variant.
-    fn get_value(&self, registers: &Registers, rust_boy: &RustBoy, pc: u16) -> u8 {
+    fn get_value(&self, registers: &CPURegisters, rust_boy: &RustBoy, pc: u16) -> u8 {
         match &self {
             ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
             ArithmeticOrLogicalSource::D8 => rust_boy.read_byte(pc + 1),

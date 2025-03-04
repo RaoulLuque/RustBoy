@@ -14,7 +14,7 @@ const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 ///
 /// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
 #[derive(Debug)]
-pub struct Registers {
+pub struct CPURegisters {
     pub a: u8,
     pub b: u8,
     pub c: u8,
@@ -25,11 +25,11 @@ pub struct Registers {
     pub l: u8,
 }
 
-impl Registers {
+impl CPURegisters {
     /// Creates a new instance of the Registers struct with all registers set to 0. This
     /// is the state of the registers before the boot rom has been executed.
     pub fn new_zero() -> Self {
-        Registers {
+        CPURegisters {
             a: 0,
             b: 0,
             c: 0,
@@ -49,7 +49,7 @@ impl Registers {
     /// Creates a new instance of the Registers struct with the registers set to their values
     /// after the boot rom has been executed.
     pub fn new_after_boot() -> Self {
-        Registers {
+        CPURegisters {
             a: 0x01,
             b: 0x00,
             c: 0x13,

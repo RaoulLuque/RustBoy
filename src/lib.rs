@@ -19,7 +19,7 @@ use wasm_bindgen::prelude::*;
 use wasm_timer::Instant;
 
 use crate::gpu::RenderTask;
-use cpu::registers::Registers;
+use cpu::registers::CPURegisters;
 use frontend::State;
 use gpu::GPU;
 use winit::{
@@ -58,7 +58,7 @@ const SCREEN_HEIGHT: u32 = 144;
 /// during startup instead of the first 0x0100 bytes of the memory.
 pub struct RustBoy {
     // CPU
-    registers: Registers,
+    registers: CPURegisters,
     pc: u16,
     sp: u16,
     cycle_counter: u64,

@@ -1,4 +1,4 @@
-use crate::cpu::registers::Registers;
+use crate::cpu::registers::CPURegisters;
 use crate::RustBoy;
 
 /// Represents the possible sources for the values of a push instruction.
@@ -21,7 +21,7 @@ pub enum PopTarget {
 
 impl PushSource {
     /// Returns the value of the register pair corresponding to the enum variant.
-    fn get_register_pair(&self, registers: &Registers) -> u16 {
+    fn get_register_pair(&self, registers: &CPURegisters) -> u16 {
         match &self {
             PushSource::BC => registers.get_bc(),
             PushSource::DE => registers.get_de(),
@@ -33,7 +33,7 @@ impl PushSource {
 
 impl PopTarget {
     /// Sets the value of the register pair corresponding to the enum variant.
-    fn set_register_pair(&self, registers: &mut Registers, value: u16) {
+    fn set_register_pair(&self, registers: &mut CPURegisters, value: u16) {
         match &self {
             PopTarget::BC => registers.set_bc(value),
             PopTarget::DE => registers.set_de(value),
