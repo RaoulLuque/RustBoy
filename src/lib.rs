@@ -75,13 +75,13 @@ pub struct RustBoy {
 }
 
 /// Run the emulator.
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub async fn run() {
     // Initialize logger according to the target architecture
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-            console_log::init_with_level(log::Level::Warn).ok();
+            console_log::init_with_level(log::Level::Info).expect("Logger should be able to initialize");
         } else {
             env_logger::init();
         }
@@ -91,26 +91,25 @@ pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
     window.set_title("RustBoy");
-    let _ = window.request_inner_size(PhysicalSize::new(SCREEN_WIDTH, SCREEN_HEIGHT));
 
     // Add a canvas to the HTML document
     #[cfg(target_arch = "wasm32")]
     {
         // Winit prevents sizing with CSS, so we have to set
         // the size manually when on web.
-        let _ = window.request_inner_size(PhysicalSize::new(SCREEN_WIDTH, SCREEN_HEIGHT));
-
         use winit::platform::web::WindowExtWebSys;
+        let canvas = window.canvas().expect("Canvas not found");
+        canvas.style().set_css_text("width: 160px; height: 144px;"); // Enforce size
         web_sys::window()
             .and_then(|win| win.document())
             .and_then(|doc| {
                 let dst = doc.get_element_by_id("emulator-body")?;
-                let canvas = web_sys::Element::from(window.canvas()?);
-                dst.append_child(&canvas).ok()?;
-                Some(())
+                dst.append_child(&web_sys::Element::from(canvas)).ok()
             })
-            .expect("Couldn't append canvas to document body.");
+            .expect("Failed to append canvas");
     }
+    // Force a resize event to trigger initial configuration
+    let _ = window.request_inner_size(PhysicalSize::new(crate::SCREEN_WIDTH, crate::SCREEN_HEIGHT));
 
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
@@ -124,7 +123,6 @@ pub async fn run() {
     let mut redraw_request = false;
 
     let mut last_frame_time = Instant::now();
-
     log::info!("Starting event loop");
 
     event_loop
