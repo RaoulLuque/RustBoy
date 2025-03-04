@@ -222,9 +222,20 @@ impl GPU {
         res
     }
 
-    /// TODO
-    pub fn get_window_tile_map(&self) -> &[[u8; 32]; 32] {
-        todo!()
+    /// Returns the current tile set for the background and window. Switches the addressing mode
+    /// automatically according to LCDC bit 6 (window_tile_map).
+    pub fn get_window_tile_map(&self) -> &[u8; 1024] {
+        if self.gpu_registers.lcd_control.window_tile_map {
+            self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
+                ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+                .try_into()
+                .expect("Slice should be of correct length, work with me here compiler")
+        } else {
+            self.vram[TILEMAP_TWO_START - VRAM_BEGIN as usize
+                ..TILEMAP_TWO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+                .try_into()
+                .expect("Slice should be of correct length, work with me here compiler")
+        }
     }
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
@@ -247,7 +258,7 @@ impl GPU {
     }
 
     /// Returns the current tile map for the background. Switches the addressing mode
-    /// automatically according to LCDC bit 3 (background_tile_map_display_select).
+    /// automatically according to LCDC bit 3 (background_tile_map).
     pub fn get_background_tile_map(&self) -> &[u8; 1024] {
         if self.gpu_registers.lcd_control.background_tile_map {
             self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
