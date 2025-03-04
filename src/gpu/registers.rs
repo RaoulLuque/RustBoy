@@ -144,7 +144,7 @@ impl GPURegisters {
         }
     }
 
-    /// Set the PPU Mode to the provided value.
+    /// Set the GPU/PPU Mode to the provided value.
     pub fn set_ppu_mode(&mut self, mode: RenderingMode) {
         self.lcd_status.ppu_mode = mode;
     }
