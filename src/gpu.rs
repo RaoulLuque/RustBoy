@@ -249,6 +249,8 @@ impl GPU {
 ///
 /// The generics `I` and `R` are the number of tiles and the number of bytes in the RGBA array,
 /// respectively. Therefore, `R` is `I * 8 * 8 * 4`.
+///
+/// TODO: Check if this is correct
 pub fn tile_array_to_rgba_array<const I: usize, const R: usize>(tiles: &[Tile; I]) -> [u8; R] {
     let mut rgba_array = [0u8; R];
     for tile_index in 0..tiles.len() {
