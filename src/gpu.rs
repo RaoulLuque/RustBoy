@@ -134,6 +134,8 @@ impl GPU {
         // If our index is greater than or equal to 0x1800, we are not writing to the tile set storage
         // so we can simply return
         if address >= 0x1800 {
+            // TODO Set tile_map_changed flag only if the currently used tile map has actually changed and not the other one
+            self.tile_map_changed = true;
             return;
         } else {
             self.handle_tile_data_change(address);
