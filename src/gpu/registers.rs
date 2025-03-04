@@ -26,10 +26,10 @@ const LYC_INT_SELECT_BYTE_POSITION: usize = 6;
 /// - 0xFF47: BGP - Background Palette Data Register TODO: Implement
 pub struct GPURegisters {
     pub(super) lcd_control: LCDCRegister,
-    lcd_status: LCDStatusRegister,
+    pub(super) lcd_status: LCDStatusRegister,
     scroll_y: u8,
     scroll_x: u8,
-    current_scanline: u8,
+    pub(super) current_scanline: u8,
     ly_compare: u8,
     background_palette: u8,
 }
@@ -67,7 +67,7 @@ pub struct LCDCRegister {
 /// - Bit 6: LYC int select
 /// - Bit 7: None (Zero)
 pub struct LCDStatusRegister {
-    ppu_mode: RenderingMode,
+    pub(super) gpu_mode: RenderingMode,
     lyc_ly_coincidence_flag: bool,
     mode_0_int_select: bool,
     mode_1_int_select: bool,
@@ -122,7 +122,7 @@ impl GPURegisters {
                 display_on_off: false,
             },
             lcd_status: LCDStatusRegister {
-                ppu_mode: RenderingMode::OAMScan2,
+                gpu_mode: RenderingMode::OAMScan2,
                 lyc_ly_coincidence_flag: false,
                 mode_0_int_select: false,
                 mode_1_int_select: false,
@@ -177,7 +177,7 @@ impl GPURegisters {
 
     /// Set the GPU/PPU Mode to the provided value.
     pub fn set_ppu_mode(&mut self, mode: RenderingMode) {
-        self.lcd_status.ppu_mode = mode;
+        self.lcd_status.gpu_mode = mode;
     }
 
     /// Set the background palette register to the provided value.
@@ -306,7 +306,7 @@ impl From<u8> for LCDCRegister {
 impl From<LCDStatusRegister> for u8 {
     fn from(register: LCDStatusRegister) -> Self {
         let mut value = 0;
-        match register.ppu_mode {
+        match register.gpu_mode {
             rendering_mode => match rendering_mode {
                 RenderingMode::HBlank0 => value |= 0b00,
                 RenderingMode::VBlank1 => value |= 0b01,
@@ -337,7 +337,7 @@ impl From<LCDStatusRegister> for u8 {
 impl From<&LCDStatusRegister> for u8 {
     fn from(register: &LCDStatusRegister) -> Self {
         let mut value = 0;
-        match &register.ppu_mode {
+        match &register.gpu_mode {
             rendering_mode => match rendering_mode {
                 RenderingMode::HBlank0 => value |= 0b00,
                 RenderingMode::VBlank1 => value |= 0b01,
@@ -371,7 +371,7 @@ impl LCDStatusRegister {
     /// Needs a reference to the GPURegisters to get the value of the LYC=LY Coincidence Flag.
     fn with_self_from_u8(&self, gpu_registers: &GPURegisters, value: u8) -> Self {
         LCDStatusRegister {
-            ppu_mode: self.ppu_mode,
+            gpu_mode: self.gpu_mode,
             lyc_ly_coincidence_flag: gpu_registers.ly_compare == gpu_registers.current_scanline,
             mode_0_int_select: value & (1 << MODE_0_INT_SELECT_BYTE_POSITION) != 0,
             mode_1_int_select: value & (1 << MODE_1_INT_SELECT_BYTE_POSITION) != 0,

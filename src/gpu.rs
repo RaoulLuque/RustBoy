@@ -31,11 +31,9 @@ pub struct GPU {
 
 /// Struct to collect the information about the current rendering state of the GPU.
 pub struct RenderingInfo {
-    rendering_mode: RenderingMode,
     dots_clock_sum: u32,
     dots_clock: u32,
     dots_for_transfer: u32,
-    scanline: u8,
 }
 
 /// Represents the possible rendering modes of the GPU.
@@ -69,36 +67,38 @@ impl GPU {
     pub fn step(&mut self, cycles: u32) -> RenderTask {
         self.rendering_info.dots_clock += cycles;
         self.rendering_info.dots_clock_sum += cycles;
-        match self.rendering_info.rendering_mode {
+        match self.gpu_registers.lcd_status.gpu_mode {
             RenderingMode::HBlank0 => {
                 // TODO: Implement rendering by lines instead of entire frame
                 if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer {
                     self.rendering_info.dots_clock -= 456 - self.rendering_info.dots_for_transfer;
-                    self.rendering_info.scanline += 1;
+                    self.gpu_registers.current_scanline += 1;
                     // For now: Render the entire frame before entering VBlank
-                    if self.rendering_info.scanline == 144 {
-                        self.rendering_info.rendering_mode = RenderingMode::VBlank1;
+                    if self.gpu_registers.current_scanline == 144 {
+                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::VBlank1;
                         self.gpu_registers.set_ppu_mode(RenderingMode::VBlank1);
                         return RenderTask::Render;
                     } else {
-                        self.rendering_info.rendering_mode = RenderingMode::OAMScan2;
+                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
                         self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
                     }
                 }
             }
             RenderingMode::VBlank1 => {
-                if self.rendering_info.dots_clock >= 4560 {
-                    self.rendering_info.dots_clock -= 4560;
-                    self.rendering_info.dots_clock_sum = 0;
-                    self.rendering_info.scanline = 0;
-                    self.rendering_info.rendering_mode = RenderingMode::OAMScan2;
-                    self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
+                if self.rendering_info.dots_clock >= 456 {
+                    self.rendering_info.dots_clock -= 456;
+                    self.gpu_registers.current_scanline += 1;
+                    if self.gpu_registers.current_scanline == 154 {
+                        self.gpu_registers.current_scanline = 0;
+                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
+                        self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
+                    }
                 }
             }
             RenderingMode::OAMScan2 => {
                 if self.rendering_info.dots_clock >= 80 {
                     self.rendering_info.dots_clock -= 80;
-                    self.rendering_info.rendering_mode = RenderingMode::Transfer3;
+                    self.gpu_registers.lcd_status.gpu_mode = RenderingMode::Transfer3;
                     self.gpu_registers.set_ppu_mode(RenderingMode::Transfer3);
                 }
             }
@@ -107,7 +107,7 @@ impl GPU {
                 if self.rendering_info.dots_clock >= 172 {
                     self.rendering_info.dots_clock -= 172;
                     self.rendering_info.dots_for_transfer = 172;
-                    self.rendering_info.rendering_mode = RenderingMode::HBlank0;
+                    self.gpu_registers.lcd_status.gpu_mode = RenderingMode::HBlank0;
                     self.gpu_registers.set_ppu_mode(RenderingMode::HBlank0);
                 }
             }
@@ -198,11 +198,9 @@ impl GPU {
             tile_data_changed: false,
             tile_map_changed: false,
             rendering_info: RenderingInfo {
-                rendering_mode: RenderingMode::OAMScan2,
                 dots_clock_sum: 0,
                 dots_clock: 0,
                 dots_for_transfer: 0,
-                scanline: 0,
             },
             gpu_registers: GPURegisters::new(),
         }
