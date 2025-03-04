@@ -24,7 +24,7 @@ mod parsing;
 mod push_and_pop;
 mod sub_and_sbc;
 
-use crate::cpu::registers::{FlagsRegister, CPURegisters};
+use crate::cpu::registers::{CPURegisters, FlagsRegister};
 use crate::RustBoy;
 use add_and_adc::{AddWordSource, AddWordTarget};
 use inc_and_dec::IncDecTarget;
