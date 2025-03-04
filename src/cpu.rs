@@ -34,6 +34,10 @@ impl RustBoy {
         }
     }
 
+    /// Creates a new instance of the RustBoy struct.
+    /// The registers and pointers are all set to their values which they would have after the
+    /// boot rom has been executed. For reference, see in the
+    /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
     pub fn new_after_boot() -> RustBoy {
         let mut cpu = RustBoy {
             registers: CPURegisters::new_after_boot(),

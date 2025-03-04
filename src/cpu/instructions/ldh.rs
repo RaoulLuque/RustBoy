@@ -13,6 +13,7 @@ pub enum LDHType {
 }
 
 impl RustBoy {
+    /// Handles the LDH instruction.
     pub fn handle_ldh_instruction(&mut self, source_or_target: LDHType) -> u16 {
         match source_or_target {
             LDHType::LDH(source, target) => match (source, target) {
