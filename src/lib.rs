@@ -125,6 +125,8 @@ pub async fn run() {
 
     let mut last_frame_time = Instant::now();
 
+    log::info!("Starting event loop");
+
     event_loop
         .run(move |event, control_flow| match event {
             Event::WindowEvent {
