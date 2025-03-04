@@ -70,6 +70,7 @@ pub struct RenderingInfo {
 /// - VBlank: The GPU is currently in the vertical blanking period.
 /// - OAMSearch: The GPU is currently searching for sprites.
 /// - Transfer: The GPU is currently transferring data to the screen.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum RenderingMode {
     HBlank0,
     VBlank1,
@@ -214,6 +215,7 @@ impl GPU {
                 dots_for_transfer: 0,
                 scanline: 0,
             },
+            gpu_registers: GPURegisters::new(),
         }
     }
 
