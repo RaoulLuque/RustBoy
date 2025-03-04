@@ -221,6 +221,7 @@ fn setup_rust_boy() -> RustBoy {
     let mut rust_boy = RustBoy::new_after_boot();
     log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());
 
+    // TODO: Handle the WASM case where the rom cannot be loaded from the filesystem and instead served by the webserver
     match Path::new("roms/").exists() {
         true => {
             rust_boy.load_program("roms/tetris.gb");
