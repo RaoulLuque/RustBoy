@@ -250,11 +250,13 @@ impl GPU {
     /// automatically according to LCDC bit 3 (background_tile_map_display_select).
     pub fn get_background_tile_map(&self) -> &[u8; 1024] {
         if self.gpu_registers.lcd_control.background_tile_map {
-            self.vram[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
+            self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
+                ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
                 .try_into()
                 .expect("Slice should be of correct length, work with me here compiler")
         } else {
-            self.vram[TILEMAP_TWO_START..TILEMAP_TWO_START + TILEMAP_SIZE]
+            self.vram[TILEMAP_TWO_START - VRAM_BEGIN as usize
+                ..TILEMAP_TWO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
                 .try_into()
                 .expect("Slice should be of correct length, work with me here compiler")
         }
