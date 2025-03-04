@@ -5,18 +5,25 @@ use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
 use registers::GPURegisters;
 use tile_handling::{Tile, TilePixelValue};
 
+const TILEMAP_ONE_START: usize = 0x9800;
+const TILEMAP_TWO_START: usize = 0x9C00;
+const TILEMAP_SIZE: usize = 1024;
+
 /// Represents the GPU of the Rust Boy.
-/// It has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF) and a tile set of 384 tiles.
+/// It has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF) containing the tile set with 384 tiles
+/// and two tile maps of 32 * 32 = 1024 bytes each.
+///
 /// The tile set is a 2D array of 8x8 tile pixel values which redundantly stores the tiles
 /// which are already in vram. They are however more accessible than via the vram.
+///
+/// The tile maps are two 2D arrays of 32x32 tile u8 indices which are used to determine which tile
+/// to draw at which position on the screen. They are just stored directly in the vram field.
 ///
 /// Also has a tile_data_changed flag to indicate if the tile data has changed.
 pub struct GPU {
     vram: [u8; VRAM_END as usize - VRAM_BEGIN as usize + 1],
     pub tile_set: [Tile; 384],
     tile_data_changed: bool,
-    tile_map_one_9800: [u8; 1024],
-    tile_map_two_9c00: [u8; 1024],
     tile_map_changed: bool,
     rendering_info: RenderingInfo,
     gpu_registers: GPURegisters,
@@ -109,18 +116,19 @@ impl GPU {
     }
 
     /// Reads a byte from the VRAM at the given address.
-    /// The address is not the actual absolute address in the grand scheme of the total Rust Boy's
-    /// memory but instead the address in the VRAM. That is the absolute address 0x8000 would be
-    /// 0x0000 in this case.
+    /// Since the address is the absolute address in the grand scheme of the total Rust Boy's
+    /// memory, we have to convert it to the relative address in terms of the VRAM. That is the
+    /// absolute address 0x8000 would be the relative address 0x0000.
     pub fn read_vram(&self, address: u16) -> u8 {
-        self.vram[address as usize]
+        self.vram[(address - VRAM_BEGIN) as usize]
     }
 
     /// Writes a byte to the VRAM at the given address.
-    /// The address is not the actual absolute address in the grand scheme of the total Rust Boy's
-    /// memory but instead the address in the VRAM. That is the absolute address 0x8000 would be
-    /// 0x0000 in this case.
+    /// Since the address is the absolute address in the grand scheme of the total Rust Boy's
+    /// memory, we have to convert it to the relative address in terms of the VRAM. That is the
+    /// absolute address 0x8000 would be the relative address 0x0000.
     pub fn write_vram(&mut self, address: u16, value: u8) {
+        let address = address - VRAM_BEGIN;
         self.vram[address as usize] = value;
 
         // If our index is greater than or equal to 0x1800, we are not writing to the tile set storage
@@ -186,8 +194,6 @@ impl GPU {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
             tile_set: [tile_handling::empty_tile(); 384],
             tile_data_changed: false,
-            tile_map_one_9800: [0; 1024],
-            tile_map_two_9c00: [0; 1024],
             tile_map_changed: false,
             rendering_info: RenderingInfo {
                 rendering_mode: RenderingMode::OAMScan2,
@@ -229,12 +235,12 @@ impl GPU {
         {
             self.tile_set[0..256]
                 .try_into()
-                .expect("Slice should be of correct length, talk to me compiler")
+                .expect("Slice should be of correct length, work with me here compiler")
         } else {
             [&self.tile_set[256..384], &self.tile_set[0..128]]
                 .concat()
                 .try_into()
-                .expect("Slice should be of correct length, talk to me compiler")
+                .expect("Slice should be of correct length, work with me here compiler")
         }
     }
 
@@ -242,9 +248,13 @@ impl GPU {
     /// automatically according to LCDC bit 3 (background_tile_map_display_select).
     pub fn get_background_tile_map(&self) -> &[u8; 1024] {
         if self.gpu_registers.lcd_control.background_tile_map {
-            &self.tile_map_one_9800
+            self.vram[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
+                .try_into()
+                .expect("Slice should be of correct length, work with me here compiler")
         } else {
-            &self.tile_map_two_9c00
+            self.vram[TILEMAP_TWO_START..TILEMAP_TWO_START + TILEMAP_SIZE]
+                .try_into()
+                .expect("Slice should be of correct length, work with me here compiler")
         }
     }
 }
