@@ -29,8 +29,8 @@ pub struct GPURegisters {
     pub(super) lcd_status: LCDStatusRegister,
     scroll_y: u8,
     scroll_x: u8,
-    pub(super) current_scanline: u8,
-    ly_compare: u8,
+    current_scanline: u8,
+    scanline_compare: u8,
     background_palette: u8,
 }
 
@@ -132,7 +132,7 @@ impl GPURegisters {
             scroll_x: 0,
             scroll_y: 0,
             current_scanline: 0,
-            ly_compare: 0,
+            scanline_compare: 0,
             background_palette: 0,
         }
     }
@@ -159,9 +159,9 @@ impl GPURegisters {
 
     /// Set the current scanline register to the provided value.
     /// TODO: Handle LYC=LY Coincidence Flag interrupt?
-    fn set_scanline(&mut self, value: u8) {
+    pub(super) fn set_scanline(&mut self, value: u8) {
         self.current_scanline = value;
-        if self.current_scanline == self.ly_compare {
+        if self.current_scanline == self.scanline_compare {
             self.lcd_status.lyc_ly_coincidence_flag = true;
         }
     }
@@ -169,8 +169,8 @@ impl GPURegisters {
     /// Set the LY (Scanline) Compare register to the provided value.
     /// TODO: Handle LYC=LY Coincidence Flag interrupt?
     fn set_scanline_compare(&mut self, value: u8) {
-        self.ly_compare = value;
-        if self.current_scanline == self.ly_compare {
+        self.scanline_compare = value;
+        if self.current_scanline == self.scanline_compare {
             self.lcd_status.lyc_ly_coincidence_flag = true;
         }
     }
@@ -217,7 +217,7 @@ impl GPURegisters {
 
     /// Get the LY (Scanline) Compare register.
     pub fn get_scanline_compare(&self) -> u8 {
-        self.ly_compare
+        self.scanline_compare
     }
 
     /// Get the background palette register.
@@ -372,7 +372,8 @@ impl LCDStatusRegister {
     fn with_self_from_u8(&self, gpu_registers: &GPURegisters, value: u8) -> Self {
         LCDStatusRegister {
             gpu_mode: self.gpu_mode,
-            lyc_ly_coincidence_flag: gpu_registers.ly_compare == gpu_registers.current_scanline,
+            lyc_ly_coincidence_flag: gpu_registers.scanline_compare
+                == gpu_registers.current_scanline,
             mode_0_int_select: value & (1 << MODE_0_INT_SELECT_BYTE_POSITION) != 0,
             mode_1_int_select: value & (1 << MODE_1_INT_SELECT_BYTE_POSITION) != 0,
             mode_2_int_select: value & (1 << MODE_2_INT_SELECT_BYTE_POSITION) != 0,

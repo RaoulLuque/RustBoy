@@ -72,9 +72,10 @@ impl GPU {
                 // TODO: Implement rendering by lines instead of entire frame
                 if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer {
                     self.rendering_info.dots_clock -= 456 - self.rendering_info.dots_for_transfer;
-                    self.gpu_registers.current_scanline += 1;
+                    self.gpu_registers
+                        .set_scanline(self.gpu_registers.get_scanline() + 1);
                     // For now: Render the entire frame before entering VBlank
-                    if self.gpu_registers.current_scanline == 144 {
+                    if self.gpu_registers.get_scanline() == 144 {
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::VBlank1;
                         self.gpu_registers.set_ppu_mode(RenderingMode::VBlank1);
                         return RenderTask::Render;
@@ -87,9 +88,10 @@ impl GPU {
             RenderingMode::VBlank1 => {
                 if self.rendering_info.dots_clock >= 456 {
                     self.rendering_info.dots_clock -= 456;
-                    self.gpu_registers.current_scanline += 1;
-                    if self.gpu_registers.current_scanline == 154 {
-                        self.gpu_registers.current_scanline = 0;
+                    self.gpu_registers
+                        .set_scanline(self.gpu_registers.get_scanline() + 1);
+                    if self.gpu_registers.get_scanline() == 154 {
+                        self.gpu_registers.set_scanline(0);
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
                         self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
                     }
