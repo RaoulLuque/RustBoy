@@ -89,3 +89,19 @@ fn tile_pixel_value_row_to_rgba(row: [TilePixelValue; 8]) -> [u8; 32] {
     }
     rgba_row
 }
+
+pub fn tile_to_string(tile: &Tile) -> String {
+    let mut string = String::new();
+    for row in tile {
+        for pixel in row {
+            match pixel {
+                TilePixelValue::Zero => string.push_str("▫ "),
+                TilePixelValue::One => string.push_str("▪ "),
+                TilePixelValue::Two => string.push_str("□ "),
+                TilePixelValue::Three => string.push_str("■ "),
+            }
+        }
+        string.push('\n');
+    }
+    string
+}
