@@ -93,12 +93,15 @@ impl GPU {
                 // TODO: Implement rendering by lines instead of entire frame
                 if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer {
                     self.rendering_info.dots_clock -= 456 - self.rendering_info.dots_for_transfer;
-                    self.rendering_info.rendering_mode = RenderingMode::OAMScan2;
                     self.rendering_info.scanline += 1;
                     // For now: Render the entire frame before entering VBlank
                     if self.rendering_info.scanline == 144 {
                         self.rendering_info.rendering_mode = RenderingMode::VBlank1;
+                        self.gpu_registers.set_ppu_mode(RenderingMode::VBlank1);
                         return RenderTask::Render;
+                    } else {
+                        self.rendering_info.rendering_mode = RenderingMode::OAMScan2;
+                        self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
                     }
                 }
             }
@@ -108,12 +111,14 @@ impl GPU {
                     self.rendering_info.dots_clock_sum = 0;
                     self.rendering_info.scanline = 0;
                     self.rendering_info.rendering_mode = RenderingMode::OAMScan2;
+                    self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
                 }
             }
             RenderingMode::OAMScan2 => {
                 if self.rendering_info.dots_clock >= 80 {
                     self.rendering_info.dots_clock -= 80;
                     self.rendering_info.rendering_mode = RenderingMode::Transfer3;
+                    self.gpu_registers.set_ppu_mode(RenderingMode::Transfer3);
                 }
             }
             RenderingMode::Transfer3 => {
@@ -122,6 +127,7 @@ impl GPU {
                     self.rendering_info.dots_clock -= 172;
                     self.rendering_info.dots_for_transfer = 172;
                     self.rendering_info.rendering_mode = RenderingMode::HBlank0;
+                    self.gpu_registers.set_ppu_mode(RenderingMode::HBlank0);
                 }
             }
         }
