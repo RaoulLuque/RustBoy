@@ -39,6 +39,9 @@ impl RustBoy {
             }
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
             VRAM_BEGIN..VRAM_END => self.gpu.read_vram(address - VRAM_BEGIN),
+            0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
+                self.gpu.read_registers(address)
+            }
             _ => self.memory[address as usize],
         }
     }
@@ -47,6 +50,9 @@ impl RustBoy {
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address - VRAM_BEGIN, value),
+            0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
+                self.gpu.write_registers(address, value)
+            }
             _ => {
                 self.memory[address as usize] = value;
             }
