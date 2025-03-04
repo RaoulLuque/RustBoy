@@ -69,7 +69,7 @@ pub struct RenderingInfo {
 enum RenderingMode {
     HBlank0,
     VBlank1,
-    OAMScan0,
+    OAMScan2,
     Transfer3,
 }
 
@@ -88,7 +88,7 @@ impl GPU {
                 // TODO: Implement rendering by lines instead of entire frame
                 if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer {
                     self.rendering_info.dots_clock -= 456 - self.rendering_info.dots_for_transfer;
-                    self.rendering_info.rendering_mode = RenderingMode::OAMScan0;
+                    self.rendering_info.rendering_mode = RenderingMode::OAMScan2;
                     self.rendering_info.scanline += 1;
                     // For now: Render the entire frame before entering VBlank
                     if self.rendering_info.scanline == 144 {
@@ -102,10 +102,10 @@ impl GPU {
                     self.rendering_info.dots_clock -= 4560;
                     self.rendering_info.dots_clock_sum = 0;
                     self.rendering_info.scanline = 0;
-                    self.rendering_info.rendering_mode = RenderingMode::OAMScan0;
+                    self.rendering_info.rendering_mode = RenderingMode::OAMScan2;
                 }
             }
-            RenderingMode::OAMScan0 => {
+            RenderingMode::OAMScan2 => {
                 if self.rendering_info.dots_clock >= 80 {
                     self.rendering_info.dots_clock -= 80;
                     self.rendering_info.rendering_mode = RenderingMode::Transfer3;
@@ -204,7 +204,7 @@ impl GPU {
             tile_map: [[0; 32]; 32],
             tile_map_changed: false,
             rendering_info: RenderingInfo {
-                rendering_mode: RenderingMode::OAMScan0,
+                rendering_mode: RenderingMode::OAMScan2,
                 dots_clock_sum: 0,
                 dots_clock: 0,
                 dots_for_transfer: 0,
