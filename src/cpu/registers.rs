@@ -122,7 +122,7 @@ pub struct FlagsRegister {
     pub carry: bool,
 }
 
-impl std::convert::From<FlagsRegister> for u8 {
+impl From<FlagsRegister> for u8 {
     fn from(flags: FlagsRegister) -> Self {
         let mut value = 0;
         if flags.zero {
@@ -141,7 +141,7 @@ impl std::convert::From<FlagsRegister> for u8 {
     }
 }
 
-impl std::convert::From<&FlagsRegister> for u8 {
+impl From<&FlagsRegister> for u8 {
     fn from(flags: &FlagsRegister) -> Self {
         let mut value = 0;
         if flags.zero {
@@ -160,19 +160,19 @@ impl std::convert::From<&FlagsRegister> for u8 {
     }
 }
 
-impl std::convert::From<FlagsRegister> for u16 {
+impl From<FlagsRegister> for u16 {
     fn from(flags: FlagsRegister) -> Self {
         u8::from(flags) as u16
     }
 }
 
-impl std::convert::From<&FlagsRegister> for u16 {
+impl From<&FlagsRegister> for u16 {
     fn from(flags: &FlagsRegister) -> Self {
         u8::from(flags) as u16
     }
 }
 
-impl std::convert::From<u8> for FlagsRegister {
+impl From<u8> for FlagsRegister {
     fn from(value: u8) -> Self {
         FlagsRegister {
             zero: value & (1 << ZERO_FLAG_BYTE_POSITION) != 0,
@@ -183,7 +183,7 @@ impl std::convert::From<u8> for FlagsRegister {
     }
 }
 
-impl std::convert::From<u16> for FlagsRegister {
+impl From<u16> for FlagsRegister {
     fn from(value: u16) -> Self {
         FlagsRegister::from(value as u8)
     }
