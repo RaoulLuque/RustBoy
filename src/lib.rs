@@ -125,8 +125,6 @@ pub async fn run() {
 
     let mut last_frame_time = Instant::now();
 
-    let mut flag_for_debugging_waiting_for_next_frame = false;
-
     event_loop
         .run(move |event, control_flow| match event {
             Event::WindowEvent {
@@ -182,7 +180,6 @@ pub async fn run() {
                                 if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
                                     last_frame_time = Instant::now();
                                     redraw_request = false;
-                                    flag_for_debugging_waiting_for_next_frame = false;
 
                                     state.update();
                                     match state.render(&mut rust_boy.gpu) {
@@ -207,11 +204,6 @@ pub async fn run() {
                                         Err(wgpu::SurfaceError::Timeout) => {
                                             log::warn!("Surface timeout")
                                         }
-                                    }
-                                } else {
-                                    if !flag_for_debugging_waiting_for_next_frame {
-                                        println!("Waiting for next frame");
-                                        flag_for_debugging_waiting_for_next_frame = true;
                                     }
                                 }
                             }

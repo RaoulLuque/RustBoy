@@ -3,4 +3,4 @@
 /pkg
 /node_modules
 /dist
-*.gb
+/roms/*.gb
