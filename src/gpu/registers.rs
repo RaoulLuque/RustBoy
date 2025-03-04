@@ -128,7 +128,7 @@ impl GPURegisters {
 
     /// Set the current scanline register to the provided value.
     /// TODO: Handle LYC=LY Coincidence Flag interrupt?
-    pub fn set_scanline(&mut self, value: u8) {
+    fn set_scanline(&mut self, value: u8) {
         self.current_scanline = value;
         if self.current_scanline == self.ly_compare {
             self.lcd_status.lyc_ly_coincidence_flag = true;
@@ -137,11 +137,16 @@ impl GPURegisters {
 
     /// Set the LY (Scanline) Compare register to the provided value.
     /// TODO: Handle LYC=LY Coincidence Flag interrupt?
-    pub fn set_scanline_compare(&mut self, value: u8) {
+    fn set_scanline_compare(&mut self, value: u8) {
         self.ly_compare = value;
         if self.current_scanline == self.ly_compare {
             self.lcd_status.lyc_ly_coincidence_flag = true;
         }
+    }
+
+    /// Set the PPU Mode to the provided value.
+    pub fn set_ppu_mode(&mut self, mode: RenderingMode) {
+        self.lcd_status.ppu_mode = mode;
     }
 
     /// Set the background palette register to the provided value.
