@@ -8,6 +8,7 @@ pub enum TilePixelValue {
 }
 
 impl TilePixelValue {
+    /// Converts the two bits of a tile pixel to a TilePixelValue.
     pub(crate) fn from_bits(lower_bit: u8, upper_bit: u8) -> TilePixelValue {
         match (lower_bit != 0, upper_bit != 0) {
             (true, true) => TilePixelValue::Three,
@@ -17,6 +18,7 @@ impl TilePixelValue {
         }
     }
 
+    /// Converts the TilePixelValue to an RGBA color.
     fn to_rgba(&self) -> [u8; 4] {
         match self {
             TilePixelValue::Zero => [255, 255, 255, 255], // White

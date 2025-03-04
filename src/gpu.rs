@@ -52,6 +52,12 @@ pub enum RenderTask {
 }
 
 impl GPU {
+    /// Steps the GPU by the given number of cycles.
+    /// Returns a RenderTask indicating what the GPU should do next.
+    /// For now, the GPU only renders the entire frame before entering VBlank.
+    /// In the future, the GPU should render by lines.
+    ///
+    /// The GPU steps through four different [RenderingMode]s.
     pub fn step(&mut self, cycles: u32) -> RenderTask {
         self.rendering_info.dots_clock += cycles;
         self.rendering_info.dots_clock_sum += cycles;
@@ -211,7 +217,9 @@ impl GPU {
         todo!()
     }
 
-    pub fn get_window_and_tile_data(&self) -> [Tile; 256] {
+    /// Returns the current tile set for the background and window. Switches the addressing mode
+    /// automatically according to LCDC bit 4 (background_and_window_tile_data).
+    pub fn get_background_and_window_tile_data(&self) -> [Tile; 256] {
         if self
             .gpu_registers
             .lcd_control
