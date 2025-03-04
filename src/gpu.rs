@@ -247,21 +247,49 @@ impl GPU {
 /// The RGBA array is in the format [R, G, B, A, R, G, B, A, ...].
 /// The RGBA array is in row major order.
 ///
-/// The generics `I` and `R` are the number of tiles and the number of bytes in the RGBA array,
-/// respectively. Therefore, `R` is `I * 8 * 8 * 4`.
-///
-/// TODO: Check if this is correct
-pub fn tile_array_to_rgba_array<const I: usize, const R: usize>(tiles: &[Tile; I]) -> [u8; R] {
-    let mut rgba_array = [0u8; R];
-    for tile_index in 0..tiles.len() {
-        for row_in_tile in 0..tiles[tile_index].len() {
-            for column_in_tile in 0..tiles[tile_index][row_in_tile].len() {
-                let rgba = tiles[tile_index][row_in_tile][column_in_tile].to_rgba();
-                let index_in_rgba_array =
-                    tile_index * 8 * 8 * 4 + row_in_tile * 8 * 4 + column_in_tile * 4;
-                rgba_array[index_in_rgba_array..index_in_rgba_array + 4].copy_from_slice(&rgba);
-            }
+/// TODO: Write tests or smth for this, this is a bit tricky
+pub fn tile_array_to_rgba_array(tiles: &[Tile; 256]) -> [u8; 65536] {
+    let mut rgba_array = [0u8; 65536];
+    // Loop over the 16 rows of tiles
+    // for tile_row_index in 0..16 {
+    //     // Loop over the 8 rows of pixels per tile
+    //     for in_tile_row_index in 0..8 {
+    //         // Loop over the 16 columns of tiles
+    //         for tile_column_index in 0..16 {
+    //             // Loop over the 8 columns of pixels per tile
+    //             for in_tile_column_index in 0..8 {
+    //                 let tile_index = tile_row_index * 16 + tile_column_index;
+    //                 let tile = tiles[tile_index];
+    //                 let pixel_value = tile[in_tile_row_index][in_tile_column_index];
+    //                 let rgba = pixel_value.to_rgba();
+    //                 let index_in_rgba_array = (tile_row_index * 8 + in_tile_row_index) * 16 * 8 * 4
+    //                     + (tile_column_index * 8 + in_tile_column_index) * 4;
+    //                 rgba_array[index_in_rgba_array..index_in_rgba_array + 4].copy_from_slice(&rgba);
+    //             }
+    //         }
+    //     }
+    // }
+
+    // Loop over the 256 tiles
+    for tile_index in 0..256 {
+        // Loop over the 8 rows of pixels per tile
+        for in_tile_row_index in 0..8 {
+            // Copy over the entire row of pixels as one chunk to the final rgba array
+            let rgba_row = tile_pixel_value_row_to_rgba(tiles[tile_index][in_tile_row_index]);
+            let index_in_rgba_array = ((tile_index / 16) * 16 * 8 * 4 * 8)
+                + (in_tile_row_index * 16 * 8 * 4)
+                + ((tile_index % 16) * 8 * 4);
+            rgba_array[index_in_rgba_array..index_in_rgba_array + 32].copy_from_slice(&rgba_row);
         }
     }
     rgba_array
+}
+
+fn tile_pixel_value_row_to_rgba(row: [TilePixelValue; 8]) -> [u8; 32] {
+    let mut rgba_row = [0u8; 32];
+    for (i, pixel_value) in row.iter().enumerate() {
+        let rgba = pixel_value.to_rgba();
+        rgba_row[i * 4..i * 4 + 4].copy_from_slice(&rgba);
+    }
+    rgba_row
 }

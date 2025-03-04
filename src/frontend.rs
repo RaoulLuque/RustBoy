@@ -229,11 +229,27 @@ impl<'a> State<'a> {
         //     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
         //     0xFF, 0xFF, 0xFF, 0xFF,
         // ]);
+
+        let tile = [
+            [crate::gpu::TilePixelValue::Three; 8],
+            [crate::gpu::TilePixelValue::Zero; 8],
+            [crate::gpu::TilePixelValue::Three; 8],
+            [crate::gpu::TilePixelValue::Zero; 8],
+            [crate::gpu::TilePixelValue::Three; 8],
+            [crate::gpu::TilePixelValue::Zero; 8],
+            [crate::gpu::TilePixelValue::Three; 8],
+            [crate::gpu::TilePixelValue::Zero; 8],
+        ];
+
+        let mut empty_tiles = [[[crate::gpu::TilePixelValue::Zero; 8]; 8]; 256];
+        empty_tiles[0] = tile;
+
         if rust_boy_gpu.tile_data_changed() {
             println!("Updating tile data");
-            let new_tile_data = tile_array_to_rgba_array::<256, { 256 * 8 * 8 * 4 }>(
+            let new_tile_data = tile_array_to_rgba_array(
                 <&[Tile; 256]>::try_from(&rust_boy_gpu.tile_set[0..256]).unwrap(),
             );
+            // let new_tile_data = tile_array_to_rgba_array(&empty_tiles);
             self.queue.write_texture(
                 wgpu::TexelCopyTextureInfo {
                     texture: &self.tile_atlas_texture,
