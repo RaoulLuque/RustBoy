@@ -1,4 +1,4 @@
-use super::RenderingMode;
+use super::{RenderingMode, GPU};
 
 const LCD_ENABLE_BYTE_POSITION: usize = 7;
 const WINDOW_TILE_MAP_BYTE_POSITION: usize = 6;
@@ -73,6 +73,37 @@ pub struct LCDStatusRegister {
     mode_1_int_select: bool,
     mode_2_int_select: bool,
     lyc_int_select: bool,
+}
+
+impl GPU {
+    pub fn read_registers(&self, address: u16) -> u8 {
+        match address {
+            0xFF40 => self.gpu_registers.get_lcd_control(),
+            0xFF41 => self.gpu_registers.get_lcd_status(),
+            0xFF42 => self.gpu_registers.get_scroll_y(),
+            0xFF43 => self.gpu_registers.get_scroll_x(),
+            0xFF44 => self.gpu_registers.get_scanline(),
+            0xFF45 => self.gpu_registers.get_scanline_compare(),
+            0xFF47 => self.gpu_registers.get_background_palette(),
+            _ => panic!(
+                "Reading from invalid GPU register address: {:#04X}",
+                address
+            ),
+        }
+    }
+
+    pub fn write_registers(&mut self, address: u16, value: u8) {
+        match address {
+            0xFF40 => self.gpu_registers.set_lcd_control(value),
+            0xFF41 => self.gpu_registers.set_lcd_status(value),
+            0xFF42 => self.gpu_registers.set_scroll_y(value),
+            0xFF43 => self.gpu_registers.set_scroll_x(value),
+            0xFF44 => self.gpu_registers.set_scanline(value),
+            0xFF45 => self.gpu_registers.set_scanline_compare(value),
+            0xFF47 => self.gpu_registers.set_background_palette(value),
+            _ => panic!("Writing to invalid GPU register address: {:#04X}", address),
+        }
+    }
 }
 
 impl GPURegisters {
