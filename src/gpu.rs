@@ -1,4 +1,7 @@
+mod registers;
+
 use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
+use registers::GPURegisters;
 
 /// Represents the possible values of a tile pixel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,6 +51,7 @@ pub struct GPU {
     tile_map: [[u8; 32]; 32],
     tile_map_changed: bool,
     rendering_info: RenderingInfo,
+    gpu_registers: GPURegisters,
 }
 
 /// Struct to collect the information about the current rendering state of the GPU.
