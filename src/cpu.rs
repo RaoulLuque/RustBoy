@@ -53,7 +53,7 @@ impl RustBoy {
             self.execute(instruction)
         } else {
             let panic_description = format!(
-                "0x{}{:x}",
+                "0x{}{:02x}",
                 if prefixed { "CB" } else { "" },
                 instruction_byte
             );

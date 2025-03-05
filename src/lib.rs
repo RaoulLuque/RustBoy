@@ -270,7 +270,7 @@ fn setup_rust_boy() -> RustBoy {
     // TODO: Handle the WASM case where the rom cannot be loaded from the filesystem and instead served by the webserver
     match Path::new("roms/").exists() {
         true => {
-            rust_boy.load_program("roms/tetris.gb");
+            rust_boy.load_program("roms/dr. mario.gb");
             // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
             log::trace!(
                 "CPU Bus after loading program: {}",
