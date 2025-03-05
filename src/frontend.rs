@@ -1,9 +1,12 @@
 mod shader;
 
+use log::trace;
 use winit::event::WindowEvent;
 use winit::window::Window;
 
-use crate::frontend::shader::{setup_shader_pipeline, TilemapUniform, ATLAS_COLS, TILE_SIZE};
+use crate::frontend::shader::{
+    setup_shader_pipeline, BackgroundViewportPosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
+};
 use crate::gpu::tile_handling::{tile_array_to_rgba_array, tile_to_string, Tile};
 use crate::gpu::GPU;
 
@@ -23,6 +26,7 @@ pub struct State<'a> {
     bind_group: wgpu::BindGroup,
     tilemap_buffer: wgpu::Buffer,
     tile_atlas_texture: wgpu::Texture,
+    background_viewport_buffer: wgpu::Buffer,
 }
 
 impl<'a> State<'a> {
@@ -94,6 +98,7 @@ impl<'a> State<'a> {
             bind_group,
             tilemap_buffer,
             tile_atlas_texture,
+            background_viewport_buffer,
         ) = setup_shader_pipeline(&device, &config);
 
         Self {
@@ -109,6 +114,7 @@ impl<'a> State<'a> {
             bind_group,
             tilemap_buffer,
             tile_atlas_texture,
+            background_viewport_buffer,
         }
     }
 
@@ -172,8 +178,9 @@ impl<'a> State<'a> {
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.draw(0..self.num_vertices, 0..1);
         }
+
         if rust_boy_gpu.tile_map_changed() {
-            println!("Updating tilemap");
+            trace!("Updating tilemap");
             // Update tilemap and tile atlas (e.g., VRAM changes)
             let new_tilemap_data = rust_boy_gpu.get_background_tile_map();
             let tilemap = TilemapUniform::from_array(new_tilemap_data);
@@ -196,14 +203,14 @@ impl<'a> State<'a> {
         empty_tiles[0] = tile;
 
         if rust_boy_gpu.tile_data_changed() {
-            println!("Updating tile data");
+            trace!("Updating tile data");
             let new_tile_data = tile_array_to_rgba_array(
                 <&[Tile; 256]>::try_from(&rust_boy_gpu.get_background_and_window_tile_data())
                     .unwrap(),
             );
             println!(
                 "{}",
-                tile_to_string(&rust_boy_gpu.get_background_and_window_tile_data()[0])
+                tile_to_string(&rust_boy_gpu.get_background_and_window_tile_data()[1])
             );
             // let new_tile_data = tile_array_to_rgba_array(&empty_tiles);
             self.queue.write_texture(
@@ -222,6 +229,22 @@ impl<'a> State<'a> {
                 self.tile_atlas_texture.size(),
             );
         }
+
+        // TODO: Update this once per frame only
+        // Update the background viewport position
+        let updated_background_viewport_position = BackgroundViewportPosition {
+            pos: [
+                rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
+                rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
+                0,
+                0,
+            ],
+        };
+        self.queue.write_buffer(
+            &self.background_viewport_buffer,
+            0,
+            bytemuck::cast_slice(&[updated_background_viewport_position]),
+        );
 
         // Submit the rendering commands to the GPU
         // Submit will accept anything that implements IntoIter

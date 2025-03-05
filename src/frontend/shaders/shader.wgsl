@@ -36,6 +36,7 @@ struct TilemapUniform {
 // Tilemap is a 32x32 array of u32s, the same size as the grid of tiles that is loaded in the Rust Boy.
 // Each u32 is a tile index, which is used to look up the tile in the tile atlas.
 @group(0) @binding(2) var<uniform> tilemap: TilemapUniform;
+@group(0) @binding(3) var<uniform> background_viewport_position: vec4<u32>;
 
 // Fragment shader
 @fragment
@@ -43,7 +44,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Set the tile index of the top left tile from which we construct the
     // rust boy's screen. See https://gbdev.io/pandocs/Scrolling.html
     // This should be passed into the shader as a uniform buffer
-    let top_left_tile_index = vec2<i32>(0, 0);
+    let top_left_tile_index = vec2<i32>(i32(background_viewport_position.x), i32(background_viewport_position.y));
 
     // Set the size of the tile as a constant
     let tile_size = vec2<i32>(8, 8);

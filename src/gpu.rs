@@ -23,10 +23,11 @@ const TILEMAP_SIZE: usize = 1024;
 pub struct GPU {
     vram: [u8; VRAM_END as usize - VRAM_BEGIN as usize + 1],
     pub tile_set: [Tile; 384],
+    rendering_info: RenderingInfo,
+    pub gpu_registers: GPURegisters,
     tile_data_changed: bool,
     tile_map_changed: bool,
-    rendering_info: RenderingInfo,
-    gpu_registers: GPURegisters,
+    background_viewport_changed: bool,
 }
 
 /// Struct to collect the information about the current rendering state of the GPU.
@@ -197,14 +198,15 @@ impl GPU {
         Self {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
             tile_set: [tile_handling::empty_tile(); 384],
-            tile_data_changed: false,
-            tile_map_changed: false,
             rendering_info: RenderingInfo {
                 dots_clock_sum: 0,
                 dots_clock: 0,
                 dots_for_transfer: 0,
             },
             gpu_registers: GPURegisters::new(),
+            tile_data_changed: true,
+            tile_map_changed: true,
+            background_viewport_changed: true,
         }
     }
 

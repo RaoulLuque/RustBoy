@@ -88,6 +88,14 @@ impl TilemapUniform {
     }
 }
 
+/// Represents the position of the viewport of the background in the tilemap. Is a list of 4 elements
+/// just for alignment, we only use the first 2.
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct BackgroundViewportPosition {
+    pub pos: [u32; 4],
+}
+
 pub fn setup_shader_pipeline(
     device: &Device,
     config: &SurfaceConfiguration,
@@ -98,6 +106,7 @@ pub fn setup_shader_pipeline(
     wgpu::BindGroup,
     Buffer,
     wgpu::Texture,
+    Buffer,
 ) {
     // This holds all possible tiles (16x16 tiles, 8x8 pixels each)
     let tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -128,13 +137,23 @@ pub fn setup_shader_pipeline(
 
     // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
     // Initialize blank tilemap (0th tile always)
-    let tilemap_data = [0u8; 32 * 32];
-    let tilemap = TilemapUniform::from_array(&tilemap_data);
+    let initial_tilemap_data = [0u8; 32 * 32];
+    let initial_tilemap = TilemapUniform::from_array(&initial_tilemap_data);
     let tilemap_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Tilemap Buffer"),
-        contents: bytemuck::cast_slice(&[tilemap]),
+        contents: bytemuck::cast_slice(&[initial_tilemap]),
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
+
+    // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
+    // Initialize blank tilemap (0th tile always)
+    let initial_background_viewport_position = BackgroundViewportPosition { pos: [0, 0, 0, 0] };
+    let background_viewport_buffer: Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Background Viewport Buffer"),
+            contents: bytemuck::cast_slice(&[initial_background_viewport_position]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("Main Bind Group Layout"),
@@ -168,6 +187,17 @@ pub fn setup_shader_pipeline(
                 },
                 count: None,
             },
+            // Background Viewport Position Uniform Buffer (binding 3)
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
         ],
     });
 
@@ -188,6 +218,10 @@ pub fn setup_shader_pipeline(
             wgpu::BindGroupEntry {
                 binding: 2,
                 resource: tilemap_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: background_viewport_buffer.as_entire_binding(),
             },
         ],
     });
@@ -256,5 +290,6 @@ pub fn setup_shader_pipeline(
         bind_group,
         tilemap_buffer,
         tile_atlas_texture,
+        background_viewport_buffer,
     )
 }
