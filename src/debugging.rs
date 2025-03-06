@@ -42,7 +42,6 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
 
     if log_file == "doctors_augmented" {
         data.pop();
-        data.pop();
         data.push_str(&format!(
             " SPMEM:{:02X},{:02X},{:02X},{:02X},CURR:{:02X},{:02X},{:02X},{:02X},{:02X}\n",
             rust_boy.read_byte(rust_boy.sp.saturating_sub(4)),
@@ -79,7 +78,10 @@ pub fn instruction_log(
 ) {
     use std::fs;
     let file_name = format!("logs/{}.log", log_file);
-    let data = entire_instruction_to_string(rust_boy, instruction);
+    let data = format!(
+        "{:<40}",
+        entire_instruction_to_string(rust_boy, instruction)
+    );
     let file = fs::OpenOptions::new()
         .write(true)
         .append(true)
@@ -101,29 +103,50 @@ pub fn entire_instruction_to_string(
     instruction: crate::cpu::instructions::Instruction,
 ) -> String {
     use crate::cpu::instructions::load::{LoadType, LoadWordSource, LoadWordTarget};
+    use crate::cpu::instructions::Instruction;
     let mut res = format!("{:?}", instruction);
     match instruction {
-        crate::cpu::instructions::Instruction::LD(load_type) => match load_type {
-            crate::cpu::instructions::load::LoadType::Byte(target, source) => {}
-            crate::cpu::instructions::load::LoadType::Word(target, source) => {
+        Instruction::LD(load_type) => match load_type {
+            LoadType::Byte(target, source) => {}
+            LoadType::Word(target, source) => {
                 match target {
                     _ => {}
                 };
                 match source {
-                    crate::cpu::instructions::load::LoadWordSource::D16 => {
-                        let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
-                        let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
-                        res.push_str(&format!(
-                            " {:08b} {:08b} ",
-                            first_immediate_byte, second_immediate_byte
-                        ));
+                    LoadWordSource::D16 => {
+                        push_next_two_immediate_bytes_to_string(rust_boy, &mut res);
                     }
                     _ => {}
                 }
             }
         },
+        Instruction::CALL(_) => {
+            push_next_four_immediate_bytes_as_hex_to_string(rust_boy, &mut res);
+        }
         _ => {}
     }
     res.push_str(" ");
     res
+}
+
+#[cfg(debug_assertions)]
+fn push_next_two_immediate_bytes_to_string(rust_boy: &RustBoy, string: &mut String) {
+    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
+    let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
+    string.push_str(&format!(
+        " {:08b} {:08b} ",
+        first_immediate_byte, second_immediate_byte
+    ));
+}
+
+#[cfg(debug_assertions)]
+fn push_next_four_immediate_bytes_as_hex_to_string(rust_boy: &RustBoy, string: &mut String) {
+    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
+    let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
+    let third_immediate_byte = rust_boy.read_byte(rust_boy.pc + 3);
+    let fourth_immediate_byte = rust_boy.read_byte(rust_boy.pc + 4);
+    string.push_str(&format!(
+        " {:02X} {:02X} {:02X} {:02X} ",
+        first_immediate_byte, second_immediate_byte, third_immediate_byte, fourth_immediate_byte
+    ));
 }
