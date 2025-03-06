@@ -22,6 +22,7 @@ pub(crate) mod load;
 mod logical_operators;
 mod parsing;
 mod push_and_pop;
+mod rlc_rrc_rl_and_rr;
 mod sub_and_sbc;
 
 use crate::cpu::registers::{CPURegisters, FlagsRegister};
@@ -40,6 +41,7 @@ use std::cmp::PartialEq;
 /// the [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Instruction {
+    // 8 Bit Opcodes
     NOP,
     ADDByte(ArithmeticOrLogicalSource),
     ADDWord(AddWordTarget, AddWordSource),
@@ -68,6 +70,9 @@ pub enum Instruction {
     DI,
     EI,
     RETI,
+
+    // 16 bit Opcodes
+    RLC(SixteenBitInstructionTarget),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -101,6 +106,19 @@ pub enum InstructionCondition {
     Always,
 }
 
+/// Represents the possible targets for the 16-bit opcodes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SixteenBitInstructionTarget {
+    A,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    HLRef,
+}
+
 impl Instruction {
     /// Returns the (prefix or non-prefix) instruction corresponding to the given byte. See
     /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/) or
@@ -122,8 +140,12 @@ impl Instruction {
     /// [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
     /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
     pub fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
-        match byte {
-            // TODO: Add more instructions
+        let higher_nibble = (byte & 0xF0) >> 4;
+        match higher_nibble {
+            0x0 | 0x1 | 0x2 | 0x3 => Self::from_byte_prefixed_group_0(byte),
+            0x4 | 0x5 | 0x6 | 0x7 => Self::from_byte_prefixed_group_1(byte),
+            0x8 | 0x9 | 0xA | 0xB => Self::from_byte_prefixed_group_2(byte),
+            0xC | 0xD | 0xE | 0xF => Self::from_byte_prefixed_group_3(byte),
             _ => None,
         }
     }
@@ -193,6 +215,7 @@ impl RustBoy {
                 self.pc.wrapping_add(1)
             }
             Instruction::RETI => self.handle_reti_instruction(),
+            Instruction::RLC(target) => self.handle_rlc_instruction(target),
         };
 
         if instruction != Instruction::EI && self.ime_to_be_set {
@@ -256,6 +279,38 @@ impl ArithmeticOrLogicalSource {
             _ => {
                 rust_boy.increment_cycle_counter(1);
                 rust_boy.pc.wrapping_add(1)
+            }
+        }
+    }
+}
+
+impl SixteenBitInstructionTarget {
+    /// Returns the value of the target register.
+    pub fn get_value(&self, rust_boy: &RustBoy) -> u8 {
+        match self {
+            SixteenBitInstructionTarget::A => rust_boy.registers.a,
+            SixteenBitInstructionTarget::B => rust_boy.registers.b,
+            SixteenBitInstructionTarget::C => rust_boy.registers.c,
+            SixteenBitInstructionTarget::D => rust_boy.registers.d,
+            SixteenBitInstructionTarget::E => rust_boy.registers.e,
+            SixteenBitInstructionTarget::H => rust_boy.registers.h,
+            SixteenBitInstructionTarget::L => rust_boy.registers.l,
+            SixteenBitInstructionTarget::HLRef => rust_boy.read_byte(rust_boy.registers.get_hl()),
+        }
+    }
+
+    /// Sets the value of the target register.
+    pub fn set_value(&self, rust_boy: &mut RustBoy, value: u8) {
+        match self {
+            SixteenBitInstructionTarget::A => rust_boy.registers.a = value,
+            SixteenBitInstructionTarget::B => rust_boy.registers.b = value,
+            SixteenBitInstructionTarget::C => rust_boy.registers.c = value,
+            SixteenBitInstructionTarget::D => rust_boy.registers.d = value,
+            SixteenBitInstructionTarget::E => rust_boy.registers.e = value,
+            SixteenBitInstructionTarget::H => rust_boy.registers.h = value,
+            SixteenBitInstructionTarget::L => rust_boy.registers.l = value,
+            SixteenBitInstructionTarget::HLRef => {
+                rust_boy.write_byte(rust_boy.registers.get_hl(), value)
             }
         }
     }

@@ -1,7 +1,7 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
 use super::{
     IncDecTarget, Instruction, InstructionCondition, JumpType, LDHType, PopTarget, PushSource,
-    Register,
+    Register, SixteenBitInstructionTarget,
 };
 use crate::cpu::instructions::add_and_adc::{AddWordSource, AddWordTarget};
 use crate::cpu::instructions::ldh::LDHSourceOrTarget;
@@ -703,5 +703,69 @@ impl Instruction {
             0xFF => Some(Instruction::RST(0x38)),
             _ => None,
         }
+    }
+
+    /// Returns the prefix instruction corresponding to the given byte in group 0.
+    /// Group 0 consists of the prefixed instructions where the higher nibble is 0, 1, 2 or 3.
+    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
+    ///
+    /// Group 0 consists of the instructions RLC, RRC, RL, RR, SLA, SRA, SWAP and SRL.
+    pub(super) fn from_byte_prefixed_group_0(byte: u8) -> Option<Instruction> {
+        let instruction = match byte {
+            0x00 => Instruction::RLC(SixteenBitInstructionTarget::B),
+            0x01 => Instruction::RLC(SixteenBitInstructionTarget::C),
+            0x02 => Instruction::RLC(SixteenBitInstructionTarget::D),
+            0x03 => Instruction::RLC(SixteenBitInstructionTarget::E),
+            0x04 => Instruction::RLC(SixteenBitInstructionTarget::H),
+            0x05 => Instruction::RLC(SixteenBitInstructionTarget::L),
+            0x06 => Instruction::RLC(SixteenBitInstructionTarget::HLRef),
+            0x07 => Instruction::RLC(SixteenBitInstructionTarget::A),
+            // TODO: Add more instructions
+            _ => return None,
+        };
+        Some(instruction)
+    }
+
+    /// Returns the prefix instruction corresponding to the given byte in group 1.
+    /// Group 1 consists of the prefixed instructions where the higher nibble is 4, 5, 6 or 7.
+    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
+    ///
+    /// Group 1 consists only of the BIT instruction.
+    pub(super) fn from_byte_prefixed_group_1(byte: u8) -> Option<Instruction> {
+        let instruction = match byte {
+            // TODO: Add more instructions
+            _ => return None,
+        };
+        Some(instruction)
+    }
+
+    /// Returns the prefix instruction corresponding to the given byte in group 2.
+    /// Group 2 consists of the prefixed instructions where the higher nibble is 8, 9, A or B.
+    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
+    ///
+    /// Group 2 consists only of the RES instruction.
+    pub(super) fn from_byte_prefixed_group_2(byte: u8) -> Option<Instruction> {
+        let instruction = match byte {
+            // TODO: Add more instructions
+            _ => return None,
+        };
+        Some(instruction)
+    }
+
+    /// Returns the prefix instruction corresponding to the given byte in group 3.
+    /// Group 3 consists of the prefixed instructions where the higher nibble is C, D, E or F.
+    /// See [Interactive CPU Instructions](https://meganesu.github.io/generate-gb-opcodes/)
+    /// or [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7) for details.
+    ///
+    /// Group 3 consists only of the SET instruction.
+    pub(super) fn from_byte_prefixed_group_3(byte: u8) -> Option<Instruction> {
+        let instruction = match byte {
+            // TODO: Add more instructions
+            _ => return None,
+        };
+        Some(instruction)
     }
 }
