@@ -135,7 +135,11 @@ impl RustBoy {
                         self.write_byte(address_to_store_to.wrapping_add(1), (value >> 8) as u8);
                     }
                 }
-                self.pc.wrapping_add(3)
+                match (target, source) {
+                    (LoadWordTarget::SP, LoadWordSource::HL) => self.pc.wrapping_add(1),
+                    (LoadWordTarget::HL, LoadWordSource::SPPlusE8) => self.pc.wrapping_add(2),
+                    _ => self.pc.wrapping_add(3),
+                }
             }
         }
     }
