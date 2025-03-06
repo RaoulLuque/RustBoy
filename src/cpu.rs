@@ -39,6 +39,13 @@ impl RustBoy {
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
     pub fn cpu_step(&mut self) {
+        // Log the current state of the registers if in debug mode. Don't want all this in release
+        // builds, which is why we use the cfg conditional compilation feature.
+        #[cfg(debug_assertions)]
+        if self.debugging_flags.doctor {
+            self.doctor_log();
+        }
+
         let mut instruction_byte = self.read_instruction_byte(self.pc);
 
         // Check if the instruction is a CB instruction (prefix)
@@ -105,5 +112,32 @@ impl RustBoy {
         self.write_byte(0xFF4A, 0x00);
         self.write_byte(0xFF4B, 0x00);
         self.write_byte(0xFFFF, 0x00);
+    }
+
+    /// Write the gameboy doctor logs to the log file.
+    /// Don't want all this in release builds, which is why we use the cfg conditional
+    /// compilation feature.
+    #[cfg(debug_assertions)]
+    fn doctor_log(&self) {
+        use std::fs;
+        let file_name = "logs/doctor.log";
+        let data = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n"
+                           , self.registers.a, u8::from(&self.registers.f), self.registers.b, self.registers.c,
+                           self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.sp, self.pc,
+                           self.read_byte(self.pc), self.read_byte(self.pc.wrapping_add(1)),
+                           self.read_byte(self.pc.wrapping_add(2)), self.read_byte(self.pc.wrapping_add(3))
+        );
+        let file = fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(file_name);
+        if let Ok(mut file) = file {
+            use std::io::Write;
+            file.write_all(data.as_bytes())
+                .expect("Unable to write data");
+        } else {
+            panic!("Unable to open file: {:?}", file);
+        }
     }
 }
