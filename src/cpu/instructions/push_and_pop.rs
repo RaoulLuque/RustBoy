@@ -60,7 +60,7 @@ impl RustBoy {
     /// stored first, that is, on top of the stack.
     pub fn push(&mut self, value_to_push: u16) {
         self.sp = self.sp.wrapping_sub(1);
-        self.write_byte(self.sp, ((value_to_push & 0xF0) >> 8) as u8);
+        self.write_byte(self.sp, ((value_to_push & 0xFF00) >> 8) as u8);
 
         self.sp = self.sp.wrapping_sub(1);
         self.write_byte(self.sp, value_to_push as u8);
