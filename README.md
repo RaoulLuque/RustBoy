@@ -9,6 +9,9 @@ The app also runs in the web using WASM.
 - [Pan Docs](https://gbdev.io/pandocs/)
 - [RGBDS: gbz80(7) - CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7)
 - [Interactive GB Opcode Table](https://meganesu.github.io/generate-gb-opcodes/)
+- [Gameboy Doctor](https://github.com/robert/gameboy-doctor)
+- [GameBoy Emulation in JavaScript](https://imrannazar.com/series/gameboy-emulation-in-javascript)
+- [DMG-01: How to Emulate a Game Boy](https://rylev.github.io/DMG-01/public/book/introduction.html)
 
 ## Implemented Instructions
 
