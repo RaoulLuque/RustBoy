@@ -23,8 +23,9 @@ mod logical_operators;
 mod parsing;
 mod push_and_pop;
 mod rlc_rrc_rl_and_rr;
-mod sla_and_sra;
+mod sla_sra_and_srl;
 mod sub_and_sbc;
+mod swap;
 
 use crate::cpu::registers::{CPURegisters, FlagsRegister};
 use crate::RustBoy;
@@ -79,6 +80,7 @@ pub enum Instruction {
     RR(SixteenBitInstructionTarget),
     SLA(SixteenBitInstructionTarget),
     SRA(SixteenBitInstructionTarget),
+    SWAP(SixteenBitInstructionTarget),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -227,6 +229,7 @@ impl RustBoy {
             Instruction::RR(target) => self.handle_rr_instruction(target),
             Instruction::SLA(target) => self.handle_sla_instruction(target),
             Instruction::SRA(target) => self.handle_sra_instruction(target),
+            Instruction::SWAP(target) => self.handle_swap_instruction(target),
         };
 
         if instruction != Instruction::EI && self.ime_to_be_set {
