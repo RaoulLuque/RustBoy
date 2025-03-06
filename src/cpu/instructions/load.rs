@@ -188,11 +188,7 @@ impl RustBoy {
     /// Returns the value from the given [LoadWordSource].
     fn get_value_from_load_word_source(&self, source: LoadWordSource) -> u16 {
         match source {
-            LoadWordSource::D16 => {
-                let value = self.read_next_word_little_endian(self.pc);
-                log::info!("Value: {}", value);
-                value
-            }
+            LoadWordSource::D16 => self.read_next_word_little_endian(self.pc),
             LoadWordSource::SP => self.sp,
             LoadWordSource::HL => self.registers.get_hl(),
             LoadWordSource::SPPlusE8 => {
