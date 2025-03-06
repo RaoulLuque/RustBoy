@@ -71,14 +71,21 @@ impl RustBoy {
                 let value = value.expect(
                     "Should be a valid add instruction and therefore value should be present",
                 );
-                self.registers
-                    .set_hl(self.registers.get_hl().wrapping_add(value));
+                let new_value = self.add_word(self.registers.get_hl(), value, false);
+                self.registers.set_hl(new_value);
                 self.increment_cycle_counter(2);
                 self.pc.wrapping_add(1)
             }
             AddWordTarget::SP => {
                 let value = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
-                self.sp = self.sp.wrapping_add_signed(value);
+                let new_sp = self.sp.wrapping_add_signed(value);
+                self.registers.f.zero = false;
+                self.registers.f.subtract = false;
+                // The carry flag is set if there is an overflow from the 7th bit to the 8th bit.
+                self.registers.f.carry = (self.sp & 0xFF).wrapping_add_signed(value) > 0xFF;
+                // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
+                self.registers.f.half_carry = (self.sp & 0x0F).wrapping_add_signed(value) > 0x0F;
+                self.sp = new_sp;
                 self.increment_cycle_counter(4);
                 self.pc.wrapping_add(2)
             }
