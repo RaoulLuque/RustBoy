@@ -644,7 +644,7 @@ impl Instruction {
             0xD6 => Some(Instruction::SUB(ArithmeticOrLogicalSource::D8)),
             0xD7 => Some(Instruction::RST(0x10)),
             0xD8 => Some(Instruction::RET(InstructionCondition::Carry)),
-            // TODO: Add missing instructions
+            0xD9 => Some(Instruction::RETI),
             0xDA => Some(Instruction::JP(JumpType::JumpToImmediateOperand(
                 InstructionCondition::Carry,
             ))),

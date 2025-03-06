@@ -69,7 +69,15 @@ impl RustBoy {
     ///
     /// The RST instruction takes 4 cycles.
     pub fn handle_rst_instruction(&mut self, address: u16) -> u16 {
+        self.ime = false;
         self.increment_cycle_counter(4);
         self.call(true, Some(address))
+    }
+
+    // TODO: Check if correct
+    pub fn handle_reti_instruction(&mut self) -> u16 {
+        self.ime = true;
+        self.increment_cycle_counter(4);
+        self.ret(true)
     }
 }

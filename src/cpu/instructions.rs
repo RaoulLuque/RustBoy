@@ -12,7 +12,7 @@
 //! implemented in this module.
 
 mod add_and_adc;
-mod call_ret_and_rst;
+mod call_ret_rst_and_reti;
 mod daa_scf_cpl_and_ccf;
 mod inc_and_dec;
 mod jr;
@@ -67,6 +67,7 @@ pub enum Instruction {
     CCF,
     DI,
     EI,
+    RETI,
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -191,6 +192,7 @@ impl RustBoy {
                 self.ime_to_be_set = true;
                 self.pc.wrapping_add(1)
             }
+            Instruction::RETI => self.handle_reti_instruction(),
         };
 
         if instruction != Instruction::EI && self.ime_to_be_set {
