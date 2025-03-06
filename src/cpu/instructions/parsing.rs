@@ -32,7 +32,7 @@ impl Instruction {
                 LoadByteTarget::REGISTER(Register::B),
                 LoadByteSource::D8,
             ))),
-            // TODO: Add missing instructions
+            0x07 => Some(Instruction::RLCA),
             0x08 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::A16Ref,
                 LoadWordSource::SP,
@@ -49,6 +49,7 @@ impl Instruction {
                 LoadByteTarget::REGISTER(Register::C),
                 LoadByteSource::D8,
             ))),
+            0x0F => Some(Instruction::RRCA),
 
             // TODO: Add missing instructions
             0x11 => Some(Instruction::LD(LoadType::Word(
@@ -66,7 +67,7 @@ impl Instruction {
                 LoadByteTarget::REGISTER(Register::D),
                 LoadByteSource::D8,
             ))),
-            // TODO: Add missing instructions
+            0x17 => Some(Instruction::RLA),
             0x18 => Some(Instruction::JR(InstructionCondition::Always)),
             0x19 => Some(Instruction::ADDWord(AddWordTarget::HL, AddWordSource::DE)),
             0x1A => Some(Instruction::LD(LoadType::Byte(
@@ -80,7 +81,8 @@ impl Instruction {
                 LoadByteTarget::REGISTER(Register::E),
                 LoadByteSource::D8,
             ))),
-            // TODO: Add missing instructions
+            0x1F => Some(Instruction::RRA),
+
             0x20 => Some(Instruction::JR(InstructionCondition::NotZero)),
             0x21 => Some(Instruction::LD(LoadType::Word(
                 LoadWordTarget::HL,

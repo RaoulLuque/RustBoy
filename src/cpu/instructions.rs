@@ -23,6 +23,7 @@ mod logical_operators;
 mod parsing;
 mod push_and_pop;
 mod rlc_rrc_rl_and_rr;
+mod rlca_rrca_rla_and_rra;
 mod sla_sra_and_srl;
 mod sub_and_sbc;
 mod swap;
@@ -82,6 +83,10 @@ pub enum Instruction {
     SRA(SixteenBitInstructionTarget),
     SWAP(SixteenBitInstructionTarget),
     SRL(SixteenBitInstructionTarget),
+    RLCA,
+    RRCA,
+    RLA,
+    RRA,
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -232,6 +237,10 @@ impl RustBoy {
             Instruction::SRA(target) => self.handle_sra_instruction(target),
             Instruction::SWAP(target) => self.handle_swap_instruction(target),
             Instruction::SRL(target) => self.handle_srl_instruction(target),
+            Instruction::RLCA => self.handle_rlca_instruction(),
+            Instruction::RRCA => self.handle_rrca_instruction(),
+            Instruction::RLA => self.handle_rla_instruction(),
+            Instruction::RRA => self.handle_rra_instruction(),
         };
 
         if instruction != Instruction::EI && self.ime_to_be_set {

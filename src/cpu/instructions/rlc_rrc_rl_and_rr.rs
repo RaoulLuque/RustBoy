@@ -18,7 +18,7 @@ impl RustBoy {
 
     /// Rotates the given value left and sets the flags in the flags register if the rotation wraps
     /// around. Also sets the zero flag if the result is zero.
-    fn rlc(&mut self, value: u8) -> u8 {
+    pub(crate) fn rlc(&mut self, value: u8) -> u8 {
         let new_value = value.rotate_left(1);
         let carry = value & 0b1000_0000 != 0;
         self.registers.f.zero = new_value == 0;
@@ -44,7 +44,7 @@ impl RustBoy {
 
     /// Rotates the given value right and sets the flags in the flags register if the rotation wraps
     /// around. Also sets the zero flag if the result is zero.
-    fn rrc(&mut self, value: u8) -> u8 {
+    pub(crate) fn rrc(&mut self, value: u8) -> u8 {
         let new_value = value.rotate_right(1);
         let carry = value & 0b0000_0001 != 0;
         self.registers.f.zero = new_value == 0;
@@ -69,7 +69,7 @@ impl RustBoy {
     }
 
     /// Rotates the given value left through the carry flag. Sets the zero flag if the result is zero.
-    fn rl(&mut self, value: u8) -> u8 {
+    pub(crate) fn rl(&mut self, value: u8) -> u8 {
         let carry = self.registers.f.carry;
         let new_value = value << 1 | (carry as u8);
         self.registers.f.zero = new_value == 0;
@@ -94,7 +94,7 @@ impl RustBoy {
     }
 
     /// Rotates the given value right through the carry flag. Sets the zero flag if the result is zero.
-    fn rr(&mut self, value: u8) -> u8 {
+    pub(crate) fn rr(&mut self, value: u8) -> u8 {
         let carry = self.registers.f.carry;
         let new_value = (value >> 1) | ((carry as u8) << 7);
         self.registers.f.zero = new_value == 0;
