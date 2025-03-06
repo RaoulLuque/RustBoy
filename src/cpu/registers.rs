@@ -84,25 +84,25 @@ impl CPURegisters {
     /// Sets the value of the AF register pair.
     pub fn set_af(&mut self, value: u16) {
         self.a = ((value & 0xFF00) >> 8) as u8;
-        self.b = (value & 0xF00) as u8;
+        self.b = (value & 0x00FF) as u8;
     }
 
     /// Sets the value of the BC register pair.
     pub fn set_bc(&mut self, value: u16) {
         self.b = ((value & 0xFF00) >> 8) as u8;
-        self.c = (value & 0xF00) as u8;
+        self.c = (value & 0x00FF) as u8;
     }
 
     /// Sets the value of the DE register pair.
     pub fn set_de(&mut self, value: u16) {
         self.d = ((value & 0xFF00) >> 8) as u8;
-        self.e = (value & 0xF00) as u8;
+        self.e = (value & 0x00FF) as u8;
     }
 
     /// Sets the value of the HL register pair.
     pub fn set_hl(&mut self, value: u16) {
         self.h = ((value & 0xFF00) >> 8) as u8;
-        self.l = (value & 0xF00) as u8;
+        self.l = (value & 0x00FF) as u8;
     }
 }
 
