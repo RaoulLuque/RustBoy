@@ -72,6 +72,9 @@ pub struct RustBoy {
 
     // GPU
     gpu: GPU,
+
+    // Debugging Flags
+    debugging_flags: DebuggingFlags,
 }
 
 impl RustBoy {
@@ -82,7 +85,7 @@ impl RustBoy {
     /// the stack pointer (SP) is set to 0xFFFE, and the cycle counter is set to 0.
     /// The memory bus is also initialized.
     /// The GPU is initialized to an empty state.
-    pub fn new_before_boot() -> RustBoy {
+    pub fn new_before_boot(debugging_flags: DebuggingFlags) -> RustBoy {
         RustBoy {
             registers: CPURegisters::new_zero(),
             pc: 0x0000,
@@ -93,7 +96,9 @@ impl RustBoy {
             starting_up: true,
             ime: false,
             ime_to_be_set: false,
-            gpu: GPU::new_empty(),
+            gpu: GPU::new_empty(debugging_flags),
+
+            debugging_flags,
         }
     }
 
@@ -101,7 +106,7 @@ impl RustBoy {
     /// The registers and pointers are all set to their values which they would have after the
     /// boot rom has been executed. For reference, see in the
     /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
-    pub fn new_after_boot() -> RustBoy {
+    pub fn new_after_boot(debugging_flags: DebuggingFlags) -> RustBoy {
         let mut cpu = RustBoy {
             registers: CPURegisters::new_after_boot(),
             pc: 0x0100,
@@ -112,7 +117,9 @@ impl RustBoy {
             starting_up: false,
             ime: false,
             ime_to_be_set: false,
-            gpu: GPU::new_empty(),
+            gpu: GPU::new_empty(debugging_flags),
+
+            debugging_flags,
         };
 
         cpu.initialize_hardware_registers();
@@ -122,7 +129,7 @@ impl RustBoy {
 
 /// Run the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
-pub async fn run() {
+pub async fn run(game_boy_doctor_mode: bool) {
     // Initialize logger according to the target architecture
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
@@ -160,7 +167,11 @@ pub async fn run() {
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
 
-    let mut rust_boy = setup_rust_boy();
+    let debugging_flags = DebuggingFlags {
+        doctor: game_boy_doctor_mode,
+    };
+
+    let mut rust_boy = setup_rust_boy(debugging_flags);
 
     // Track the cpu cycles
     let mut total_num_cpu_cycles = 0;
@@ -263,22 +274,28 @@ pub async fn run() {
         .expect("Event loop should be able to run");
 }
 
-fn setup_rust_boy() -> RustBoy {
-    let mut rust_boy = RustBoy::new_after_boot();
+fn setup_rust_boy(debugging_flags: DebuggingFlags) -> RustBoy {
+    let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
     log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());
 
-    // TODO: Handle the WASM case where the rom cannot be loaded from the filesystem and instead served by the webserver
+    // TODO: Handle WASM, where the rom cannot be loaded from the filesystem and instead served by the webserver
     match Path::new("roms/").exists() {
         true => {
-            rust_boy.load_program("roms/dmg_rom.gb");
+            rust_boy.load_program("roms/tetris.gb");
             // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
-            log::trace!(
-                "CPU Bus after loading program: {}",
-                rust_boy.memory_to_string()
-            );
         }
         false => log::warn!("No rom found"),
     };
 
     rust_boy
+}
+
+/// Struct to represent the debugging flags.
+/// The flags are:
+/// - 'doctor': If true, the emulator runs in game boy doctor compatible mode,
+/// see https://github.com/robert/gameboy-doctor
+
+#[derive(Copy, Clone, Debug)]
+pub struct DebuggingFlags {
+    doctor: bool,
 }

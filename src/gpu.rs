@@ -2,6 +2,8 @@ mod registers;
 pub(crate) mod tile_handling;
 
 use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
+
+use crate::DebuggingFlags;
 use registers::GPURegisters;
 use tile_handling::{Tile, TilePixelValue};
 
@@ -28,6 +30,8 @@ pub struct GPU {
     tile_data_changed: bool,
     tile_map_changed: bool,
     background_viewport_changed: bool,
+
+    debugging_flags: DebuggingFlags,
 }
 
 /// Struct to collect the information about the current rendering state of the GPU.
@@ -194,7 +198,7 @@ impl GPU {
     }
 
     /// Returns a new GPU with empty tile set and empty VRAM.
-    pub fn new_empty() -> Self {
+    pub fn new_empty(debugging_flags: DebuggingFlags) -> Self {
         Self {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
             tile_set: [tile_handling::empty_tile(); 384],
@@ -203,10 +207,12 @@ impl GPU {
                 dots_clock: 0,
                 dots_for_transfer: 0,
             },
-            gpu_registers: GPURegisters::new(),
+            gpu_registers: GPURegisters::new(debugging_flags),
             tile_data_changed: true,
             tile_map_changed: true,
             background_viewport_changed: true,
+
+            debugging_flags,
         }
     }
 

@@ -1,5 +1,7 @@
 use super::{RenderingMode, GPU};
 
+use crate::DebuggingFlags;
+
 const LCD_ENABLE_BYTE_POSITION: usize = 7;
 const WINDOW_TILE_MAP_BYTE_POSITION: usize = 6;
 const WINDOW_ENABLE_BYTE_POSITION: usize = 5;
@@ -32,6 +34,7 @@ pub struct GPURegisters {
     current_scanline: u8,
     scanline_compare: u8,
     background_palette: u8,
+    pub(super) debugging_flags: DebuggingFlags,
 }
 
 /// Represents the LCDC register of the GPU.
@@ -109,7 +112,7 @@ impl GPU {
 impl GPURegisters {
     /// Creates a new instance of the GPURegisters struct with all registers set to their default
     /// startup values.
-    pub fn new() -> Self {
+    pub fn new(debugging_flags: DebuggingFlags) -> Self {
         Self {
             lcd_control: LCDCRegister {
                 background_on_off: false,
@@ -134,6 +137,7 @@ impl GPURegisters {
             current_scanline: 0,
             scanline_compare: 0,
             background_palette: 0,
+            debugging_flags,
         }
     }
 
@@ -212,7 +216,11 @@ impl GPURegisters {
 
     /// Get the current scanline register.
     pub fn get_scanline(&self) -> u8 {
-        self.current_scanline
+        if self.debugging_flags.doctor {
+            0x90
+        } else {
+            self.current_scanline
+        }
     }
 
     /// Get the LY (Scanline) Compare register.
