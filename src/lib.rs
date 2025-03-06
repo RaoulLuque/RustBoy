@@ -216,12 +216,12 @@ pub async fn run(game_boy_doctor_mode: bool) {
 
                             // Make multiple steps per redraw request until something has to be rendered
                             while !redraw_request {
-                                rust_boy.step();
+                                rust_boy.cpu_step();
                                 let last_num_of_cycles =
                                     rust_boy.cycle_counter - total_num_cpu_cycles;
                                 total_num_cpu_cycles = rust_boy.cycle_counter;
 
-                                match rust_boy.gpu.step(last_num_of_cycles as u32) {
+                                match rust_boy.gpu.gpu_step(last_num_of_cycles as u32) {
                                     RenderTask::None => {}
                                     RenderTask::Render => {
                                         redraw_request = true;

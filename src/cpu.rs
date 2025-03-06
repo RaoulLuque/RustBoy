@@ -22,7 +22,7 @@ impl RustBoy {
     /// Runs the CPU.
     pub fn run(&mut self) {
         loop {
-            self.step();
+            self.cpu_step();
         }
     }
 
@@ -38,7 +38,7 @@ impl RustBoy {
 
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
-    pub fn step(&mut self) {
+    pub fn cpu_step(&mut self) {
         let mut instruction_byte = self.read_instruction_byte(self.pc);
 
         // Check if the instruction is a CB instruction (prefix)

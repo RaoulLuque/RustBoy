@@ -69,7 +69,7 @@ impl GPU {
     /// In the future, the GPU should render by lines.
     ///
     /// The GPU steps through four different [RenderingMode]s.
-    pub fn step(&mut self, cycles: u32) -> RenderTask {
+    pub fn gpu_step(&mut self, cycles: u32) -> RenderTask {
         self.rendering_info.dots_clock += cycles;
         self.rendering_info.dots_clock_sum += cycles;
         match self.gpu_registers.lcd_status.gpu_mode {
