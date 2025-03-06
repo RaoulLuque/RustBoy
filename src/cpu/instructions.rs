@@ -78,6 +78,7 @@ pub enum Instruction {
     RL(SixteenBitInstructionTarget),
     RR(SixteenBitInstructionTarget),
     SLA(SixteenBitInstructionTarget),
+    SRA(SixteenBitInstructionTarget),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -225,6 +226,7 @@ impl RustBoy {
             Instruction::RL(target) => self.handle_rl_instruction(target),
             Instruction::RR(target) => self.handle_rr_instruction(target),
             Instruction::SLA(target) => self.handle_sla_instruction(target),
+            Instruction::SRA(target) => self.handle_sra_instruction(target),
         };
 
         if instruction != Instruction::EI && self.ime_to_be_set {
