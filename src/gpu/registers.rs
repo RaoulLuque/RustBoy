@@ -1,6 +1,6 @@
 use super::{RenderingMode, GPU};
 
-use crate::DebuggingFlags;
+use crate::debugging::DebuggingFlags;
 
 const LCD_ENABLE_BYTE_POSITION: usize = 7;
 const WINDOW_TILE_MAP_BYTE_POSITION: usize = 6;

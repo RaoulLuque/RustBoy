@@ -3,7 +3,7 @@ pub(crate) mod tile_handling;
 
 use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
 
-use crate::DebuggingFlags;
+use crate::debugging::DebuggingFlags;
 use registers::GPURegisters;
 use tile_handling::{Tile, TilePixelValue};
 

@@ -9,6 +9,7 @@
 //! This crate provides the methods used to run a Rust Boy emulator written in Rust, so it can be run both natively and on the web using WebAssembly.
 
 mod cpu;
+mod debugging;
 mod frontend;
 mod gpu;
 mod memory_bus;
@@ -18,8 +19,11 @@ use std::path::Path;
 use wasm_bindgen::prelude::*;
 use wasm_timer::Instant;
 
+#[cfg(debug_assertions)]
+use crate::debugging::setup_debugging_logs_files;
 use crate::gpu::RenderTask;
 use cpu::registers::CPURegisters;
+use debugging::DebuggingFlags;
 use frontend::State;
 use gpu::GPU;
 use winit::{
@@ -278,6 +282,10 @@ pub async fn run(game_boy_doctor_mode: bool) {
 }
 
 fn setup_rust_boy(debugging_flags: DebuggingFlags) -> RustBoy {
+    // Initialize the logging for debug if compiling in debug mode
+    #[cfg(debug_assertions)]
+    setup_debugging_logs_files(debugging_flags);
+
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
     log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());
 
@@ -291,14 +299,4 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags) -> RustBoy {
     };
 
     rust_boy
-}
-
-/// Struct to represent the debugging flags.
-/// The flags are:
-/// - 'doctor': If true, the emulator runs in game boy doctor compatible mode,
-/// see https://github.com/robert/gameboy-doctor
-
-#[derive(Copy, Clone, Debug)]
-pub struct DebuggingFlags {
-    doctor: bool,
 }
