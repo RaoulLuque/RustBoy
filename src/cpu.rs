@@ -46,7 +46,7 @@ impl RustBoy {
         #[cfg(debug_assertions)]
         if self.debugging_flags.doctor {
             doctor_log(&self, "doctor");
-            doctor_log(&self, "instructions_and_registers")
+            doctor_log(&self, "doctors_augmented")
         }
 
         let mut instruction_byte = self.read_instruction_byte(self.pc);
@@ -62,7 +62,7 @@ impl RustBoy {
             // Log the instruction byte if in debug mode.
             #[cfg(debug_assertions)]
             if self.debugging_flags.doctor {
-                instruction_log(&self, "instructions_and_registers", instruction);
+                instruction_log(&self, "doctors_augmented", instruction);
             }
 
             log::trace!("Executing instruction: {:?} ", instruction);

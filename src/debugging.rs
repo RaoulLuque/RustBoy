@@ -15,7 +15,7 @@ pub fn setup_debugging_logs_files(debugging_flags: DebuggingFlags) {
     // Create the log directory if it doesn't exist
     std::fs::create_dir_all("logs").unwrap();
 
-    let log_file_paths = ["logs/doctor.log", "logs/instructions_and_registers.log"];
+    let log_file_paths = ["logs/doctor.log", "logs/doctors_augmented.log"];
     for path in log_file_paths {
         std::fs::OpenOptions::new()
             .write(true)
@@ -33,12 +33,29 @@ pub fn setup_debugging_logs_files(debugging_flags: DebuggingFlags) {
 pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
     use std::fs;
     let file_name = format!("logs/{}.log", log_file);
-    let data = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n"
+    let mut data = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n"
                        , rust_boy.registers.a, u8::from(&rust_boy.registers.f), rust_boy.registers.b, rust_boy.registers.c,
                        rust_boy.registers.d, rust_boy.registers.e, rust_boy.registers.h, rust_boy.registers.l, rust_boy.sp, rust_boy.pc,
                        rust_boy.read_byte(rust_boy.pc), rust_boy.read_byte(rust_boy.pc.wrapping_add(1)),
                        rust_boy.read_byte(rust_boy.pc.wrapping_add(2)), rust_boy.read_byte(rust_boy.pc.wrapping_add(3))
     );
+
+    if log_file == "doctors_augmented" {
+        data.pop();
+        data.pop();
+        data.push_str(&format!(
+            " SPMEM:{:02X},{:02X},{:02X},{:02X},CURR:{:02X},{:02X},{:02X},{:02X},{:02X}\n",
+            rust_boy.read_byte(rust_boy.sp.saturating_sub(4)),
+            rust_boy.read_byte(rust_boy.sp.saturating_sub(3)),
+            rust_boy.read_byte(rust_boy.sp.saturating_sub(2)),
+            rust_boy.read_byte(rust_boy.sp.saturating_sub(1)),
+            rust_boy.read_byte(rust_boy.sp),
+            rust_boy.read_byte(rust_boy.sp.saturating_add(1)),
+            rust_boy.read_byte(rust_boy.sp.saturating_add(2)),
+            rust_boy.read_byte(rust_boy.sp.saturating_add(3)),
+            rust_boy.read_byte(rust_boy.sp.saturating_add(4)),
+        ))
+    }
     let file = fs::OpenOptions::new()
         .write(true)
         .append(true)
