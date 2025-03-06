@@ -9,13 +9,7 @@ impl RustBoy {
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.sub(value, false);
         self.registers.a = new_value;
-        match source {
-            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
-                self.increment_cycle_counter(2)
-            }
-            _ => self.increment_cycle_counter(1),
-        };
-        self.pc.wrapping_add(1)
+        source.increment_pc_and_cycle(self)
     }
 
     /// Subtracts a value from the A register and sets the corresponding flags in the flags register
@@ -42,12 +36,6 @@ impl RustBoy {
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.sub(value, self.registers.f.carry);
         self.registers.a = new_value;
-        match source {
-            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
-                self.increment_cycle_counter(2)
-            }
-            _ => self.increment_cycle_counter(1),
-        };
-        self.pc.wrapping_add(1)
+        source.increment_pc_and_cycle(self)
     }
 }

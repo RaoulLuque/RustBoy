@@ -9,13 +9,7 @@ impl RustBoy {
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.and(value);
         self.registers.a = new_value;
-        match source {
-            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
-                self.increment_cycle_counter(2)
-            }
-            _ => self.increment_cycle_counter(1),
-        };
-        self.pc.wrapping_add(1)
+        source.increment_pc_and_cycle(self)
     }
 
     /// Performs a bitwise AND operation on the A register and the given value and sets the
@@ -36,13 +30,7 @@ impl RustBoy {
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.xor(value);
         self.registers.a = new_value;
-        match source {
-            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
-                self.increment_cycle_counter(2)
-            }
-            _ => self.increment_cycle_counter(1),
-        };
-        self.pc.wrapping_add(1)
+        source.increment_pc_and_cycle(self)
     }
 
     /// Performs a bitwise XOR operation on the A register and the given value and sets the
@@ -63,13 +51,7 @@ impl RustBoy {
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.or(value);
         self.registers.a = new_value;
-        match source {
-            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
-                self.increment_cycle_counter(2)
-            }
-            _ => self.increment_cycle_counter(1),
-        };
-        self.pc.wrapping_add(1)
+        source.increment_pc_and_cycle(self)
     }
 
     /// Performs a bitwise OR operation on the A register and the given value and sets the
@@ -89,12 +71,6 @@ impl RustBoy {
     pub fn handle_cp_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let value = source.get_value(&self.registers, &self, self.pc);
         self.sub(value, false);
-        match source {
-            ArithmeticOrLogicalSource::HLRef | ArithmeticOrLogicalSource::D8 => {
-                self.increment_cycle_counter(2)
-            }
-            _ => self.increment_cycle_counter(1),
-        };
-        self.pc.wrapping_add(1)
+        source.increment_pc_and_cycle(self)
     }
 }

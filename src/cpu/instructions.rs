@@ -241,6 +241,24 @@ impl ArithmeticOrLogicalSource {
             ArithmeticOrLogicalSource::HLRef => rust_boy.read_byte(registers.get_hl()),
         }
     }
+
+    /// Returns the next program counter value and increments the cycle counter according to the source
+    fn increment_pc_and_cycle(self, rust_boy: &mut RustBoy) -> u16 {
+        match self {
+            ArithmeticOrLogicalSource::D8 => {
+                rust_boy.increment_cycle_counter(2);
+                rust_boy.pc.wrapping_add(2)
+            }
+            ArithmeticOrLogicalSource::HLRef => {
+                rust_boy.increment_cycle_counter(2);
+                rust_boy.pc.wrapping_add(1)
+            }
+            _ => {
+                rust_boy.increment_cycle_counter(1);
+                rust_boy.pc.wrapping_add(1)
+            }
+        }
+    }
 }
 
 /// Checks the condition of the instruction using the registers and returns true if the instruction should
