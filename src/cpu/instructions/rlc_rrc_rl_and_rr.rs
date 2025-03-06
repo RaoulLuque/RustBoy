@@ -78,4 +78,29 @@ impl RustBoy {
         self.registers.f.carry = value & 0b1000_0000 != 0;
         new_value
     }
+
+    /// Handles the RR instruction for the given [super::SixteenBitInstructionTarget].
+    ///
+    /// The RR instruction takes 2 cycles if the target is a register and 4 otherwise.
+    pub fn handle_rr_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+        let value = target.get_value(&self);
+        let new_value = self.rr(value);
+        target.set_value(self, new_value);
+        match target {
+            SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
+            _ => self.increment_cycle_counter(2),
+        }
+        self.pc.wrapping_add(2)
+    }
+
+    /// Rotates the given value right through the carry flag
+    fn rr(&mut self, value: u8) -> u8 {
+        let carry = self.registers.f.carry;
+        let new_value = (value >> 1) | ((carry as u8) << 7);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = value & 0b0000_0001 != 0;
+        new_value
+    }
 }
