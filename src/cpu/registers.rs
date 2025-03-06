@@ -84,7 +84,7 @@ impl CPURegisters {
     /// Sets the value of the AF register pair.
     pub fn set_af(&mut self, value: u16) {
         self.a = ((value & 0xFF00) >> 8) as u8;
-        self.b = (value & 0x00FF) as u8;
+        self.f = FlagsRegister::from((value & 0x00FF) as u8);
     }
 
     /// Sets the value of the BC register pair.
