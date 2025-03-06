@@ -136,7 +136,7 @@ impl RustBoy {
 
 /// Run the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
-pub async fn run(game_boy_doctor_mode: bool) {
+pub async fn run(game_boy_doctor_mode: bool, rom_path: &str) {
     // Initialize logger according to the target architecture
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
@@ -178,7 +178,7 @@ pub async fn run(game_boy_doctor_mode: bool) {
         doctor: game_boy_doctor_mode,
     };
 
-    let mut rust_boy = setup_rust_boy(debugging_flags);
+    let mut rust_boy = setup_rust_boy(debugging_flags, rom_path);
 
     // Track the cpu cycles
     let mut total_num_cpu_cycles = 0;
@@ -281,7 +281,7 @@ pub async fn run(game_boy_doctor_mode: bool) {
         .expect("Event loop should be able to run");
 }
 
-fn setup_rust_boy(debugging_flags: DebuggingFlags) -> RustBoy {
+fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
     // Initialize the logging for debug if compiling in debug mode
     #[cfg(debug_assertions)]
     setup_debugging_logs_files(debugging_flags);
@@ -289,14 +289,8 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags) -> RustBoy {
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
     log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());
 
-    // TODO: Handle WASM, where the rom cannot be loaded from the filesystem and instead served by the webserver
-    match Path::new("roms/").exists() {
-        true => {
-            rust_boy.load_program("roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb");
-            // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
-        }
-        false => log::warn!("No rom found"),
-    };
+    rust_boy.load_program("roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb");
+    // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
 
     rust_boy
 }
