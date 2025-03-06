@@ -74,6 +74,16 @@ impl RustBoy {
         self.read_word_little_endian(pc + 1)
     }
 
+    pub(super) fn read_work_big_endian(&self, address: u16) -> u16 {
+        let high_byte = self.read_byte(address) as u16;
+        let low_byte = self.read_byte(address + 1) as u16;
+        (high_byte << 8) | low_byte
+    }
+
+    pub(super) fn read_next_work_big_endian(&self, pc: u16) -> u16 {
+        self.read_work_big_endian(pc + 1)
+    }
+
     /// Writes data to the memory at the given address.
     pub(super) fn load(&mut self, address: u16, data: &Vec<u8>) {
         for (i, &byte) in data.iter().enumerate() {

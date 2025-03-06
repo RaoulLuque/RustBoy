@@ -43,7 +43,8 @@ impl RustBoy {
         // builds, which is why we use the cfg conditional compilation feature.
         #[cfg(debug_assertions)]
         if self.debugging_flags.doctor {
-            self.doctor_log();
+            self.doctor_log("doctor");
+            self.doctor_log("instructions_and_registers")
         }
 
         let mut instruction_byte = self.read_instruction_byte(self.pc);
@@ -56,6 +57,12 @@ impl RustBoy {
 
         let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
         {
+            // Log the instruction byte if in debug mode.
+            #[cfg(debug_assertions)]
+            if self.debugging_flags.doctor {
+                self.instruction_log("instructions_and_registers", instruction);
+            }
+
             log::trace!("Executing instruction: {:?} ", instruction);
             self.execute(instruction)
         } else {
@@ -118,9 +125,9 @@ impl RustBoy {
     /// Don't want all this in release builds, which is why we use the cfg conditional
     /// compilation feature.
     #[cfg(debug_assertions)]
-    fn doctor_log(&self) {
+    fn doctor_log(&self, log_file: &str) {
         use std::fs;
-        let file_name = "logs/doctor.log";
+        let file_name = format!("logs/{}.log", log_file);
         let data = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n"
                            , self.registers.a, u8::from(&self.registers.f), self.registers.b, self.registers.c,
                            self.registers.d, self.registers.e, self.registers.h, self.registers.l, self.sp, self.pc,
@@ -139,5 +146,56 @@ impl RustBoy {
         } else {
             panic!("Unable to open file: {:?}", file);
         }
+    }
+
+    /// Log the instruction bytes to the log file.
+    #[cfg(debug_assertions)]
+    fn instruction_log(&self, log_file: &str, instruction: Instruction) {
+        use std::fs;
+        let file_name = format!("logs/{}.log", log_file);
+        let data = self.entire_instruction_to_string(instruction);
+        let file = fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(file_name);
+        if let Ok(mut file) = file {
+            use std::io::Write;
+            file.write_all(data.as_bytes())
+                .expect("Unable to write data");
+        } else {
+            panic!("Unable to open file: {:?}", file);
+        }
+    }
+
+    /// Match the instruction to the length of the instruction to copy its entire bytes
+    #[cfg(debug_assertions)]
+    fn entire_instruction_to_string(&self, instruction: Instruction) -> String {
+        use instructions::load::{LoadType, LoadWordSource, LoadWordTarget};
+        let mut res = format!("{:?}", instruction);
+        match instruction {
+            Instruction::LD(load_type) => match load_type {
+                LoadType::Byte(target, source) => {}
+                LoadType::Word(target, source) => {
+                    match target {
+                        _ => {}
+                    };
+                    match source {
+                        LoadWordSource::D16 => {
+                            let first_immediate_byte = self.read_byte(self.pc + 1);
+                            let second_immediate_byte = self.read_byte(self.pc + 2);
+                            res.push_str(&format!(
+                                " {:08b} {:08b} ",
+                                first_immediate_byte, second_immediate_byte
+                            ));
+                        }
+                        _ => {}
+                    }
+                }
+            },
+            _ => {}
+        }
+        res.push_str(" ");
+        res
     }
 }

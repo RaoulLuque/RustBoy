@@ -30,6 +30,9 @@ use winit::{
     window::WindowBuilder,
 };
 
+#[cfg(debug_assertions)]
+const TARGET_FPS: u32 = 1;
+#[cfg(not(debug_assertions))]
 const TARGET_FPS: u32 = 60;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
 const SCREEN_WIDTH: u32 = 160;
@@ -281,7 +284,7 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags) -> RustBoy {
     // TODO: Handle WASM, where the rom cannot be loaded from the filesystem and instead served by the webserver
     match Path::new("roms/").exists() {
         true => {
-            rust_boy.load_program("roms/tetris.gb");
+            rust_boy.load_program("roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb");
             // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
         }
         false => log::warn!("No rom found"),

@@ -18,7 +18,7 @@ mod inc_and_dec;
 mod jr;
 mod jump;
 mod ldh;
-mod load;
+pub(crate) mod load;
 mod logical_operators;
 mod parsing;
 mod push_and_pop;
