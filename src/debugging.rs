@@ -1,3 +1,4 @@
+use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::RustBoy;
 
 /// Struct to represent the debugging flags.
@@ -106,6 +107,19 @@ pub fn entire_instruction_to_string(
     use crate::cpu::instructions::Instruction;
     let mut res = format!("{:?}", instruction);
     match instruction {
+        Instruction::ADDByte(source)
+        | Instruction::ADC(source)
+        | Instruction::SUB(source)
+        | Instruction::SBC(source)
+        | Instruction::AND(source)
+        | Instruction::OR(source)
+        | Instruction::XOR(source)
+        | Instruction::CP(source) => match source {
+            ArithmeticOrLogicalSource::D8 => {
+                push_next_immediate_byte_as_hex_to_string(rust_boy, &mut res)
+            }
+            _ => {}
+        },
         Instruction::LD(load_type) => match load_type {
             LoadType::Byte(target, source) => {}
             LoadType::Word(target, source) => {
@@ -127,6 +141,12 @@ pub fn entire_instruction_to_string(
     }
     res.push_str(" ");
     res
+}
+
+#[cfg(debug_assertions)]
+fn push_next_immediate_byte_as_hex_to_string(rust_boy: &RustBoy, string: &mut String) {
+    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
+    string.push_str(&format!(" {:02X} ", first_immediate_byte,));
 }
 
 #[cfg(debug_assertions)]
