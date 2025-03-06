@@ -746,6 +746,15 @@ impl Instruction {
             0x1D => Instruction::RR(SixteenBitInstructionTarget::L),
             0x1E => Instruction::RR(SixteenBitInstructionTarget::HLRef),
             0x1F => Instruction::RR(SixteenBitInstructionTarget::A),
+
+            0x20 => Instruction::SLA(SixteenBitInstructionTarget::B),
+            0x21 => Instruction::SLA(SixteenBitInstructionTarget::C),
+            0x22 => Instruction::SLA(SixteenBitInstructionTarget::D),
+            0x23 => Instruction::SLA(SixteenBitInstructionTarget::E),
+            0x24 => Instruction::SLA(SixteenBitInstructionTarget::H),
+            0x25 => Instruction::SLA(SixteenBitInstructionTarget::L),
+            0x26 => Instruction::SLA(SixteenBitInstructionTarget::HLRef),
+            0x27 => Instruction::SLA(SixteenBitInstructionTarget::A),
             // TODO: Add more instructions
             _ => return None,
         };
