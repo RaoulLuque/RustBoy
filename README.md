@@ -42,7 +42,7 @@ see [here](https://meganesu.github.io/generate-gb-opcodes/).
 ```markdown
 |    | x0          | x1          | x2          | x3          | x4          | x5          | x6             | x7          | x8          | x9          | xA          | xB          | xC          | xD          | xE             | xF          |
 |----|-------------|-------------|-------------|-------------|-------------|-------------|----------------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|----------------|-------------|
-| 0x | [x] RLC B   | [x] RLC C   | [x] RLC D   | [x] RLC E   | [x] RLC H   | [x] RLC L   | [x] RLC (HL)   | [x] RLC A   | [ ] RRC B   | [ ] RRC C   | [ ] RRC D   | [ ] RRC E   | [ ] RRC H   | [ ] RRC L   | [ ] RRC (HL)   | [ ] RRC A   |
+| 0x | [x] RLC B   | [x] RLC C   | [x] RLC D   | [x] RLC E   | [x] RLC H   | [x] RLC L   | [x] RLC (HL)   | [x] RLC A   | [x] RRC B   | [x] RRC C   | [x] RRC D   | [x] RRC E   | [x] RRC H   | [x] RRC L   | [x] RRC (HL)   | [x] RRC A   |
 | 1x | [ ] RL B    | [ ] RL C    | [ ] RL D    | [ ] RL E    | [ ] RL H    | [ ] RL L    | [ ] RL (HL)    | [ ] RL A    | [ ] RR B    | [ ] RR C    | [ ] RR D    | [ ] RR E    | [ ] RR H    | [ ] RR L    | [ ] RR (HL)    | [ ] RR A    |
 | 2x | [ ] SLA B   | [ ] SLA C   | [ ] SLA D   | [ ] SLA E   | [ ] SLA H   | [ ] SLA L   | [ ] SLA (HL)   | [ ] SLA A   | [ ] SRA B   | [ ] SRA C   | [ ] SRA D   | [ ] SRA E   | [ ] SRA H   | [ ] SRA L   | [ ] SRA (HL)   | [ ] SRA A   |
 | 3x | [ ] SWAP B  | [ ] SWAP C  | [ ] SWAP D  | [ ] SWAP E  | [ ] SWAP H  | [ ] SWAP L  | [ ] SWAP (HL)  | [ ] SWAP A  | [ ] SRL B   | [ ] SRL C   | [ ] SRL D   | [ ] SRL E   | [ ] SRL H   | [ ] SRL L   | [ ] SRL (HL)   | [ ] SRL A   |

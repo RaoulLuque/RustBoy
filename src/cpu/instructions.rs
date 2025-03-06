@@ -73,6 +73,7 @@ pub enum Instruction {
 
     // 16 bit Opcodes
     RLC(SixteenBitInstructionTarget),
+    RRC(SixteenBitInstructionTarget),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -216,6 +217,7 @@ impl RustBoy {
             }
             Instruction::RETI => self.handle_reti_instruction(),
             Instruction::RLC(target) => self.handle_rlc_instruction(target),
+            Instruction::RRC(target) => self.handle_rrc_instruction(target),
         };
 
         if instruction != Instruction::EI && self.ime_to_be_set {
