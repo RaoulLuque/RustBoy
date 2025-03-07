@@ -11,7 +11,7 @@
 //! (e.g. ADD and ADC, [ArithmeticOrLogicalSource]), they use a common type to represent the target or source which is then
 //! implemented in this module.
 
-mod add_and_adc;
+pub(crate) mod add_and_adc;
 mod call_ret_rst_and_reti;
 mod daa_scf_cpl_and_ccf;
 mod inc_and_dec;
