@@ -103,6 +103,7 @@ pub fn entire_instruction_to_string(
     rust_boy: &RustBoy,
     instruction: crate::cpu::instructions::Instruction,
 ) -> String {
+    use crate::cpu::instructions::add_and_adc::AddWordSource;
     use crate::cpu::instructions::load::{LoadType, LoadWordSource, LoadWordTarget};
     use crate::cpu::instructions::Instruction;
     let mut res = format!("{:?}", instruction);
@@ -117,6 +118,12 @@ pub fn entire_instruction_to_string(
         | Instruction::CP(source) => match source {
             ArithmeticOrLogicalSource::D8 => {
                 push_next_immediate_byte_as_hex_to_string(rust_boy, &mut res)
+            }
+            _ => {}
+        },
+        Instruction::ADDWord(_, source) => match source {
+            AddWordSource::E8 => {
+                push_next_immediate_byte_as_hex_to_string(rust_boy, &mut res);
             }
             _ => {}
         },
