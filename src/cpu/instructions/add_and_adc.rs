@@ -50,6 +50,22 @@ impl RustBoy {
         new_value
     }
 
+    /// Adds a source_value to a target_value and sets the corresponding flags in the
+    /// [super::registers::FlagsRegister].
+    pub(crate) fn add_not_to_a(&mut self, target_value: u8, source_value: u8) -> u8 {
+        let new_value = target_value.wrapping_add(source_value);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        // The carry flag is set if there is an overflow from the 8th bit to the "9"th bit.
+        // This is the case if the sum of the A register and the value are greater than 0xFF = 0b 1111 1111 (binary).
+        self.registers.f.carry = target_value as u16 + source_value as u16 > 0xFF;
+        // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
+        // This is the case if the sum of the lower 4 bits of the A register and the value are greater
+        // than 0xF = 0b 0000 1111 (binary).
+        self.registers.f.half_carry = ((target_value & 0x0F) + (source_value & 0x0F)) > 0xF;
+        new_value
+    }
+
     /// Handles the add instruction for the given [Register] if words (2 bytes) are added.
     /// In particular, these instructions do not add to the A register.
     ///
@@ -80,13 +96,10 @@ impl RustBoy {
                 let value = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
                 let value_u8 = self.read_byte(self.pc.wrapping_add(1));
                 let new_sp = self.sp.wrapping_add_signed(value);
+                // Set flags by calling add Instruction, discarding result and overwriting zero flag
+                self.add_not_to_a(self.sp as u8, value_u8);
                 self.registers.f.zero = false;
-                self.registers.f.subtract = false;
-                // The carry flag is set if there is an overflow from the 7th bit to the 8th bit.
-                self.registers.f.carry = (self.sp & 0xFF).wrapping_add(value_u8 as u16) > 0xFF;
-                // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
-                self.registers.f.half_carry =
-                    (self.sp & 0x0F).wrapping_add(value_u8 as u16 & 0x0F) > 0x0F;
+
                 self.sp = new_sp;
                 self.increment_cycle_counter(4);
                 self.pc.wrapping_add(2)

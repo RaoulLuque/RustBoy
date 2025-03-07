@@ -190,13 +190,16 @@ impl RustBoy {
     }
 
     /// Returns the value from the given [LoadWordSource].
-    fn get_value_from_load_word_source(&self, source: LoadWordSource) -> u16 {
+    fn get_value_from_load_word_source(&mut self, source: LoadWordSource) -> u16 {
         match source {
             LoadWordSource::D16 => self.read_next_word_little_endian(self.pc),
             LoadWordSource::SP => self.sp,
             LoadWordSource::HL => self.registers.get_hl(),
             LoadWordSource::SPPlusE8 => {
                 let value = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
+                // Set flags by calling add Instruction, discarding result and overwriting zero flag
+                self.add_not_to_a(self.sp as u8, self.read_byte(self.pc.wrapping_add(1)));
+                self.registers.f.zero = false;
                 (self.sp).wrapping_add_signed(value)
             }
         }
