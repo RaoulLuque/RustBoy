@@ -36,4 +36,9 @@ jobs:
         run: |
           timeout 30s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --DOCTOR --ROM "${{ matrix.rom }}"' | tee output.log
           cat output.log
-          grep "Testing" output.log
+          grep "Write to SB: P
+          Write to SB: a
+          Write to SB: s
+          Write to SB: s
+          Write to SB: e
+          Write to SB: d" output.log
