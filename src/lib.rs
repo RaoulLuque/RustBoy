@@ -136,7 +136,7 @@ impl RustBoy {
 
 /// Run the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
-pub async fn run(game_boy_doctor_mode: bool, rom_path: &str) {
+pub async fn run(headless: bool, game_boy_doctor_mode: bool, rom_path: &str) {
     // Initialize logger according to the target architecture
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
@@ -147,6 +147,18 @@ pub async fn run(game_boy_doctor_mode: bool, rom_path: &str) {
         }
     }
     log::info!("Logger initialized");
+
+    let debugging_flags = DebuggingFlags {
+        doctor: game_boy_doctor_mode,
+    };
+
+    let mut rust_boy = setup_rust_boy(debugging_flags, rom_path);
+
+    #[cfg(debug_assertions)]
+    if headless {
+        log::info!("Running in headless mode");
+        run_headless(&mut rust_boy);
+    }
 
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
@@ -173,12 +185,6 @@ pub async fn run(game_boy_doctor_mode: bool, rom_path: &str) {
 
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
-
-    let debugging_flags = DebuggingFlags {
-        doctor: game_boy_doctor_mode,
-    };
-
-    let mut rust_boy = setup_rust_boy(debugging_flags, rom_path);
 
     // Track the cpu cycles
     let mut total_num_cpu_cycles = 0;
@@ -223,17 +229,11 @@ pub async fn run(game_boy_doctor_mode: bool, rom_path: &str) {
 
                             // Make multiple steps per redraw request until something has to be rendered
                             while !redraw_request {
-                                rust_boy.cpu_step();
-                                let last_num_of_cycles =
-                                    rust_boy.cycle_counter - total_num_cpu_cycles;
-                                total_num_cpu_cycles = rust_boy.cycle_counter;
-
-                                match rust_boy.gpu.gpu_step(last_num_of_cycles as u32) {
-                                    RenderTask::None => {}
-                                    RenderTask::Render => {
-                                        redraw_request = true;
-                                    }
-                                };
+                                (total_num_cpu_cycles, redraw_request) = handle_not_redraw_request(
+                                    &mut rust_boy,
+                                    total_num_cpu_cycles,
+                                    redraw_request,
+                                );
                             }
 
                             if redraw_request {
@@ -281,6 +281,8 @@ pub async fn run(game_boy_doctor_mode: bool, rom_path: &str) {
         .expect("Event loop should be able to run");
 }
 
+/// Set up the Rust Boy by initializing it with the given debugging flags and
+/// loading the specified ROM file.
 fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
     // Initialize the logging for debug if compiling in debug mode
     #[cfg(debug_assertions)]
@@ -293,4 +295,51 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
     // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
 
     rust_boy
+}
+
+/// Run the emulator in headless mode. That is, without a window.
+/// This is useful for (automated) testing and debugging purposes.
+#[cfg(debug_assertions)]
+fn run_headless(rust_boy: &mut RustBoy) {
+    let mut redraw_request = false;
+    let mut total_num_cpu_cycles = 0;
+    let mut last_frame_time = Instant::now();
+    loop {
+        // Make multiple steps per redraw request until something has to be rendered
+        while !redraw_request {
+            (total_num_cpu_cycles, redraw_request) =
+                handle_not_redraw_request(rust_boy, total_num_cpu_cycles, redraw_request);
+        }
+
+        if redraw_request {
+            // Calculate the time since the last frame and check if a new frame
+            // should be drawn or we still wait
+            let now = Instant::now();
+            let elapsed = now.duration_since(last_frame_time);
+            if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
+                last_frame_time = Instant::now();
+                redraw_request = false;
+            }
+        }
+    }
+}
+
+/// Handle the case in the game boy loop, where we are not requesting a redraw.
+fn handle_not_redraw_request(
+    rust_boy: &mut RustBoy,
+    total_num_cpu_cycles: u64,
+    redraw_request: bool,
+) -> (u64, bool) {
+    let mut res_redraw_request = redraw_request;
+    rust_boy.cpu_step();
+    let last_num_of_cycles = rust_boy.cycle_counter - total_num_cpu_cycles;
+    let total_num_cpu_cycles = rust_boy.cycle_counter;
+
+    match rust_boy.gpu.gpu_step(last_num_of_cycles as u32) {
+        RenderTask::None => {}
+        RenderTask::Render => {
+            res_redraw_request = true;
+        }
+    };
+    (total_num_cpu_cycles, res_redraw_request)
 }

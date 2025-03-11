@@ -6,6 +6,10 @@ use rustboy::run;
 #[command(name = "Rust Boy")]
 #[command(about = "A Game Boy emulator written in Rust", long_about = None)]
 struct Args {
+    /// If present, runs the emulator in headless mode
+    #[arg(long = "HEADLESS", default_value_t = false)]
+    headless: bool,
+
     /// If present, runs in game boy doctor mode
     #[arg(short, long = "DOCTOR", default_value_t = false)]
     game_boy_doctor: bool,
@@ -18,5 +22,5 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    pollster::block_on(run(args.game_boy_doctor, &args.rom_path));
+    pollster::block_on(run(args.headless, args.game_boy_doctor, &args.rom_path));
 }
