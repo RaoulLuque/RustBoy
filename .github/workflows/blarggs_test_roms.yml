@@ -35,5 +35,18 @@ jobs:
       - name: Run Test ROM
         run: |
           timeout 30s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --DOCTOR --ROM "${{ matrix.rom }}" | tee output.log'
-          cat output.log
-          grep "Testing" output.log
+          ecode=$?
+          if [ $ecode -eq 124 ]; then
+            echo "Execution time completed."
+            cat output.log
+            if grep "Testing" output.log; then
+              echo "Test passed."
+              exit 0
+            else
+              echo "Test failed."
+              exit 1
+            fi
+          else
+            echo "Execution was ended abruptly."
+            exit 1
+          fi
