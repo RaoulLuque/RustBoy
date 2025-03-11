@@ -6,12 +6,10 @@ pub(crate) mod instructions;
 mod memory_bus;
 pub mod registers;
 
-use super::GPU;
 #[cfg(debug_assertions)]
 use crate::debugging::{doctor_log, instruction_log};
 use crate::RustBoy;
 use instructions::Instruction;
-use registers::CPURegisters;
 
 impl RustBoy {
     /// Loads a program into the memory bus at address 0x0000.

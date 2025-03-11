@@ -1,4 +1,3 @@
-use super::SixteenBitInstructionTarget;
 use crate::RustBoy;
 
 impl RustBoy {

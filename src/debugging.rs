@@ -12,7 +12,7 @@ pub struct DebuggingFlags {
 }
 
 #[cfg(debug_assertions)]
-pub fn setup_debugging_logs_files(debugging_flags: DebuggingFlags) {
+pub fn setup_debugging_logs_files(_: DebuggingFlags) {
     // Create the log directory if it doesn't exist
     std::fs::create_dir_all("logs").unwrap();
 
@@ -104,7 +104,7 @@ pub fn entire_instruction_to_string(
     instruction: crate::cpu::instructions::Instruction,
 ) -> String {
     use crate::cpu::instructions::add_and_adc::AddWordSource;
-    use crate::cpu::instructions::load::{LoadType, LoadWordSource, LoadWordTarget};
+    use crate::cpu::instructions::load::{LoadType, LoadWordSource};
     use crate::cpu::instructions::Instruction;
     let mut res = format!("{:?}", instruction);
     match instruction {
@@ -128,7 +128,7 @@ pub fn entire_instruction_to_string(
             _ => {}
         },
         Instruction::LD(load_type) => match load_type {
-            LoadType::Byte(target, source) => {}
+            LoadType::Byte(_, _) => {}
             LoadType::Word(target, source) => {
                 match target {
                     _ => {}

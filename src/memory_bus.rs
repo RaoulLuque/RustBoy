@@ -1,5 +1,4 @@
 use crate::RustBoy;
-use std::ascii::AsciiExt;
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
 const ROM_BANK_0_END: u16 = 0x4000;
