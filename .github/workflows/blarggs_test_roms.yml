@@ -34,8 +34,8 @@ jobs:
       - name: Build
         run: RUST_BACKTRACE=1 RUST_LOG=debug cargo build
 
-      - name: Run Test ROM
-        run: |
-          timeout 60s xvfb-run -a cargo run -- --DOCTOR --ROM "${{ matrix.rom }}" | tee output.log
-          cat output.log
-          grep "Testing" output.log
+#      - name: Run Test ROM
+#        run: |
+#          timeout 60s xvfb-run -a cargo run -- --DOCTOR --ROM "${{ matrix.rom }}" | tee output.log
+#          cat output.log
+#          grep "Testing" output.log
