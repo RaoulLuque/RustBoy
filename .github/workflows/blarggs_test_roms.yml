@@ -25,8 +25,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-test-roms-
 
-      - name: Install dependencies for headless testing
-        run: sudo apt-get install -y xvfb libxkbcommon-x11-0
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -36,6 +34,6 @@ jobs:
 
       - name: Run Test ROM
         run: |
-          timeout 60s xvfb-run -a sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --DOCTOR --ROM "${{ matrix.rom }}" | tee output.log'
+          timeout 30s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --DOCTOR --ROM "${{ matrix.rom }}" | tee output.log'
           cat output.log
           grep "Testing" output.log
