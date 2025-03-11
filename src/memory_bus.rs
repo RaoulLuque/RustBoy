@@ -1,4 +1,5 @@
 use crate::RustBoy;
+use std::ascii::AsciiExt;
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
 const ROM_BANK_0_END: u16 = 0x4000;
@@ -8,6 +9,7 @@ const ROM_BANK_1_BEGIN: u16 = 0x4000;
 const ROM_BANK_1_END: u16 = 0x8000;
 pub const VRAM_BEGIN: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
+pub const SERIAL_TRANSFER_DATA_SB: u16 = 0xFF01;
 
 impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
@@ -52,6 +54,9 @@ impl RustBoy {
             VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address, value),
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
                 self.gpu.write_registers(address, value)
+            }
+            0xFF01 => {
+                println!("Write to SB: {}", value as char);
             }
             _ => {
                 self.memory[address as usize] = value;
