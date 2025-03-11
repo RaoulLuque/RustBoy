@@ -285,7 +285,7 @@ pub async fn run(headless: bool, game_boy_doctor_mode: bool, rom_path: &str) {
 fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
     // Initialize the logging for debug if compiling in debug mode
     #[cfg(debug_assertions)]
-    setup_debugging_logs_files(debugging_flags);
+    setup_debugging_logs_files(debugging_flags, rom_path);
 
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
     log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());

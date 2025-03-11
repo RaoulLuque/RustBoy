@@ -1,5 +1,6 @@
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::RustBoy;
+use std::fs;
 
 /// Struct to represent the debugging flags.
 /// The flags are:
@@ -12,18 +13,34 @@ pub struct DebuggingFlags {
 }
 
 #[cfg(debug_assertions)]
-pub fn setup_debugging_logs_files(_: DebuggingFlags) {
+pub fn setup_debugging_logs_files(_: DebuggingFlags, rom_path: &str) {
     // Create the log directory if it doesn't exist
-    std::fs::create_dir_all("logs").unwrap();
+    fs::create_dir_all("logs").unwrap();
 
     let log_file_paths = ["logs/doctor.log", "logs/doctors_augmented.log"];
     for path in log_file_paths {
-        std::fs::OpenOptions::new()
+        fs::OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
             .open(path)
             .unwrap();
+    }
+
+    let mut data = rom_path.to_string();
+    data.push_str("\n");
+
+    let file = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open("logs/doctors_augmented.log");
+    if let Ok(mut file) = file {
+        use std::io::Write;
+        file.write_all(data.as_bytes())
+            .expect("Unable to write data");
+    } else {
+        panic!("Unable to open file: {:?}", file);
     }
 }
 
