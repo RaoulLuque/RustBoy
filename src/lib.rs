@@ -14,7 +14,6 @@ mod frontend;
 mod gpu;
 mod memory_bus;
 
-use std::path::Path;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 use wasm_timer::Instant;
@@ -291,7 +290,7 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
     log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());
 
-    rust_boy.load_program("roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb");
+    rust_boy.load_program(rom_path);
     // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
 
     rust_boy
