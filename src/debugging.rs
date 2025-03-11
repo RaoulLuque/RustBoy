@@ -80,7 +80,7 @@ pub fn instruction_log(
     use std::fs;
     let file_name = format!("logs/{}.log", log_file);
     let data = format!(
-        "{:<40}",
+        "{:<50}",
         entire_instruction_to_string(rust_boy, instruction)
     );
     let file = fs::OpenOptions::new()
@@ -141,6 +141,12 @@ pub fn entire_instruction_to_string(
                 }
             }
         },
+        Instruction::JR(_) => {
+            push_next_immediate_byte_as_signed_integer_to_string(rust_boy, &mut res);
+        }
+        Instruction::JP(_) => {
+            push_next_two_immediate_bytes_as_hex_big_endian_to_string(rust_boy, &mut res);
+        }
         Instruction::CALL(_) => {
             push_next_four_immediate_bytes_as_hex_to_string(rust_boy, &mut res);
         }
@@ -157,12 +163,31 @@ fn push_next_immediate_byte_as_hex_to_string(rust_boy: &RustBoy, string: &mut St
 }
 
 #[cfg(debug_assertions)]
+fn push_next_immediate_byte_as_signed_integer_to_string(rust_boy: &RustBoy, string: &mut String) {
+    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1) as i8;
+    string.push_str(&format!(" {} ", first_immediate_byte,));
+}
+
+#[cfg(debug_assertions)]
 fn push_next_two_immediate_bytes_to_string(rust_boy: &RustBoy, string: &mut String) {
     let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
     let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
     string.push_str(&format!(
         " {:08b} {:08b} ",
         first_immediate_byte, second_immediate_byte
+    ));
+}
+
+#[cfg(debug_assertions)]
+fn push_next_two_immediate_bytes_as_hex_big_endian_to_string(
+    rust_boy: &RustBoy,
+    string: &mut String,
+) {
+    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
+    let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
+    string.push_str(&format!(
+        " {:02X} {:02X} ",
+        second_immediate_byte, first_immediate_byte
     ));
 }
 
