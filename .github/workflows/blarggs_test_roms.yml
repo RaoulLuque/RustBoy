@@ -1,0 +1,35 @@
+name: Run Blarggs Test ROMs
+
+on: [ push, pull_request ]
+
+jobs:
+  test_roms:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rom:
+          - "roms/test_roms/blarggs/cput_instrs/03-op sp,hl.gb"
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-test-roms-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-roms-
+
+      - name: Build
+      - run: RUST_BACKTRACE=1 RUST_LOG=debug cargo build
+
+      - name: Run Test ROM
+        run: |
+          timeout 60s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --DOCTOR --ROM "${{ matrix.rom }}" > output.log'
+          cat output.log
+          grep "Testing" output.log
