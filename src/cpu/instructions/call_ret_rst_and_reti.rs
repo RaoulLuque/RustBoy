@@ -12,7 +12,7 @@ impl RustBoy {
         } else {
             self.increment_cycle_counter(3)
         };
-        self.call(should_call, None)
+        self.call(should_call, None, false)
     }
 
     /// Calls a subroutine at the address following the call instruction if should_call is true.
@@ -21,8 +21,17 @@ impl RustBoy {
     ///
     /// If an address is provided, it is used instead of the address following the call instruction.
     /// This option is only used for RST instructions which provide a fixed address.
-    fn call(&mut self, should_call: bool, address_provided: Option<u16>) -> u16 {
-        let next_pc = self.pc.wrapping_add(3);
+    fn call(
+        &mut self,
+        should_call: bool,
+        address_provided: Option<u16>,
+        called_from_rst: bool,
+    ) -> u16 {
+        let next_pc = if called_from_rst {
+            self.pc.wrapping_add(1)
+        } else {
+            self.pc.wrapping_add(3)
+        };
         if should_call {
             self.push(next_pc);
             if let Some(address) = address_provided {
@@ -71,7 +80,7 @@ impl RustBoy {
     pub fn handle_rst_instruction(&mut self, address: u16) -> u16 {
         self.ime = false;
         self.increment_cycle_counter(4);
-        self.call(true, Some(address))
+        self.call(true, Some(address), true)
     }
 
     // TODO: Check if correct
