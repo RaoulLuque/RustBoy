@@ -3,6 +3,7 @@ use crate::RustBoy;
 
 /// Represents the possible targets for the jump instruction.
 ///
+/// The JP instruction can either jump to an immediate operand or to the HL register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum JumpType {
     JumpToImmediateOperand(InstructionCondition),
