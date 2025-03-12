@@ -4,6 +4,7 @@ use super::{
     Register, SixteenBitInstructionTarget,
 };
 use crate::cpu::instructions::add_and_adc::{AddWordSource, AddWordTarget};
+use crate::cpu::instructions::bit::{BitInstructionType, BitToCheck};
 use crate::cpu::instructions::ldh::LDHSourceOrTarget;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
@@ -782,8 +783,6 @@ impl Instruction {
             0x3D => Instruction::SRL(SixteenBitInstructionTarget::L),
             0x3E => Instruction::SRL(SixteenBitInstructionTarget::HLRef),
             0x3F => Instruction::SRL(SixteenBitInstructionTarget::A),
-
-            // TODO: Add more instructions
             _ => return None,
         };
         Some(instruction)
@@ -797,7 +796,266 @@ impl Instruction {
     /// Group 1 consists only of the BIT instruction.
     pub(super) fn from_byte_prefixed_group_1(byte: u8) -> Option<Instruction> {
         let instruction = match byte {
-            // TODO: Add more instructions
+            0x40 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit0,
+            )),
+            0x41 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit0,
+            )),
+            0x42 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit0,
+            )),
+            0x43 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit0,
+            )),
+            0x44 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit0,
+            )),
+            0x45 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit0,
+            )),
+            0x46 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit0,
+            )),
+            0x47 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit0,
+            )),
+            0x48 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit1,
+            )),
+            0x49 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit1,
+            )),
+            0x4A => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit1,
+            )),
+            0x4B => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit1,
+            )),
+            0x4C => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit1,
+            )),
+            0x4D => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit1,
+            )),
+            0x4E => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit1,
+            )),
+            0x4F => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit1,
+            )),
+
+            0x50 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit2,
+            )),
+            0x51 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit2,
+            )),
+            0x52 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit2,
+            )),
+            0x53 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit2,
+            )),
+            0x54 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit2,
+            )),
+            0x55 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit2,
+            )),
+            0x56 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit2,
+            )),
+            0x57 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit2,
+            )),
+            0x58 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit3,
+            )),
+            0x59 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit3,
+            )),
+            0x5A => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit3,
+            )),
+            0x5B => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit3,
+            )),
+            0x5C => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit3,
+            )),
+            0x5D => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit3,
+            )),
+            0x5E => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit3,
+            )),
+            0x5F => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit3,
+            )),
+
+            0x60 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit4,
+            )),
+            0x61 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit4,
+            )),
+            0x62 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit4,
+            )),
+            0x63 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit4,
+            )),
+            0x64 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit4,
+            )),
+            0x65 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit4,
+            )),
+            0x66 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit4,
+            )),
+            0x67 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit4,
+            )),
+            0x68 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit5,
+            )),
+            0x69 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit5,
+            )),
+            0x6A => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit5,
+            )),
+            0x6B => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit5,
+            )),
+            0x6C => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit5,
+            )),
+            0x6D => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit5,
+            )),
+            0x6E => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit5,
+            )),
+            0x6F => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit5,
+            )),
+
+            0x70 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit6,
+            )),
+            0x71 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit6,
+            )),
+            0x72 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit6,
+            )),
+            0x73 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit6,
+            )),
+            0x74 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit6,
+            )),
+            0x75 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit6,
+            )),
+            0x76 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit6,
+            )),
+            0x77 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit6,
+            )),
+            0x78 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::B),
+                BitToCheck::Bit7,
+            )),
+            0x79 => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::C),
+                BitToCheck::Bit7,
+            )),
+            0x7A => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::D),
+                BitToCheck::Bit7,
+            )),
+            0x7B => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::E),
+                BitToCheck::Bit7,
+            )),
+            0x7C => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::H),
+                BitToCheck::Bit7,
+            )),
+            0x7D => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::L),
+                BitToCheck::Bit7,
+            )),
+            0x7E => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::HLRef,
+                BitToCheck::Bit7,
+            )),
+            0x7F => Instruction::BIT(BitInstructionType::Bit(
+                ArithmeticOrLogicalSource::Register(Register::A),
+                BitToCheck::Bit7,
+            )),
+
             _ => return None,
         };
         Some(instruction)

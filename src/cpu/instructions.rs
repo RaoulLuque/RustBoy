@@ -12,6 +12,7 @@
 //! implemented in this module.
 
 pub(crate) mod add_and_adc;
+mod bit;
 mod call_ret_rst_and_reti;
 mod daa_scf_cpl_and_ccf;
 mod inc_and_dec;
@@ -31,6 +32,7 @@ mod swap;
 use crate::cpu::registers::{CPURegisters, FlagsRegister};
 use crate::RustBoy;
 use add_and_adc::{AddWordSource, AddWordTarget};
+use bit::BitInstructionType;
 use inc_and_dec::IncDecTarget;
 use jump::JumpType;
 use ldh::LDHType;
@@ -87,6 +89,7 @@ pub enum Instruction {
     RRCA,
     RLA,
     RRA,
+    BIT(BitInstructionType),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -241,6 +244,7 @@ impl RustBoy {
             Instruction::RRCA => self.handle_rrca_instruction(),
             Instruction::RLA => self.handle_rla_instruction(),
             Instruction::RRA => self.handle_rra_instruction(),
+            Instruction::BIT(bit_instruction) => self.handle_bit_instruction(bit_instruction),
         };
 
         if instruction != Instruction::EI && self.ime_to_be_set {
