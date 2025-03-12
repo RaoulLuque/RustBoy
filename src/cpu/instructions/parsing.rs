@@ -1,11 +1,12 @@
 use super::load::{LoadByteSource, LoadByteTarget, LoadType, LoadWordSource, LoadWordTarget};
 use super::{
-    IncDecTarget, Instruction, InstructionCondition, JumpType, LDHType, PopTarget, PushSource,
-    Register, SixteenBitInstructionTarget,
+    BitTarget, IncDecTarget, Instruction, InstructionCondition, JumpType, LDHType, PopTarget,
+    PushSource, Register, SixteenBitInstructionTarget,
 };
 use crate::cpu::instructions::add_and_adc::{AddWordSource, AddWordTarget};
-use crate::cpu::instructions::bit::{BitInstructionType, BitToCheck};
+use crate::cpu::instructions::bit::BitInstructionType;
 use crate::cpu::instructions::ldh::LDHSourceOrTarget;
+use crate::cpu::instructions::res_and_set::ResAndSetInstructionType;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
 impl Instruction {
@@ -797,263 +798,263 @@ impl Instruction {
     pub(super) fn from_byte_prefixed_group_1(byte: u8) -> Option<Instruction> {
         let instruction = match byte {
             0x40 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit0,
             )),
             0x41 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit0,
             )),
             0x42 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit0,
             )),
             0x43 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit0,
             )),
             0x44 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit0,
             )),
             0x45 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit0,
             )),
             0x46 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit0,
             )),
             0x47 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit0,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit0,
             )),
             0x48 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit1,
             )),
             0x49 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit1,
             )),
             0x4A => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit1,
             )),
             0x4B => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit1,
             )),
             0x4C => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit1,
             )),
             0x4D => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit1,
             )),
             0x4E => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit1,
             )),
             0x4F => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit1,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit1,
             )),
 
             0x50 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit2,
             )),
             0x51 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit2,
             )),
             0x52 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit2,
             )),
             0x53 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit2,
             )),
             0x54 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit2,
             )),
             0x55 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit2,
             )),
             0x56 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit2,
             )),
             0x57 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit2,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit2,
             )),
             0x58 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit3,
             )),
             0x59 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit3,
             )),
             0x5A => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit3,
             )),
             0x5B => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit3,
             )),
             0x5C => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit3,
             )),
             0x5D => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit3,
             )),
             0x5E => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit3,
             )),
             0x5F => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit3,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit3,
             )),
 
             0x60 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit4,
             )),
             0x61 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit4,
             )),
             0x62 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit4,
             )),
             0x63 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit4,
             )),
             0x64 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit4,
             )),
             0x65 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit4,
             )),
             0x66 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit4,
             )),
             0x67 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit4,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit4,
             )),
             0x68 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit5,
             )),
             0x69 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit5,
             )),
             0x6A => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit5,
             )),
             0x6B => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit5,
             )),
             0x6C => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit5,
             )),
             0x6D => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit5,
             )),
             0x6E => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit5,
             )),
             0x6F => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit5,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit5,
             )),
 
             0x70 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit6,
             )),
             0x71 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit6,
             )),
             0x72 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit6,
             )),
             0x73 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit6,
             )),
             0x74 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit6,
             )),
             0x75 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit6,
             )),
             0x76 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit6,
             )),
             0x77 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit6,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit6,
             )),
             0x78 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::B),
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit7,
             )),
             0x79 => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::C),
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit7,
             )),
             0x7A => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::D),
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit7,
             )),
             0x7B => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::E),
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit7,
             )),
             0x7C => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::H),
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit7,
             )),
             0x7D => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::L),
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit7,
             )),
             0x7E => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::HLRef,
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit7,
             )),
             0x7F => Instruction::BIT(BitInstructionType::Bit(
-                ArithmeticOrLogicalSource::Register(Register::A),
-                BitToCheck::Bit7,
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit7,
             )),
 
             _ => return None,
@@ -1069,7 +1070,266 @@ impl Instruction {
     /// Group 2 consists only of the RES instruction.
     pub(super) fn from_byte_prefixed_group_2(byte: u8) -> Option<Instruction> {
         let instruction = match byte {
-            // TODO: Add more instructions
+            0x80 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit0,
+            )),
+            0x81 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit0,
+            )),
+            0x82 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit0,
+            )),
+            0x83 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit0,
+            )),
+            0x84 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit0,
+            )),
+            0x85 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit0,
+            )),
+            0x86 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit0,
+            )),
+            0x87 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit0,
+            )),
+            0x88 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit1,
+            )),
+            0x89 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit1,
+            )),
+            0x8A => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit1,
+            )),
+            0x8B => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit1,
+            )),
+            0x8C => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit1,
+            )),
+            0x8D => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit1,
+            )),
+            0x8E => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit1,
+            )),
+            0x8F => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit1,
+            )),
+
+            0x90 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit2,
+            )),
+            0x91 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit2,
+            )),
+            0x92 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit2,
+            )),
+            0x93 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit2,
+            )),
+            0x94 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit2,
+            )),
+            0x95 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit2,
+            )),
+            0x96 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit2,
+            )),
+            0x97 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit2,
+            )),
+            0x98 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit3,
+            )),
+            0x99 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit3,
+            )),
+            0x9A => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit3,
+            )),
+            0x9B => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit3,
+            )),
+            0x9C => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit3,
+            )),
+            0x9D => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit3,
+            )),
+            0x9E => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit3,
+            )),
+            0x9F => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit3,
+            )),
+
+            0xA0 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit4,
+            )),
+            0xA1 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit4,
+            )),
+            0xA2 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit4,
+            )),
+            0xA3 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit4,
+            )),
+            0xA4 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit4,
+            )),
+            0xA5 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit4,
+            )),
+            0xA6 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit4,
+            )),
+            0xA7 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit4,
+            )),
+            0xA8 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit5,
+            )),
+            0xA9 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit5,
+            )),
+            0xAA => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit5,
+            )),
+            0xAB => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit5,
+            )),
+            0xAC => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit5,
+            )),
+            0xAD => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit5,
+            )),
+            0xAE => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit5,
+            )),
+            0xAF => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit5,
+            )),
+
+            0xB0 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit6,
+            )),
+            0xB1 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit6,
+            )),
+            0xB2 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit6,
+            )),
+            0xB3 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit6,
+            )),
+            0xB4 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit6,
+            )),
+            0xB5 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit6,
+            )),
+            0xB6 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit6,
+            )),
+            0xB7 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit6,
+            )),
+            0xB8 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit7,
+            )),
+            0xB9 => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit7,
+            )),
+            0xBA => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit7,
+            )),
+            0xBB => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit7,
+            )),
+            0xBC => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit7,
+            )),
+            0xBD => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit7,
+            )),
+            0xBE => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit7,
+            )),
+            0xBF => Instruction::RES(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit7,
+            )),
+
             _ => return None,
         };
         Some(instruction)
@@ -1083,7 +1343,266 @@ impl Instruction {
     /// Group 3 consists only of the SET instruction.
     pub(super) fn from_byte_prefixed_group_3(byte: u8) -> Option<Instruction> {
         let instruction = match byte {
-            // TODO: Add more instructions
+            0xC0 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit0,
+            )),
+            0xC1 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit0,
+            )),
+            0xC2 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit0,
+            )),
+            0xC3 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit0,
+            )),
+            0xC4 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit0,
+            )),
+            0xC5 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit0,
+            )),
+            0xC6 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit0,
+            )),
+            0xC7 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit0,
+            )),
+            0xC8 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit1,
+            )),
+            0xC9 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit1,
+            )),
+            0xCA => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit1,
+            )),
+            0xCB => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit1,
+            )),
+            0xCC => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit1,
+            )),
+            0xCD => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit1,
+            )),
+            0xCE => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit1,
+            )),
+            0xCF => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit1,
+            )),
+
+            0xD0 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit2,
+            )),
+            0xD1 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit2,
+            )),
+            0xD2 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit2,
+            )),
+            0xD3 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit2,
+            )),
+            0xD4 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit2,
+            )),
+            0xD5 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit2,
+            )),
+            0xD6 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit2,
+            )),
+            0xD7 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit2,
+            )),
+            0xD8 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit3,
+            )),
+            0xD9 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit3,
+            )),
+            0xDA => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit3,
+            )),
+            0xDB => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit3,
+            )),
+            0xDC => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit3,
+            )),
+            0xDD => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit3,
+            )),
+            0xDE => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit3,
+            )),
+            0xDF => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit3,
+            )),
+
+            0xE0 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit4,
+            )),
+            0xE1 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit4,
+            )),
+            0xE2 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit4,
+            )),
+            0xE3 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit4,
+            )),
+            0xE4 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit4,
+            )),
+            0xE5 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit4,
+            )),
+            0xE6 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit4,
+            )),
+            0xE7 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit4,
+            )),
+            0xE8 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit5,
+            )),
+            0xE9 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit5,
+            )),
+            0xEA => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit5,
+            )),
+            0xEB => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit5,
+            )),
+            0xEC => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit5,
+            )),
+            0xED => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit5,
+            )),
+            0xEE => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit5,
+            )),
+            0xEF => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit5,
+            )),
+
+            0xF0 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit6,
+            )),
+            0xF1 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit6,
+            )),
+            0xF2 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit6,
+            )),
+            0xF3 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit6,
+            )),
+            0xF4 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit6,
+            )),
+            0xF5 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit6,
+            )),
+            0xF6 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit6,
+            )),
+            0xF7 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit6,
+            )),
+            0xF8 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::B,
+                BitTarget::Bit7,
+            )),
+            0xF9 => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::C,
+                BitTarget::Bit7,
+            )),
+            0xFA => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::D,
+                BitTarget::Bit7,
+            )),
+            0xFB => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::E,
+                BitTarget::Bit7,
+            )),
+            0xFC => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::H,
+                BitTarget::Bit7,
+            )),
+            0xFD => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::L,
+                BitTarget::Bit7,
+            )),
+            0xFE => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::HLRef,
+                BitTarget::Bit7,
+            )),
+            0xFF => Instruction::SET(ResAndSetInstructionType::Type(
+                SixteenBitInstructionTarget::A,
+                BitTarget::Bit7,
+            )),
+
             _ => return None,
         };
         Some(instruction)

@@ -23,6 +23,7 @@ pub(crate) mod load;
 mod logical_operators;
 mod parsing;
 mod push_and_pop;
+mod res_and_set;
 mod rlc_rrc_rl_and_rr;
 mod rlca_rrca_rla_and_rra;
 mod sla_sra_and_srl;
@@ -38,6 +39,7 @@ use jump::JumpType;
 use ldh::LDHType;
 use load::LoadType;
 use push_and_pop::{PopTarget, PushSource};
+use res_and_set::ResAndSetInstructionType;
 use std::cmp::PartialEq;
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
@@ -90,6 +92,8 @@ pub enum Instruction {
     RLA,
     RRA,
     BIT(BitInstructionType),
+    RES(ResAndSetInstructionType),
+    SET(ResAndSetInstructionType),
 }
 
 /// Enum to represent the Registers of the CPU (except for the f register) as target or sources of operations.
@@ -190,64 +194,65 @@ impl Instruction {
 impl RustBoy {
     /// Executes the instruction on the CPU.
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
+        use Instruction::*;
         let next_pc = match instruction {
-            Instruction::NOP => {
+            NOP => {
                 self.increment_cycle_counter(1);
                 self.pc.wrapping_add(1)
             }
-            Instruction::ADDByte(source) => self.handle_add_byte_instruction(source),
-            Instruction::ADDWord(target, source) => {
-                self.handle_add_word_instruction((target, source))
-            }
-            Instruction::ADC(source) => self.handle_adc_instruction(source),
-            Instruction::SUB(source) => self.handle_sub_instruction(source),
-            Instruction::SBC(source) => self.handle_sbc_instruction(source),
-            Instruction::AND(source) => self.handle_and_instruction(source),
-            Instruction::OR(source) => self.handle_or_instruction(source),
-            Instruction::XOR(source) => self.handle_xor_instruction(source),
-            Instruction::CP(source) => self.handle_cp_instruction(source),
-            Instruction::JP(type_of_jump) => self.handle_jump_instruction(type_of_jump),
-            Instruction::LD(type_of_load) => self.handle_load_instruction(type_of_load),
-            Instruction::LDH(type_of_ldh) => self.handle_ldh_instruction(type_of_ldh),
-            Instruction::INC(target) => self.handle_inc_instruction(target),
-            Instruction::DEC(target) => self.handle_dec_instruction(target),
-            Instruction::CALL(condition) => self.handle_call_instruction(condition),
-            Instruction::RET(condition) => self.handle_ret_instruction(condition),
-            Instruction::PUSH(source) => self.handle_push_instruction(source),
-            Instruction::POP(target) => self.handle_pop_instruction(target),
-            Instruction::RST(address) => self.handle_rst_instruction(address),
-            Instruction::JR(condition) => self.handle_jr_instruction(condition),
-            Instruction::DAA => self.handle_daa_instruction(),
-            Instruction::SCF => self.handle_scf_instruction(),
-            Instruction::CPL => self.handle_cpl_instruction(),
-            Instruction::CCF => self.handle_ccf_instruction(),
-            Instruction::DI => {
+            ADDByte(source) => self.handle_add_byte_instruction(source),
+            ADDWord(target, source) => self.handle_add_word_instruction((target, source)),
+            ADC(source) => self.handle_adc_instruction(source),
+            SUB(source) => self.handle_sub_instruction(source),
+            SBC(source) => self.handle_sbc_instruction(source),
+            AND(source) => self.handle_and_instruction(source),
+            OR(source) => self.handle_or_instruction(source),
+            XOR(source) => self.handle_xor_instruction(source),
+            CP(source) => self.handle_cp_instruction(source),
+            JP(type_of_jump) => self.handle_jump_instruction(type_of_jump),
+            LD(type_of_load) => self.handle_load_instruction(type_of_load),
+            LDH(type_of_ldh) => self.handle_ldh_instruction(type_of_ldh),
+            INC(target) => self.handle_inc_instruction(target),
+            DEC(target) => self.handle_dec_instruction(target),
+            CALL(condition) => self.handle_call_instruction(condition),
+            RET(condition) => self.handle_ret_instruction(condition),
+            PUSH(source) => self.handle_push_instruction(source),
+            POP(target) => self.handle_pop_instruction(target),
+            RST(address) => self.handle_rst_instruction(address),
+            JR(condition) => self.handle_jr_instruction(condition),
+            DAA => self.handle_daa_instruction(),
+            SCF => self.handle_scf_instruction(),
+            CPL => self.handle_cpl_instruction(),
+            CCF => self.handle_ccf_instruction(),
+            DI => {
                 self.increment_cycle_counter(1);
                 self.ime = false;
                 self.pc.wrapping_add(1)
             }
-            Instruction::EI => {
+            EI => {
                 self.increment_cycle_counter(1);
                 self.ime_to_be_set = true;
                 self.pc.wrapping_add(1)
             }
-            Instruction::RETI => self.handle_reti_instruction(),
-            Instruction::RLC(target) => self.handle_rlc_instruction(target),
-            Instruction::RRC(target) => self.handle_rrc_instruction(target),
-            Instruction::RL(target) => self.handle_rl_instruction(target),
-            Instruction::RR(target) => self.handle_rr_instruction(target),
-            Instruction::SLA(target) => self.handle_sla_instruction(target),
-            Instruction::SRA(target) => self.handle_sra_instruction(target),
-            Instruction::SWAP(target) => self.handle_swap_instruction(target),
-            Instruction::SRL(target) => self.handle_srl_instruction(target),
-            Instruction::RLCA => self.handle_rlca_instruction(),
-            Instruction::RRCA => self.handle_rrca_instruction(),
-            Instruction::RLA => self.handle_rla_instruction(),
-            Instruction::RRA => self.handle_rra_instruction(),
-            Instruction::BIT(bit_instruction) => self.handle_bit_instruction(bit_instruction),
+            RETI => self.handle_reti_instruction(),
+            RLC(target) => self.handle_rlc_instruction(target),
+            RRC(target) => self.handle_rrc_instruction(target),
+            RL(target) => self.handle_rl_instruction(target),
+            RR(target) => self.handle_rr_instruction(target),
+            SLA(target) => self.handle_sla_instruction(target),
+            SRA(target) => self.handle_sra_instruction(target),
+            SWAP(target) => self.handle_swap_instruction(target),
+            SRL(target) => self.handle_srl_instruction(target),
+            RLCA => self.handle_rlca_instruction(),
+            RRCA => self.handle_rrca_instruction(),
+            RLA => self.handle_rla_instruction(),
+            RRA => self.handle_rra_instruction(),
+            BIT(type_of_bit_instruction) => self.handle_bit_instruction(type_of_bit_instruction),
+            RES(type_of_res) => self.handle_res_instruction(type_of_res),
+            SET(type_of_set) => self.handle_set_instruction(type_of_set),
         };
 
-        if instruction != Instruction::EI && self.ime_to_be_set {
+        if instruction != EI && self.ime_to_be_set {
             self.ime = true;
             self.ime_to_be_set = false;
         }
@@ -287,6 +292,15 @@ impl Register {
 impl ArithmeticOrLogicalSource {
     /// Returns the value of the source corresponding to the enum variant.
     fn get_value(&self, registers: &CPURegisters, rust_boy: &RustBoy, pc: u16) -> u8 {
+        match &self {
+            ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
+            ArithmeticOrLogicalSource::D8 => rust_boy.read_byte(pc + 1),
+            ArithmeticOrLogicalSource::HLRef => rust_boy.read_byte(registers.get_hl()),
+        }
+    }
+
+    /// Sets the value of the corresponding source
+    fn set_value(&self, registers: &CPURegisters, rust_boy: &RustBoy, pc: u16) -> u8 {
         match &self {
             ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
             ArithmeticOrLogicalSource::D8 => rust_boy.read_byte(pc + 1),
@@ -358,4 +372,18 @@ fn check_instruction_condition(
         InstructionCondition::Carry => flags_register.carry,
         InstructionCondition::Always => true,
     }
+}
+
+/// Represents the possible bits to check in the BIT instruction or RES(et)/SET in the respective
+/// instructions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BitTarget {
+    Bit0,
+    Bit1,
+    Bit2,
+    Bit3,
+    Bit4,
+    Bit5,
+    Bit6,
+    Bit7,
 }
