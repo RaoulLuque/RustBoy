@@ -49,7 +49,7 @@ pub struct RenderingInfo {
 /// - OAMSearch: The GPU is currently searching for sprites.
 /// - Transfer: The GPU is currently transferring data to the screen.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum RenderingMode {
+pub(crate) enum RenderingMode {
     HBlank0,
     VBlank1,
     OAMScan2,

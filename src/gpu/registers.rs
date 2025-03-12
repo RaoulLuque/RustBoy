@@ -180,7 +180,7 @@ impl GPURegisters {
     }
 
     /// Set the GPU/PPU Mode to the provided value.
-    pub fn set_ppu_mode(&mut self, mode: RenderingMode) {
+    pub(crate) fn set_ppu_mode(&mut self, mode: RenderingMode) {
         self.lcd_status.gpu_mode = mode;
     }
 

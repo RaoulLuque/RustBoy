@@ -8,7 +8,6 @@ const ROM_BANK_1_BEGIN: u16 = 0x4000;
 const ROM_BANK_1_END: u16 = 0x8000;
 pub const VRAM_BEGIN: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
-pub const SERIAL_TRANSFER_DATA_SB: u16 = 0xFF01;
 
 impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
