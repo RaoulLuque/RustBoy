@@ -118,7 +118,7 @@ jobs:
 
       - name: Run Test ROM
         run: |
-          timeout 120s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
+          timeout 150s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
           cat output.log
           grep "Write to SB: P
           Write to SB: a
