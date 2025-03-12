@@ -6,3 +6,4 @@
 /roms/*.gb
 /logs
 /gameboy-doctor
+*.log
