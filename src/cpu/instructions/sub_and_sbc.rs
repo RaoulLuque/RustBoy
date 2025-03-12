@@ -15,7 +15,11 @@ impl RustBoy {
     /// Subtracts a value from the A register and sets the corresponding flags in the flags register
     /// [super::registers::FlagsRegister].
     pub fn sub(&mut self, value: u8, carry_flag: bool) -> u8 {
-        let new_value = self.registers.a.wrapping_sub(value);
+        let new_value = self
+            .registers
+            .a
+            .wrapping_sub(value)
+            .wrapping_sub(carry_flag as u8);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = true;
         self.registers.f.carry = (self.registers.a as u16) < ((value as u16) + (carry_flag as u16));
