@@ -11,7 +11,9 @@ jobs:
           - "roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb"
           - "roms/test_roms/blarggs/cpu_instrs/04-op r,imm.gb"
           - "roms/test_roms/blarggs/cpu_instrs/05-op rp.gb"
+          - "roms/test_roms/blarggs/cpu_instrs/06-ld r,r.gb"
           - "roms/test_roms/blarggs/cpu_instrs/07-jr,jp,call,ret,rst.gb"
+          - "roms/test_roms/blarggs/cpu_instrs/08-misc instrs.gb"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -37,7 +39,47 @@ jobs:
 
       - name: Run Test ROM
         run: |
-          timeout 30s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --DOCTOR --ROM "${{ matrix.rom }}"' | tee output.log
+          timeout 30s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
+          cat output.log
+          grep "Write to SB: P
+          Write to SB: a
+          Write to SB: s
+          Write to SB: s
+          Write to SB: e
+          Write to SB: d" output.log
+
+  long_test_roms:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rom:
+          - "roms/test_roms/blarggs/cpu_instrs/09-op r,r.gb"
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-test-roms-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-roms-
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Build
+        run: RUST_BACKTRACE=1 RUST_LOG=debug cargo build
+
+      - name: Run Test ROM
+        run: |
+          timeout 100s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
           cat output.log
           grep "Write to SB: P
           Write to SB: a
