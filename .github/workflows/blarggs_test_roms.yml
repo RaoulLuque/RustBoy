@@ -8,6 +8,7 @@ jobs:
     strategy:
       matrix:
         rom:
+          - "roms/test_roms/blarggs/cpu_instrs/01-special.gb"
           - "roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb"
           - "roms/test_roms/blarggs/cpu_instrs/04-op r,imm.gb"
           - "roms/test_roms/blarggs/cpu_instrs/05-op rp.gb"
@@ -48,7 +49,7 @@ jobs:
           Write to SB: e
           Write to SB: d" output.log
 
-  long_length_test_roms:
+  long_test_roms:
     runs-on: ubuntu-latest
     strategy:
       matrix:
