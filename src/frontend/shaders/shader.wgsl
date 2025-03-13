@@ -54,13 +54,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // position.
     let pixel_coords = in.clip_position.xy + vec2<f32>(viewport_position_in_pixels);
 
-    // Calculate the index of the tile the pixel is in
+    // Calculate the index (vector of x and y indeces) of the tile the pixel is in
     let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(tile_size))) % vec2<i32>(32, 32);
-    // Calculate the index of the tile in the tile atlas
+    // Calculate the flattened index
     let tilemap_flat_index = tile_index_in_tilemap.x + tile_index_in_tilemap.y * 32;
     let vec_index = tilemap_flat_index / 4;
     let comp_index = tilemap_flat_index % 4;
 
+    // Retrieve the tile index in the tile atlas from the tilemap
     var tile_index_in_atlas: u32;
     switch (comp_index) {
         case 0: { tile_index_in_atlas = tilemap.tiles[vec_index].x; break; }
@@ -72,10 +73,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Calculate the coordinates of the pixel within the tile
     let pixel_index = vec2<i32>(pixel_coords) % tile_size;
 
-    // Convert pixel position to normalized UV within the current 8x8 tile
+    // Convert pixel position to normalized UV (0.0 - 1.0) within the current 8x8 tile
     let tile_pixel_uv = vec2<f32>(pixel_index) / vec2<f32>(8.0, 8.0);
 
-    // Calculate position in tile atlas (32x32 grid of tiles)
+    // Calculate position in tile atlas (16x16 grid of tiles)
     let atlas_tile_x = f32(tile_index_in_atlas % 16);
     let atlas_tile_y = f32(u32(tile_index_in_atlas / 16));
 
