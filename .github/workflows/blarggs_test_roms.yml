@@ -39,7 +39,7 @@ jobs:
 
       - name: Run Test ROM
         run: |
-          timeout 5s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
+          timeout 5s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --SB --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
           cat output.log
           grep "Write to SB: P
           Write to SB: a
@@ -80,7 +80,7 @@ jobs:
 
       - name: Run Test ROM
         run: |
-          timeout 10s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
+          timeout 10s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --SB --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
           cat output.log
           grep "Write to SB: P
           Write to SB: a
