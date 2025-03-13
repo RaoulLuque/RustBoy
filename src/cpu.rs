@@ -47,34 +47,56 @@ impl RustBoy {
             doctor_log(&self, "doctors_augmented")
         }
 
-        let mut instruction_byte = self.read_instruction_byte(self.pc);
-
-        // Check if the instruction is a CB instruction (prefix)
-        let prefixed = instruction_byte == 0xCB;
-        if prefixed {
-            instruction_byte = self.read_byte(self.pc.wrapping_add(1));
-        }
-
-        let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
-        {
-            // Log the instruction byte if in debug mode.
+        // Check if an interrupt needs to be handled. If so, Some(u16) is returned with the
+        // interrupt location. If no interrupt is requested, None is returned.
+        // If an interrupt is requested, the corresponding bit in the interrupt flag register
+        // and the IME (Interrupt Master Enable) flag are set to 0.
+        if let Some(interrupt_location) = self.check_if_interrupt_is_requested() {
+            // Log the interrupt location if in debug mode.
             #[cfg(debug_assertions)]
             if self.debugging_flags.doctor {
-                instruction_log(&self, "doctors_augmented", instruction);
+                log::trace!("Interrupt requested at: 0x{:04X}", interrupt_location);
             }
 
-            log::trace!("Executing instruction: {:?} ", instruction);
-            self.execute(instruction)
-        } else {
-            let panic_description = format!(
-                "0x{}{:02x}",
-                if prefixed { "CB" } else { "" },
-                instruction_byte
-            );
-            panic!("Invalid instruction found for: {}", panic_description);
-        };
+            // The flag register and IME (Interrupt Master Enable) flag are already set to 0 by
+            // the check_if_interrupt_is_requested function, so we don't need to do it again here.
 
-        self.pc = next_pc;
+            // Push the current program counter (PC) onto the stack and set the program counter to
+            // the interrupt location.
+            self.push(self.pc);
+            self.pc = interrupt_location;
+            self.increment_cycle_counter(5);
+        } else {
+            // No interrupt was requested, so we can continue executing instructions.
+            let mut instruction_byte = self.read_instruction_byte(self.pc);
+
+            // Check if the instruction is a CB instruction (prefix)
+            let prefixed = instruction_byte == 0xCB;
+            if prefixed {
+                instruction_byte = self.read_byte(self.pc.wrapping_add(1));
+            }
+
+            let next_pc =
+                if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed) {
+                    // Log the instruction byte if in debug mode.
+                    #[cfg(debug_assertions)]
+                    if self.debugging_flags.doctor {
+                        instruction_log(&self, "doctors_augmented", instruction);
+                    }
+
+                    log::trace!("Executing instruction: {:?} ", instruction);
+                    self.execute(instruction)
+                } else {
+                    let panic_description = format!(
+                        "0x{}{:02x}",
+                        if prefixed { "CB" } else { "" },
+                        instruction_byte
+                    );
+                    panic!("Invalid instruction found for: {}", panic_description);
+                };
+
+            self.pc = next_pc;
+        }
     }
 
     /// Initializes the hardware registers to their default values.

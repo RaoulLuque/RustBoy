@@ -1,3 +1,5 @@
+use crate::RustBoy;
+
 const VBLANK_INTERRUPT_LOCATION: u16 = 0x0040;
 const LCD_STAT_INTERRUPT_LOCATION: u16 = 0x0048;
 const TIMER_INTERRUPT_LOCATION: u16 = 0x0050;
@@ -140,5 +142,74 @@ impl InterruptFlagRegister {
             serial: false,
             joypad: false,
         }
+    }
+}
+
+impl RustBoy {
+    /// Handles interrupts by checking all possible interrupts according to the
+    /// [InterruptEnableRegister] and the [InterruptFlagRegister] and requesting if it should be.
+    /// Returns true if an interrupt was requested.
+    ///
+    /// If an interrupt was requested, [request_interrupt] is called with the corresponding
+    /// interrupt location. In that case, this function counts as an executed instruction on the
+    /// CPU and the cpu step should be called again.
+    pub fn check_if_interrupt_is_requested(&mut self) -> Option<u16> {
+        if self.ime {
+            // VBLANK
+            if self.interrupt_enable_register.vblank {
+                if self.interrupt_flag_register.vblank {
+                    // Clear the interrupt flags
+                    self.interrupt_flag_register.vblank = false;
+                    self.ime = false;
+
+                    return Some(VBLANK_INTERRUPT_LOCATION);
+                }
+            }
+
+            // LCD STAT
+            if self.interrupt_enable_register.lcd_stat {
+                if self.interrupt_flag_register.lcd_stat {
+                    // Clear the interrupt flags
+                    self.interrupt_flag_register.lcd_stat = false;
+                    self.ime = false;
+
+                    return Some(LCD_STAT_INTERRUPT_LOCATION);
+                }
+            }
+
+            // TIMER
+            if self.interrupt_enable_register.timer {
+                if self.interrupt_flag_register.timer {
+                    // Clear the interrupt flags
+                    self.interrupt_flag_register.timer = false;
+                    self.ime = false;
+
+                    return Some(TIMER_INTERRUPT_LOCATION);
+                }
+            }
+
+            // SERIAL
+            if self.interrupt_enable_register.serial {
+                if self.interrupt_flag_register.serial {
+                    // Clear the interrupt flags
+                    self.interrupt_flag_register.serial = false;
+                    self.ime = false;
+
+                    return Some(SERIAL_INTERRUPT_LOCATION);
+                }
+            }
+
+            // JOYPAD
+            if self.interrupt_enable_register.joypad {
+                if self.interrupt_flag_register.joypad {
+                    // Clear the interrupt flags
+                    self.interrupt_flag_register.joypad = false;
+                    self.ime = false;
+
+                    return Some(JOYPAD_INTERRUPT_LOCATION);
+                }
+            }
+        }
+        None
     }
 }
