@@ -4,6 +4,7 @@ pub(crate) mod tile_handling;
 use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
 
 use crate::debugging::DebuggingFlags;
+use crate::interrupts::InterruptFlagRegister;
 use registers::GPURegisters;
 use tile_handling::{Tile, TilePixelValue};
 
@@ -68,8 +69,13 @@ impl GPU {
     /// For now, the GPU only renders the entire frame before entering VBlank.
     /// In the future, the GPU should render by lines.
     ///
-    /// The GPU steps through four different [RenderingMode]s.
-    pub fn gpu_step(&mut self, cycles: u32) -> RenderTask {
+    /// The GPU steps through four different [RenderingMode]s. When VBlank is entered, or rather,
+    /// when HBlank is exited, the flag for a VBlank interrupt is set.
+    pub fn gpu_step(
+        &mut self,
+        interrupt_flags: &mut InterruptFlagRegister,
+        cycles: u32,
+    ) -> RenderTask {
         self.rendering_info.dots_clock += cycles;
         self.rendering_info.dots_clock_sum += cycles;
         match self.gpu_registers.lcd_status.gpu_mode {
@@ -83,6 +89,7 @@ impl GPU {
                     if self.gpu_registers.get_scanline() == 144 {
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::VBlank1;
                         self.gpu_registers.set_ppu_mode(RenderingMode::VBlank1);
+                        interrupt_flags.vblank = true;
                         return RenderTask::Render;
                     } else {
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;

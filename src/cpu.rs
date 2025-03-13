@@ -52,11 +52,8 @@ impl RustBoy {
         // If an interrupt is requested, the corresponding bit in the interrupt flag register
         // and the IME (Interrupt Master Enable) flag are set to 0.
         if let Some(interrupt_location) = self.check_if_interrupt_is_requested() {
-            // Log the interrupt location if in debug mode.
-            #[cfg(debug_assertions)]
-            if self.debugging_flags.doctor {
-                log::trace!("Interrupt requested at: 0x{:04X}", interrupt_location);
-            }
+            // Log the interrupt location
+            log::trace!("Interrupt requested at: 0x{:04X}", interrupt_location);
 
             // The flag register and IME (Interrupt Master Enable) flag are already set to 0 by
             // the check_if_interrupt_is_requested function, so we don't need to do it again here.

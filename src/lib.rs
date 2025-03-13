@@ -362,7 +362,10 @@ fn handle_not_redraw_request(
     let last_num_of_cycles = rust_boy.cycle_counter - total_num_cpu_cycles;
     let total_num_cpu_cycles = rust_boy.cycle_counter;
 
-    match rust_boy.gpu.gpu_step(last_num_of_cycles as u32) {
+    match rust_boy.gpu.gpu_step(
+        &mut rust_boy.interrupt_flag_register,
+        last_num_of_cycles as u32,
+    ) {
         RenderTask::None => {}
         RenderTask::Render => {
             res_redraw_request = true;
