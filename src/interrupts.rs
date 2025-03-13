@@ -49,8 +49,42 @@ pub struct InterruptFlagRegister {
     pub joypad: bool,
 }
 
-impl From<InterruptFlagRegister> for u8 {
-    fn from(register: InterruptFlagRegister) -> Self {
+impl From<&InterruptEnableRegister> for u8 {
+    fn from(register: &InterruptEnableRegister) -> Self {
+        let mut value = 0;
+        if register.vblank {
+            value |= 1 << VBLANK_INTERRUPT_BIT;
+        }
+        if register.lcd_stat {
+            value |= 1 << LCD_STAT_INTERRUPT_BIT;
+        }
+        if register.timer {
+            value |= 1 << TIMER_INTERRUPT_BIT;
+        }
+        if register.serial {
+            value |= 1 << SERIAL_INTERRUPT_BIT;
+        }
+        if register.joypad {
+            value |= 1 << JOYPAD_INTERRUPT_BIT;
+        }
+        value
+    }
+}
+
+impl From<u8> for InterruptEnableRegister {
+    fn from(value: u8) -> Self {
+        InterruptEnableRegister {
+            vblank: value & (1 << VBLANK_INTERRUPT_BIT) != 0,
+            lcd_stat: value & (1 << LCD_STAT_INTERRUPT_BIT) != 0,
+            timer: value & (1 << TIMER_INTERRUPT_BIT) != 0,
+            serial: value & (1 << SERIAL_INTERRUPT_BIT) != 0,
+            joypad: value & (1 << JOYPAD_INTERRUPT_BIT) != 0,
+        }
+    }
+}
+
+impl From<&InterruptFlagRegister> for u8 {
+    fn from(register: &InterruptFlagRegister) -> Self {
         let mut value = 0;
         if register.vblank {
             value |= 1 << VBLANK_INTERRUPT_BIT;
@@ -79,6 +113,32 @@ impl From<u8> for InterruptFlagRegister {
             timer: value & (1 << TIMER_INTERRUPT_BIT) != 0,
             serial: value & (1 << SERIAL_INTERRUPT_BIT) != 0,
             joypad: value & (1 << JOYPAD_INTERRUPT_BIT) != 0,
+        }
+    }
+}
+
+impl InterruptEnableRegister {
+    /// Creates a new interrupt enable register with all interrupts disabled.
+    pub fn new() -> Self {
+        InterruptEnableRegister {
+            vblank: false,
+            lcd_stat: false,
+            timer: false,
+            serial: false,
+            joypad: false,
+        }
+    }
+}
+
+impl InterruptFlagRegister {
+    /// Creates a new interrupt flag register with all interrupts disabled.
+    pub fn new() -> Self {
+        InterruptFlagRegister {
+            vblank: false,
+            lcd_stat: false,
+            timer: false,
+            serial: false,
+            joypad: false,
         }
     }
 }

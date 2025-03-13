@@ -12,6 +12,7 @@ mod cpu;
 mod debugging;
 mod frontend;
 mod gpu;
+mod interrupts;
 mod memory_bus;
 
 #[cfg(target_arch = "wasm32")]
@@ -25,6 +26,7 @@ use cpu::registers::CPURegisters;
 use debugging::DebuggingFlags;
 use frontend::State;
 use gpu::GPU;
+use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -59,6 +61,13 @@ const SCREEN_HEIGHT: u32 = 144;
 /// 65536 is the size of the memory in bytes
 /// The memory bus also has a bios array that represents the BIOS of the RustBoy which is used
 /// during startup instead of the first 0x0100 bytes of the memory.
+///
+/// The GPU is a struct that represents the graphics processing unit of the RustBoy. It contains
+/// the registers, VRAM and other graphics related data.
+///
+///
+///
+/// The debugging flags are used to control flags used in debugging the RustBoy.
 pub struct RustBoy {
     // CPU
     registers: CPURegisters,
@@ -75,6 +84,10 @@ pub struct RustBoy {
 
     // GPU
     gpu: GPU,
+
+    // Interrupts
+    interrupt_enable_register: InterruptEnableRegister,
+    interrupt_flag_register: InterruptFlagRegister,
 
     // Debugging Flags
     debugging_flags: DebuggingFlags,
@@ -100,6 +113,8 @@ impl RustBoy {
             ime: false,
             ime_to_be_set: false,
             gpu: GPU::new_empty(debugging_flags),
+            interrupt_enable_register: InterruptEnableRegister::new(),
+            interrupt_flag_register: InterruptFlagRegister::new(),
 
             debugging_flags,
         }
@@ -121,6 +136,8 @@ impl RustBoy {
             ime: false,
             ime_to_be_set: false,
             gpu: GPU::new_empty(debugging_flags),
+            interrupt_enable_register: InterruptEnableRegister::new(),
+            interrupt_flag_register: InterruptFlagRegister::new(),
 
             debugging_flags,
         };

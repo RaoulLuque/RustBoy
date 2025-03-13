@@ -1,3 +1,4 @@
+use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::RustBoy;
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
@@ -40,7 +41,16 @@ impl RustBoy {
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
             VRAM_BEGIN..VRAM_END => self.gpu.read_vram(address),
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
+                // Read the GPU registers
                 self.gpu.read_registers(address)
+            }
+            0xFF0F => {
+                // Read the interrupt flag register
+                u8::from(&self.interrupt_flag_register)
+            }
+            0xFFFF => {
+                // Read the interrupt enable register
+                u8::from(&self.interrupt_enable_register)
             }
             _ => self.memory[address as usize],
         }
@@ -58,6 +68,14 @@ impl RustBoy {
                     println!("Write to SB: {}", value as char);
                 }
                 self.memory[address as usize] = value;
+            }
+            0xFF0F => {
+                // Read the interrupt flag register
+                self.interrupt_flag_register = InterruptFlagRegister::from(value);
+            }
+            0xFFFF => {
+                // Read the interrupt enable register
+                self.interrupt_enable_register = InterruptEnableRegister::from(value);
             }
             _ => {
                 self.memory[address as usize] = value;

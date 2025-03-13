@@ -144,6 +144,7 @@ impl GPURegisters {
     /// Set the LCD Control register to the provided value.
     pub fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control = LCDCRegister::from(value);
+        self.lcd_status.lyc_ly_coincidence_flag = self.current_scanline == self.scanline_compare;
     }
 
     /// Set the LCD Status register to the provided value.
@@ -165,18 +166,14 @@ impl GPURegisters {
     /// TODO: Handle LYC=LY Coincidence Flag interrupt?
     pub(super) fn set_scanline(&mut self, value: u8) {
         self.current_scanline = value;
-        if self.current_scanline == self.scanline_compare {
-            self.lcd_status.lyc_ly_coincidence_flag = true;
-        }
+        self.lcd_status.lyc_ly_coincidence_flag = self.current_scanline == self.scanline_compare;
     }
 
     /// Set the LY (Scanline) Compare register to the provided value.
     /// TODO: Handle LYC=LY Coincidence Flag interrupt?
     fn set_scanline_compare(&mut self, value: u8) {
         self.scanline_compare = value;
-        if self.current_scanline == self.scanline_compare {
-            self.lcd_status.lyc_ly_coincidence_flag = true;
-        }
+        self.lcd_status.lyc_ly_coincidence_flag = self.current_scanline == self.scanline_compare;
     }
 
     /// Set the GPU/PPU Mode to the provided value.
