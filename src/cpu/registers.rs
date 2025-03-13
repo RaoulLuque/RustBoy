@@ -110,10 +110,10 @@ impl CPURegisters {
 /// The flags register is a special register that contains 4 flags.
 /// Therefore, in comparison to the other registers, it only uses 4 bits of the 8 bits available.
 /// The other 4 bits are always zero. The flags are:
-/// - zero (Z) - set to true if the result of the last operation was zero
-/// - subtract (N) - set to true if the last operation was a subtraction
-/// - half carry (H) - set to true if there was a carry from bit 3 to bit 4
-/// - carry (C/CY) - set to true if there was a carry from bit 7 (an overflow)
+/// - Bit 7: zero (Z) - set to true if the result of the last operation was zero
+/// - Bit 6: subtract (N) - set to true if the last operation was a subtraction
+/// - Bit 5: half carry (H) - set to true if there was a carry from bit 3 to bit 4
+/// - Bit 4: carry (C/CY) - set to true if there was a carry from bit 7 (an overflow)
 #[derive(Debug)]
 pub struct FlagsRegister {
     pub zero: bool,
