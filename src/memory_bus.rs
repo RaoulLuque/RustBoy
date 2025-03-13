@@ -54,7 +54,10 @@ impl RustBoy {
                 self.gpu.write_registers(address, value)
             }
             0xFF01 => {
-                println!("Write to SB: {}", value as char);
+                if self.debugging_flags.sb_to_terminal {
+                    println!("Write to SB: {}", value as char);
+                }
+                self.memory[address as usize] = value;
             }
             _ => {
                 self.memory[address as usize] = value;

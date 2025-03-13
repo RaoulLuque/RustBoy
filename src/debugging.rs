@@ -10,6 +10,7 @@ use std::fs;
 #[derive(Copy, Clone, Debug)]
 pub struct DebuggingFlags {
     pub doctor: bool,
+    pub sb_to_terminal: bool,
 }
 
 #[cfg(debug_assertions)]

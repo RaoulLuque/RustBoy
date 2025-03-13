@@ -131,8 +131,21 @@ impl RustBoy {
 }
 
 /// Run the emulator.
+/// This function is the entry point for the emulator. The parameters are as follows:
+/// * `headless`: If true, the emulator runs in headless mode. That is, without opening a window
+/// and therefore not showing the graphics
+/// * `game_boy_doctor_mode`: If true, the emulator runs in a mode which is compatible with
+/// debugging using [gameboy doctor](https://github.com/robert/gameboy-doctor).
+/// * `print_serial_output_to_terminal`: If true, the emulator prints the serial output to the
+/// terminal.
+/// * `rom_path`: The path to the ROM file to be loaded.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
-pub async fn run(headless: bool, game_boy_doctor_mode: bool, rom_path: &str) {
+pub async fn run(
+    headless: bool,
+    game_boy_doctor_mode: bool,
+    print_serial_output_to_terminal: bool,
+    rom_path: &str,
+) {
     // Initialize logger according to the target architecture
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
@@ -146,6 +159,7 @@ pub async fn run(headless: bool, game_boy_doctor_mode: bool, rom_path: &str) {
 
     let debugging_flags = DebuggingFlags {
         doctor: game_boy_doctor_mode,
+        sb_to_terminal: print_serial_output_to_terminal,
     };
 
     let mut rust_boy = setup_rust_boy(debugging_flags, rom_path);
