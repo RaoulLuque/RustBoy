@@ -375,7 +375,7 @@ impl Instruction {
                 LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::L),
             ))),
-            // TODO: Add HALT Instruction
+            0x76 => Some(Instruction::HALT),
             0x77 => Some(Instruction::LD(LoadType::Byte(
                 LoadByteTarget::HLRef,
                 LoadByteSource::REGISTER(Register::A),

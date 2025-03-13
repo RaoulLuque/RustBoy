@@ -183,7 +183,7 @@ impl<'a> State<'a> {
 
         if rust_boy_gpu.tile_map_changed() {
             trace!("Updating tilemap");
-            trace!(
+            println!(
                 "New Tilemap (in use) \n {} \n \n",
                 tile_map_to_string(rust_boy_gpu.get_background_tile_map())
             );
@@ -212,6 +212,18 @@ impl<'a> State<'a> {
             trace!("Updating tile data");
             let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
             trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
+            println!(
+                "Tile data Block 0 and 1: \n {}",
+                tile_data_to_string(
+                    &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1()
+                )
+            );
+            println!(
+                "Tile data Block 2 and 1: \n {}",
+                tile_data_to_string(
+                    &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1()
+                )
+            );
             let new_tile_data = tile_array_to_rgba_array(
                 <&[Tile; 256]>::try_from(&rust_boy_gpu.get_background_and_window_tile_data())
                     .unwrap(),

@@ -15,6 +15,8 @@ pub(crate) mod add_and_adc;
 mod bit;
 mod call_ret_rst_and_reti;
 mod daa_scf_cpl_and_ccf;
+mod di_and_ei;
+mod halt;
 mod inc_and_dec;
 mod jr;
 mod jump;
@@ -30,6 +32,7 @@ mod sla_sra_and_srl;
 mod sub_and_sbc;
 mod swap;
 
+use crate::cpu::instructions::Instruction::{RLA, RLCA, RRA, RRCA};
 use crate::cpu::registers::{CPURegisters, FlagsRegister};
 use crate::RustBoy;
 use add_and_adc::{AddWordSource, AddWordTarget};
@@ -77,6 +80,7 @@ pub enum Instruction {
     DI,
     EI,
     RETI,
+    HALT,
 
     // 16 bit Opcodes
     RLC(SixteenBitInstructionTarget),
@@ -196,6 +200,7 @@ impl RustBoy {
     pub fn execute(&mut self, instruction: Instruction) -> u16 {
         use Instruction::*;
         let next_pc = match instruction {
+            // 8 Bit Opcodes
             NOP => {
                 self.increment_cycle_counter(1);
                 self.pc.wrapping_add(1)
@@ -224,17 +229,16 @@ impl RustBoy {
             SCF => self.handle_scf_instruction(),
             CPL => self.handle_cpl_instruction(),
             CCF => self.handle_ccf_instruction(),
-            DI => {
-                self.increment_cycle_counter(1);
-                self.ime = false;
-                self.pc.wrapping_add(1)
-            }
-            EI => {
-                self.increment_cycle_counter(1);
-                self.ime_to_be_set = true;
-                self.pc.wrapping_add(1)
-            }
+            DI => self.handle_di_instruction(),
+            EI => self.handle_ei_instruction(),
             RETI => self.handle_reti_instruction(),
+            RLCA => self.handle_rlca_instruction(),
+            RRCA => self.handle_rrca_instruction(),
+            RLA => self.handle_rla_instruction(),
+            RRA => self.handle_rra_instruction(),
+            HALT => self.handle_halt_instruction(),
+
+            // 16-bit Opcodes
             RLC(target) => self.handle_rlc_instruction(target),
             RRC(target) => self.handle_rrc_instruction(target),
             RL(target) => self.handle_rl_instruction(target),
@@ -243,10 +247,6 @@ impl RustBoy {
             SRA(target) => self.handle_sra_instruction(target),
             SWAP(target) => self.handle_swap_instruction(target),
             SRL(target) => self.handle_srl_instruction(target),
-            RLCA => self.handle_rlca_instruction(),
-            RRCA => self.handle_rrca_instruction(),
-            RLA => self.handle_rla_instruction(),
-            RRA => self.handle_rra_instruction(),
             BIT(type_of_bit_instruction) => self.handle_bit_instruction(type_of_bit_instruction),
             RES(type_of_res) => self.handle_res_instruction(type_of_res),
             SET(type_of_set) => self.handle_set_instruction(type_of_set),

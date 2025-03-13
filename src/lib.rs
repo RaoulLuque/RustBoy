@@ -52,6 +52,9 @@ const SCREEN_HEIGHT: u32 = 144;
 /// to set the IME flag after the current instruction is executed which is necessary for the
 /// correct execution of the EI instruction.
 ///
+/// In addition to the IME flag, the CPU has a halted flag to indicate if the CPU is halted.
+/// See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt) for more information on this.
+///
 /// At last the CPU has a starting_up flag to indicate if the CPU/System is starting up.
 ///
 /// For implementations of the CPU instructions please see [instructions].
@@ -76,6 +79,7 @@ pub struct RustBoy {
     cycle_counter: u64,
     ime: bool,
     ime_to_be_set: bool,
+    halted: bool,
     starting_up: bool,
 
     // Memory
@@ -112,6 +116,7 @@ impl RustBoy {
             starting_up: true,
             ime: false,
             ime_to_be_set: false,
+            halted: false,
             gpu: GPU::new_empty(debugging_flags),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
@@ -135,6 +140,7 @@ impl RustBoy {
             starting_up: false,
             ime: false,
             ime_to_be_set: false,
+            halted: false,
             gpu: GPU::new_empty(debugging_flags),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
