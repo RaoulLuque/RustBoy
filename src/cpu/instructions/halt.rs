@@ -1,15 +1,17 @@
 use crate::RustBoy;
 
 impl RustBoy {
-    /// Handles the halt instruction
+    /// Handles the halt instruction.
     ///
-    /// TODO: Handle [halt bug](https://gbdev.io/pandocs/halt.html#halt-bug)
+    /// Takes 1 cycle to execute.
     pub fn handle_halt_instruction(&mut self) -> u16 {
         self.halt();
         self.increment_cycle_counter(1);
         self.pc.wrapping_add(1)
     }
 
+    /// Sets the CPU to halt mode. In this mode, the CPU will not execute any instructions until an
+    /// interrupt is requested.
     fn halt(&mut self) {
         self.halted = true;
     }
