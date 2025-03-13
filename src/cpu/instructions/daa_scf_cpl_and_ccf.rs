@@ -22,18 +22,16 @@ impl RustBoy {
             }
         } else {
             let mut adjustment = 0;
+            if self.registers.f.half_carry || (self.registers.a & 0x0F) > 0x09 {
+                adjustment += 0x06;
+            }
             if self.registers.f.carry || self.registers.a > 0x99 {
                 adjustment += 0x60;
                 self.registers.f.carry = true;
             }
-            if self.registers.f.half_carry || (self.registers.a & 0x0F) > 0x09 {
-                adjustment += 0x06;
-            }
             a = a.wrapping_add(adjustment);
         }
-        if a == 0 {
-            self.registers.f.zero = true;
-        }
+        self.registers.f.zero = a == 0;
         self.registers.f.half_carry = false;
         a
     }
