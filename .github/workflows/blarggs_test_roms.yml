@@ -10,6 +10,7 @@ jobs:
         rom:
           - "roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb"
           - "roms/test_roms/blarggs/cpu_instrs/04-op r,imm.gb"
+          - "roms/test_roms/blarggs/cpu_instrs/05-op rp.gb"
           - "roms/test_roms/blarggs/cpu_instrs/06-ld r,r.gb"
           - "roms/test_roms/blarggs/cpu_instrs/07-jr,jp,call,ret,rst.gb"
           - "roms/test_roms/blarggs/cpu_instrs/08-misc instrs.gb"
@@ -38,47 +39,7 @@ jobs:
 
       - name: Run Test ROM
         run: |
-          timeout 45s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
-          cat output.log
-          grep "Write to SB: P
-          Write to SB: a
-          Write to SB: s
-          Write to SB: s
-          Write to SB: e
-          Write to SB: d" output.log
-
-  medium_length_test_roms:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rom:
-          - "roms/test_roms/blarggs/cpu_instrs/05-op rp.gb"
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-test-roms-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-roms-
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - name: Build
-        run: RUST_BACKTRACE=1 RUST_LOG=debug cargo build
-
-      - name: Run Test ROM
-        run: |
-          timeout 60s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
+          timeout 5s sh -c 'RUST_BACKTRACE=1 RUST_LOG=info cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
           cat output.log
           grep "Write to SB: P
           Write to SB: a
@@ -93,45 +54,6 @@ jobs:
       matrix:
         rom:
           - "roms/test_roms/blarggs/cpu_instrs/09-op r,r.gb"
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-      - name: Cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-test-roms-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-roms-
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - name: Build
-        run: RUST_BACKTRACE=1 RUST_LOG=debug cargo build
-
-      - name: Run Test ROM
-        run: |
-          timeout 150s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
-          cat output.log
-          grep "Write to SB: P
-          Write to SB: a
-          Write to SB: s
-          Write to SB: s
-          Write to SB: e
-          Write to SB: d" output.log
-
-  ultra_long_length_test_roms:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rom:
           - "roms/test_roms/blarggs/cpu_instrs/10-bit ops.gb"
     steps:
       - name: Checkout sources
@@ -158,7 +80,7 @@ jobs:
 
       - name: Run Test ROM
         run: |
-          timeout 220s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
+          timeout 10s sh -c 'RUST_BACKTRACE=1 RUST_LOG=debug cargo run -- --HEADLESS --ROM "${{ matrix.rom }}"' | tee output.log
           cat output.log
           grep "Write to SB: P
           Write to SB: a
