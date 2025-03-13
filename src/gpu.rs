@@ -261,15 +261,25 @@ impl GPU {
             .lcd_control
             .background_and_window_tile_data
         {
-            self.tile_set[0..256]
-                .try_into()
-                .expect("Slice should be of correct length, work with me here compiler")
+            self.get_background_and_window_tile_data_block_0_and_1()
         } else {
-            [&self.tile_set[256..384], &self.tile_set[0..128]]
-                .concat()
-                .try_into()
-                .expect("Slice should be of correct length, work with me here compiler")
+            self.get_background_and_window_tile_data_block_2_and_1()
         }
+    }
+
+    /// Returns the tile data in Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
+    pub fn get_background_and_window_tile_data_block_0_and_1(&self) -> [Tile; 256] {
+        self.tile_set[0..256]
+            .try_into()
+            .expect("Slice should be of correct length, work with me here compiler")
+    }
+
+    /// Returns the tile data in Block 2 (0x9000 - 0x97FF) and Block 1 (0x8800 - 0x8FFF).
+    pub fn get_background_and_window_tile_data_block_2_and_1(&self) -> [Tile; 256] {
+        [&self.tile_set[256..384], &self.tile_set[0..128]]
+            .concat()
+            .try_into()
+            .expect("Slice should be of correct length, work with me here compiler")
     }
 
     /// Returns the current tile map for the background. Switches the addressing mode
