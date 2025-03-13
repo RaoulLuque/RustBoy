@@ -268,16 +268,26 @@ impl GPU {
     /// Returns the current tile map for the background. Switches the addressing mode
     /// automatically according to LCDC bit 3 (background_tile_map).
     pub fn get_background_tile_map(&self) -> &[u8; 1024] {
-        if self.gpu_registers.lcd_control.background_tile_map {
-            self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
-                ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
-                .try_into()
-                .expect("Slice should be of correct length, work with me here compiler")
+        if !self.gpu_registers.lcd_control.background_tile_map {
+            self.get_background_tile_map_one()
         } else {
-            self.vram[TILEMAP_TWO_START - VRAM_BEGIN as usize
-                ..TILEMAP_TWO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
-                .try_into()
-                .expect("Slice should be of correct length, work with me here compiler")
+            self.get_background_tile_map_two()
         }
+    }
+
+    /// Returns the first tile map (0x9800 - 0x9BFF).
+    pub fn get_background_tile_map_one(&self) -> &[u8; 1024] {
+        self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
+            ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+            .try_into()
+            .expect("Slice should be of correct length, work with me here compiler")
+    }
+
+    /// Returns the second tile map (0x9C00 - 0x9FFF).
+    pub fn get_background_tile_map_two(&self) -> &[u8; 1024] {
+        self.vram[TILEMAP_TWO_START - VRAM_BEGIN as usize
+            ..TILEMAP_TWO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+            .try_into()
+            .expect("Slice should be of correct length, work with me here compiler")
     }
 }

@@ -7,7 +7,9 @@ use winit::window::Window;
 use crate::frontend::shader::{
     setup_shader_pipeline, BackgroundViewportPosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
 };
-use crate::gpu::tile_handling::{tile_array_to_rgba_array, tile_to_string, Tile};
+use crate::gpu::tile_handling::{
+    tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string, tile_to_string, Tile,
+};
 use crate::gpu::GPU;
 
 pub struct State<'a> {
@@ -181,6 +183,10 @@ impl<'a> State<'a> {
 
         if rust_boy_gpu.tile_map_changed() {
             trace!("Updating tilemap");
+            trace!(
+                "New Tilemap (in use) \n {} \n \n",
+                tile_map_to_string(rust_boy_gpu.get_background_tile_map())
+            );
             // Update tilemap and tile atlas (e.g., VRAM changes)
             let new_tilemap_data = rust_boy_gpu.get_background_tile_map();
             let tilemap = TilemapUniform::from_array(new_tilemap_data);
@@ -204,15 +210,12 @@ impl<'a> State<'a> {
 
         if rust_boy_gpu.tile_data_changed() {
             trace!("Updating tile data");
+            let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
+            trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
             let new_tile_data = tile_array_to_rgba_array(
                 <&[Tile; 256]>::try_from(&rust_boy_gpu.get_background_and_window_tile_data())
                     .unwrap(),
             );
-            println!(
-                "{}",
-                tile_to_string(&rust_boy_gpu.get_background_and_window_tile_data()[1])
-            );
-            // let new_tile_data = tile_array_to_rgba_array(&empty_tiles);
             self.queue.write_texture(
                 wgpu::TexelCopyTextureInfo {
                     texture: &self.tile_atlas_texture,
@@ -230,7 +233,7 @@ impl<'a> State<'a> {
             );
         }
 
-        // TODO: Update this once per frame only
+        // TODO: Update this once per frame only (or whenever it is supposed to be updated)
         // Update the background viewport position
         let updated_background_viewport_position = BackgroundViewportPosition {
             pos: [

@@ -33,10 +33,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-#[cfg(debug_assertions)]
-const TARGET_FPS: u32 = 1;
-#[cfg(not(debug_assertions))]
-const TARGET_FPS: u32 = 60;
+const TARGET_FPS: u32 = 10;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
 const SCREEN_WIDTH: u32 = 160;
 const SCREEN_HEIGHT: u32 = 144;

@@ -94,12 +94,51 @@ pub fn tile_to_string(tile: &Tile) -> String {
     let mut string = String::new();
     for row in tile {
         for pixel in row {
-            match pixel {
-                TilePixelValue::Zero => string.push_str("▫ "),
-                TilePixelValue::One => string.push_str("▪ "),
-                TilePixelValue::Two => string.push_str("□ "),
-                TilePixelValue::Three => string.push_str("■ "),
+            string.push_str(&convert_pixel_to_string(pixel));
+            string.push_str(" ");
+        }
+        string.push('\n');
+    }
+    string
+}
+
+pub fn tile_data_to_string(tile_data: &[Tile; 256]) -> String {
+    let mut string = String::new();
+    for tile_row in 0..16 {
+        for in_tile_row in 0..8 {
+            for tile_column in 0..16 {
+                for in_tile_column in 0..8 {
+                    let tile_index = tile_row * 16 + tile_column;
+                    let tile: Tile = tile_data[tile_index];
+                    let pixel_value = tile[in_tile_row][in_tile_column];
+                    string.push_str(&convert_pixel_to_string(&pixel_value));
+                    string.push_str(" ");
+                }
+                string.push_str(" ");
             }
+            string.push('\n');
+        }
+        string.push('\n');
+    }
+    string
+}
+
+pub fn convert_pixel_to_string(pixel: &TilePixelValue) -> String {
+    match pixel {
+        TilePixelValue::Zero => "▫".to_string(),
+        TilePixelValue::One => "▪".to_string(),
+        TilePixelValue::Two => "□".to_string(),
+        TilePixelValue::Three => "■".to_string(),
+    }
+}
+
+pub fn tile_map_to_string(tile_map: &[u8; 1024]) -> String {
+    let mut string = String::new();
+    for row in 0..32 {
+        for column in 0..32 {
+            let tile_index = (row * 32 + column) as usize;
+            let tile_value = tile_map[tile_index];
+            string.push_str(&format!("{} ", tile_value));
         }
         string.push('\n');
     }

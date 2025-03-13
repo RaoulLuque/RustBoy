@@ -145,8 +145,8 @@ pub fn setup_shader_pipeline(
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
-    // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
-    // Initialize blank tilemap (0th tile always)
+    // Sets the position from where the background is drawn. Used for scrolling. Is given as pixel
+    // shift-values in the tilemap.
     let initial_background_viewport_position = BackgroundViewportPosition { pos: [0, 0, 0, 0] };
     let background_viewport_buffer: Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

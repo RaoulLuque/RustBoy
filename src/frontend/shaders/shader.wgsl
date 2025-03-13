@@ -34,25 +34,28 @@ struct TilemapUniform {
 @group(0) @binding(1) var atlasSampler: sampler;
 // Tilemap
 // Tilemap is a 32x32 array of u32s, the same size as the grid of tiles that is loaded in the Rust Boy.
-// Each u32 is a tile index, which is used to look up the tile in the tile atlas.
+// Each u32 is a tile index, which is used to look up the tile in the tile atlas. The tilemap is in row major,
+// so the first 32 u32s are the first row of tiles, the next 32 u32s are the second row of tiles, and so on.
 @group(0) @binding(2) var<uniform> tilemap: TilemapUniform;
 @group(0) @binding(3) var<uniform> background_viewport_position: vec4<u32>;
 
 // Fragment shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    // Set the tile index of the top left tile from which we construct the
-    // rust boy's screen. See https://gbdev.io/pandocs/Scrolling.html
-    // This should be passed into the shader as a uniform buffer
-    let top_left_tile_index = vec2<i32>(i32(background_viewport_position.x), i32(background_viewport_position.y));
+    // The tilemap is a 32x32 grid of tiles, each tile is 8x8 pixels. That is 256x256 pixels. The following variable
+    // represents the position of the top left pixel of the visible screen within the tilemap. That is it is a vector
+    // with values between 0 and 255.
+    let viewport_position_in_pixels = vec2<i32>(i32(background_viewport_position.x), i32(background_viewport_position.y));
 
-    // Set the size of the tile as a constant
+    // Set the size of the tiles
     let tile_size = vec2<i32>(8, 8);
 
-    let pixel_coords = in.clip_position.xy;
+    // This is the position of the current pixel of the screen in the tilemap taking into consideration the viewport
+    // position.
+    let pixel_coords = in.clip_position.xy + vec2<f32>(viewport_position_in_pixels);
 
     // Calculate the index of the tile the pixel is in
-    let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(tile_size)) + top_left_tile_index) % vec2<i32>(160, 144);
+    let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(tile_size))) % vec2<i32>(32, 32);
     // Calculate the index of the tile in the tile atlas
     let tilemap_flat_index = tile_index_in_tilemap.x + tile_index_in_tilemap.y * 32;
     let vec_index = tilemap_flat_index / 4;
@@ -66,33 +69,15 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         default: { tile_index_in_atlas = tilemap.tiles[vec_index].w; break; }
     }
 
-//    Testing
-//    if (comp_index == 0) {
-//        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
-//    } else if (comp_index == 1) {
-//        return vec4<f32>(1.0, 0.0, 0.0, 1.0);
-//    } else if (comp_index == 2) {
-//        return vec4<f32>(0.0, 1.0, 0.0, 1.0);
-//    } else {
-//        return vec4<f32>(0.0, 0.0, 1.0, 1.0);
-//    }
-
-//    Testing
-//    if (tile_index_in_atlas == 0) {
-//        return vec4<f32>(1.0, 0.0, 0.0, 1.0);
-//    } else {
-//        return vec4<f32>(0.0, 1.0, 0.0, 1.0);
-//    }
-
     // Calculate the coordinates of the pixel within the tile
-    let pixel_index = vec2<i32>(pixel_coords) % vec2<i32>(tile_size);
+    let pixel_index = vec2<i32>(pixel_coords) % tile_size;
 
     // Convert pixel position to normalized UV within the current 8x8 tile
     let tile_pixel_uv = vec2<f32>(pixel_index) / vec2<f32>(8.0, 8.0);
 
     // Calculate position in tile atlas (32x32 grid of tiles)
     let atlas_tile_x = f32(tile_index_in_atlas % 16);
-    let atlas_tile_y = f32(tile_index_in_atlas / 16);
+    let atlas_tile_y = f32(u32(tile_index_in_atlas / 16));
 
     // Calculate final UV coordinates in the atlas texture
     let atlas_uv = vec2<f32>(
