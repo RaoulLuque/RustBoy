@@ -83,7 +83,10 @@ impl RustBoy {
         self.call(true, Some(address), true)
     }
 
-    // TODO: Check if correct
+    /// Handles the RETI instruction.
+    /// This instruction is just a special case of the RET instruction where the IME flag is set to true.
+    ///
+    /// The RETI instruction takes 4 cycles.
     pub fn handle_reti_instruction(&mut self) -> u16 {
         self.ime = true;
         self.increment_cycle_counter(4);
