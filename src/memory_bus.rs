@@ -9,6 +9,8 @@ const ROM_BANK_1_BEGIN: u16 = 0x4000;
 const ROM_BANK_1_END: u16 = 0x8000;
 pub const VRAM_BEGIN: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
+pub const OAM_START: u16 = 0xFE00;
+pub const OAM_END: u16 = 0xFE9F;
 
 impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
@@ -40,6 +42,7 @@ impl RustBoy {
             }
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
             VRAM_BEGIN..VRAM_END => self.gpu.read_vram(address),
+            OAM_START..OAM_END => self.gpu.read_oam(address),
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
                 // Read the GPU registers
                 self.gpu.read_registers(address)
@@ -60,6 +63,7 @@ impl RustBoy {
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address, value),
+            OAM_START..OAM_END => self.gpu.write_oam(address, value),
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
                 self.gpu.write_registers(address, value)
             }

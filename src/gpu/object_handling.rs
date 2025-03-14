@@ -1,0 +1,114 @@
+use super::GPU;
+use crate::memory_bus::OAM_START;
+
+/// Represents an object/sprite in the GPU's object attribute memory. These structs are used to
+/// more accessibly represent the data in the OAM (Object Attribute Memory).
+/// The 4 u8 (byte sized) fields represent the 4 bytes each OAM entry has. Their definitions are
+/// as follows (see https://gbdev.io/pandocs/OAM.html):
+/// - y_position: The y position of the object on the screen. Note that y = 0 means that the top
+/// edge of the object is 16 pixels above the top of the screen.
+/// - x_position: The x position of the object on the screen. Note that x = 0 means that the left
+/// edge of the object is 8 pixels to the left of the left edge of the screen.
+/// - tile_index: The index of the tile in the tile set that represents the object.
+///
+#[derive(Copy, Clone, Debug)]
+pub struct Object {
+    pub y_position: u8,
+    pub x_position: u8,
+    pub tile_index: u8,
+    pub attributes: u8,
+}
+
+impl Default for Object {
+    /// Creates a new object with all zero values.
+    fn default() -> Self {
+        Object {
+            y_position: 0,
+            x_position: 0,
+            tile_index: 0,
+            attributes: 0,
+        }
+    }
+}
+
+impl Object {
+    pub fn from_bytes(bytes: &[u8; 4]) -> Self {
+        Object {
+            y_position: bytes[0],
+            x_position: bytes[1],
+            tile_index: bytes[2],
+            attributes: bytes[3],
+        }
+    }
+
+    pub fn to_bytes(&self) -> [u8; 4] {
+        [
+            self.y_position,
+            self.x_position,
+            self.tile_index,
+            self.attributes,
+        ]
+    }
+}
+
+impl GPU {
+    pub(crate) fn handle_oam_read(&self, address: u16) -> u8 {
+        let index = (address - OAM_START) as usize;
+        if index >= self.oam.len() * 4 {
+            panic!("OAM read out of bounds");
+        }
+        let object_index = index / 4;
+        let attribute_index = index % 4;
+        match attribute_index {
+            0 => self.oam[object_index].y_position,
+            1 => self.oam[object_index].x_position,
+            2 => self.oam[object_index].tile_index,
+            3 => self.oam[object_index].attributes,
+            _ => unreachable!(),
+        }
+    }
+
+    pub(crate) fn handle_oam_write(&mut self, address: u16, value: u8) {
+        let index = (address - OAM_START) as usize;
+        if index >= self.oam.len() * 4 {
+            panic!("OAM write out of bounds");
+        }
+        let object_index = index / 4;
+        let attribute_index = index % 4;
+        match attribute_index {
+            0 => self.oam[object_index].y_position = value,
+            1 => self.oam[object_index].x_position = value,
+            2 => self.oam[object_index].tile_index = value,
+            3 => self.oam[object_index].attributes = value,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn get_objects_for_current_scanline(&self, scanline: u8) -> [Object; 10] {
+        let mut objects: [Object; 10] = Default::default();
+        let mut count = 0;
+        let adjusted_scanline = scanline + 16; // Adjust for y_position = 0 being 16 pixels above the top of the screen
+
+        for i in 0..self.oam.len() {
+            let object = self.oam[i];
+            // Set object height according to the flag in the LCD control register
+            let object_height = if self.gpu_registers.lcd_control.sprite_size {
+                16
+            } else {
+                8
+            };
+            // We have to adjust for y_position = 0 being 16 pixels above the top of the screen
+            if object.y_position <= adjusted_scanline
+                && object.y_position + object_height > adjusted_scanline
+            {
+                objects[count] = object;
+                count += 1;
+                if count == 10 {
+                    break;
+                }
+            }
+        }
+
+        objects
+    }
+}
