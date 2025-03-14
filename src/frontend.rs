@@ -41,7 +41,7 @@ pub struct State<'a> {
     compute_pipeline: wgpu::ComputePipeline,
     // The bind group corresponding to the compute pipeline
     compute_bind_group: wgpu::BindGroup,
-    // Tile atlas texture (256x256 rgba) to hold the (currently used) background tile data
+    // Tile atlas texture (128 x 128 rgba) to hold the (currently used) background tile data
     tile_atlas_texture: wgpu::Texture,
     // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data
     tilemap_buffer: wgpu::Buffer,
