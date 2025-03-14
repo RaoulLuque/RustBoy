@@ -57,9 +57,11 @@ pub(crate) enum RenderingMode {
 }
 
 /// Represents the possible tasks of the GPU.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderTask {
     None,
-    Render,
+    WriteLineToBuffer(u8),
+    RenderFrame,
 }
 
 impl GPU {
@@ -78,20 +80,27 @@ impl GPU {
         self.rendering_info.dots_clock += cycles;
         match self.gpu_registers.lcd_status.gpu_mode {
             RenderingMode::HBlank0 => {
-                // TODO: Implement rendering by lines instead of entire frame
                 if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer {
                     self.rendering_info.dots_clock -= 456 - self.rendering_info.dots_for_transfer;
                     self.gpu_registers
                         .set_scanline(self.gpu_registers.get_scanline() + 1);
-                    // For now: Render the entire frame before entering VBlank
                     if self.gpu_registers.get_scanline() == 144 {
+                        // We are entering VBlank, so we need to set the VBlank flag
+                        // and set the GPU mode to VBlank. Also, we send a render frame request to
+                        // the GPU, which renders the framebuffer to the screen.
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::VBlank1;
                         self.gpu_registers.set_ppu_mode(RenderingMode::VBlank1);
                         interrupt_flags.vblank = true;
-                        return RenderTask::Render;
+                        return RenderTask::RenderFrame;
                     } else {
+                        // We are still in HBlank, so we need to set the GPU mode to OAMScan2.
+                        // Also we send a request to the GPU to write the current line to the
+                        // framebuffer
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
                         self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
+                        return RenderTask::WriteLineToBuffer(
+                            self.gpu_registers.get_scanline() - 1,
+                        );
                     }
                 }
             }

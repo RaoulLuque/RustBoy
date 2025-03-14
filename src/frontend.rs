@@ -5,13 +5,15 @@ use winit::event::WindowEvent;
 use winit::window::Window;
 
 use crate::frontend::shader::{
-    setup_shader_pipeline, BackgroundViewportPosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
+    setup_compute_shader_pipeline, setup_render_shader_pipeline, BackgroundViewportPosition,
+    RenderingLinePosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
 };
 use crate::gpu::tile_handling::{
     tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string, tile_to_string, Tile,
 };
 use crate::gpu::GPU;
 
+/// TODO: Add docstring
 pub struct State<'a> {
     surface: wgpu::Surface<'a>,
     device: wgpu::Device,
@@ -22,16 +24,38 @@ pub struct State<'a> {
     // it gets dropped after it, as the surface contains
     // unsafe references to the window's resources.
     pub(super) window: &'a Window,
+
+    // The render pipeline is the pipeline that will be used to render the frames to the screen.
     render_pipeline: wgpu::RenderPipeline,
+    // The vertex buffer is used to store the vertex data for the render pipeline (two triangles
+    // that make up a rectangle).
     vertex_buffer: wgpu::Buffer,
+    // The number of vertices in the vertex buffer (4).
     num_vertices: u32,
-    bind_group: wgpu::BindGroup,
-    tilemap_buffer: wgpu::Buffer,
+    // The bind group corresponding to the render pipeline
+    render_bind_group: wgpu::BindGroup,
+
+    // The compute pipeline is the pipeline that will be used to run the compute shader. This
+    // shader writes to the framebuffer texture for every RustBoy render line (that is 144 times
+    // per frame).
+    compute_pipeline: wgpu::ComputePipeline,
+    // The bind group corresponding to the compute pipeline
+    compute_bind_group: wgpu::BindGroup,
+    // Tile atlas texture (256x256 rgba) to hold the (currently used) background tile data
     tile_atlas_texture: wgpu::Texture,
+    // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data
+    tilemap_buffer: wgpu::Buffer,
+    // Buffer to hold the background viewport position (is a u32 array of 4 elements) where
+    // the first two elements are the x and y position of the background viewport
     background_viewport_buffer: wgpu::Buffer,
+    // Storage texture (160x144) to act as a framebuffer for the compute shader
+    framebuffer_texture: wgpu::Texture,
+    // Buffer to hold the current line to be rendered for the compute shader
+    rendering_line_buffer: wgpu::Buffer,
 }
 
 impl<'a> State<'a> {
+    /// TODO: Add docstring
     pub async fn new(window: &'a Window) -> State<'a> {
         let size = window.inner_size();
 
@@ -94,14 +118,17 @@ impl<'a> State<'a> {
         };
 
         let (
-            render_pipeline,
-            vertex_buffer,
-            num_vertices,
-            bind_group,
-            tilemap_buffer,
+            compute_pipeline,
+            compute_bind_group,
             tile_atlas_texture,
+            tilemap_buffer,
             background_viewport_buffer,
-        ) = setup_shader_pipeline(&device, &config);
+            framebuffer_texture,
+            rendering_line_buffer,
+        ) = setup_compute_shader_pipeline(&device);
+
+        let (render_pipeline, vertex_buffer, num_vertices, render_bind_group) =
+            setup_render_shader_pipeline(&device, &config, &framebuffer_texture);
 
         Self {
             surface,
@@ -113,17 +140,23 @@ impl<'a> State<'a> {
             render_pipeline,
             vertex_buffer,
             num_vertices,
-            bind_group,
-            tilemap_buffer,
+            render_bind_group,
+            compute_pipeline,
+            compute_bind_group,
             tile_atlas_texture,
+            tilemap_buffer,
             background_viewport_buffer,
+            framebuffer_texture,
+            rendering_line_buffer,
         }
     }
 
+    /// TODO: Add docstring
     pub fn window(&self) -> &Window {
         &self.window
     }
 
+    /// TODO: Add docstring
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
@@ -133,12 +166,15 @@ impl<'a> State<'a> {
         }
     }
 
+    /// TODO: Add docstring
     pub fn input(&mut self, event: &WindowEvent) -> bool {
         false
     }
 
+    /// TODO: Add docstring
     pub fn update(&mut self) {}
 
+    /// TODO: Add docstring
     pub fn render(&mut self, rust_boy_gpu: &mut GPU) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -176,9 +212,40 @@ impl<'a> State<'a> {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
+            render_pass.set_bind_group(0, &self.render_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.draw(0..self.num_vertices, 0..1);
+        }
+
+        // Submit the rendering commands to the GPU
+        // Submit will accept anything that implements IntoIter
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(())
+    }
+
+    pub fn render_compute(&mut self, rust_boy_gpu: &mut GPU, current_scanline: u8) {
+        // Create command encoder
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Compute Encoder"),
+            });
+
+        // Begin compute pass
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Line Render Compute Pass"),
+                timestamp_writes: None,
+            });
+
+            compute_pass.set_pipeline(&self.compute_pipeline);
+            compute_pass.set_bind_group(0, &self.compute_bind_group, &[]);
+
+            // Dispatch 1 workgroup per scanline (160 pixels wide)
+            // Workgroup size is defined as @workgroup_size(160, 1, 1)
+            compute_pass.dispatch_workgroups(1, 1, 1);
         }
 
         if rust_boy_gpu.tile_map_changed() {
@@ -261,11 +328,18 @@ impl<'a> State<'a> {
             bytemuck::cast_slice(&[updated_background_viewport_position]),
         );
 
-        // Submit the rendering commands to the GPU
+        // Update the current scanline uniform buffer
+        let updated_current_scanline = RenderingLinePosition {
+            pos: [current_scanline as u32, 0, 0, 0],
+        };
+        self.queue.write_buffer(
+            &self.rendering_line_buffer,
+            0,
+            bytemuck::cast_slice(&[updated_current_scanline]),
+        );
+
+        // Submit the compute commands to the GPU
         // Submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
-
-        Ok(())
     }
 }

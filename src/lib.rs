@@ -222,8 +222,8 @@ pub async fn run(
     // Track the cpu cycles
     let mut total_num_cpu_cycles = 0;
 
-    // Flag if we are idling to wait for the next frame
-    let mut redraw_request = false;
+    // Variable to keep track of the current [gpu::RenderTask] to be executed
+    let mut current_rendering_task: RenderTask = RenderTask::None;
 
     let mut last_frame_time = Instant::now();
     log::info!("Starting event loop");
@@ -261,22 +261,39 @@ pub async fn run(
                             }
 
                             // Make multiple steps per redraw request until something has to be rendered
-                            while !redraw_request {
-                                (total_num_cpu_cycles, redraw_request) = handle_not_redraw_request(
-                                    &mut rust_boy,
-                                    total_num_cpu_cycles,
-                                    redraw_request,
-                                );
+                            while current_rendering_task != RenderTask::RenderFrame {
+                                (total_num_cpu_cycles, current_rendering_task) =
+                                    handle_no_rendering_task(&mut rust_boy, total_num_cpu_cycles);
+
+                                // We draw a new line to the framebuffer whenever the gpu requests a new line or when it requests a
+                                // new frame, since in the latter case, the last line is still missing
+                                if current_rendering_task != RenderTask::None {
+                                    state.update();
+
+                                    if let RenderTask::WriteLineToBuffer(current_scanline) =
+                                        current_rendering_task
+                                    {
+                                        // If the current rendering task was to render a line, we need to reset it to none,
+                                        // since we have just written a line to the framebuffer. If it was to render a frame,
+                                        // it has to stay as is, since we still need to render the frame
+                                        current_rendering_task = RenderTask::None;
+                                        state.render_compute(&mut rust_boy.gpu, current_scanline);
+                                    } else {
+                                        // Otherwise, the current rendering task was to render a frame, and we still need to
+                                        // write the last line to the framebuffer
+                                        state.render_compute(&mut rust_boy.gpu, 143);
+                                    }
+                                }
                             }
 
-                            if redraw_request {
+                            if current_rendering_task == RenderTask::RenderFrame {
                                 // Calculate the time since the last frame and check if a new frame
                                 // should be drawn or we still wait
                                 let now = Instant::now();
                                 let elapsed = now.duration_since(last_frame_time);
                                 if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
                                     last_frame_time = Instant::now();
-                                    redraw_request = false;
+                                    current_rendering_task = RenderTask::None;
 
                                     state.update();
                                     match state.render(&mut rust_boy.gpu) {
@@ -321,11 +338,10 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
     #[cfg(debug_assertions)]
     setup_debugging_logs_files(debugging_flags, rom_path);
 
+    // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
-    log::trace!("CPU Bus initial state: {}", rust_boy.memory_to_string());
 
     rust_boy.load_program(rom_path);
-    // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
 
     rust_boy
 }
@@ -334,48 +350,42 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
 /// This is useful for (automated) testing and debugging purposes.
 #[cfg(debug_assertions)]
 fn run_headless(rust_boy: &mut RustBoy) {
-    let mut redraw_request = false;
+    let mut current_rendering_task: RenderTask = RenderTask::None;
+    // TODO: Check there is no overflow errors with total_num_cpu_cycles
     let mut total_num_cpu_cycles = 0;
     let mut last_frame_time = Instant::now();
     loop {
         // Make multiple steps per redraw request until something has to be rendered
-        while !redraw_request {
-            (total_num_cpu_cycles, redraw_request) =
-                handle_not_redraw_request(rust_boy, total_num_cpu_cycles, redraw_request);
+        while current_rendering_task != RenderTask::RenderFrame {
+            (total_num_cpu_cycles, current_rendering_task) =
+                handle_no_rendering_task(rust_boy, total_num_cpu_cycles);
         }
 
-        if redraw_request {
+        if current_rendering_task == RenderTask::RenderFrame {
             // Calculate the time since the last frame and check if a new frame
             // should be drawn or we still wait
             let now = Instant::now();
             let elapsed = now.duration_since(last_frame_time);
             if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
                 last_frame_time = Instant::now();
-                redraw_request = false;
+                current_rendering_task = RenderTask::None;
             }
         }
     }
 }
 
 /// Handle the case in the game boy loop, where we are not requesting a redraw.
-fn handle_not_redraw_request(
+fn handle_no_rendering_task(
     rust_boy: &mut RustBoy,
     total_num_cpu_cycles: u64,
-    redraw_request: bool,
-) -> (u64, bool) {
-    let mut res_redraw_request = redraw_request;
+) -> (u64, RenderTask) {
     rust_boy.cpu_step();
     let last_num_of_cycles = rust_boy.cycle_counter - total_num_cpu_cycles;
     let total_num_cpu_cycles = rust_boy.cycle_counter;
 
-    match rust_boy.gpu.gpu_step(
+    let new_rendering_task = rust_boy.gpu.gpu_step(
         &mut rust_boy.interrupt_flag_register,
         last_num_of_cycles as u32,
-    ) {
-        RenderTask::None => {}
-        RenderTask::Render => {
-            res_redraw_request = true;
-        }
-    };
-    (total_num_cpu_cycles, res_redraw_request)
+    );
+    (total_num_cpu_cycles, new_rendering_task)
 }
