@@ -4,6 +4,7 @@
 /node_modules
 /dist
 /roms/*.gb
+/roms/test_roms/mooneye/*
 /logs
 /gameboy-doctor
 *.log
