@@ -37,7 +37,6 @@ pub struct GPU {
 
 /// Struct to collect the information about the current rendering state of the GPU.
 pub struct RenderingInfo {
-    dots_clock_sum: u32,
     dots_clock: u32,
     dots_for_transfer: u32,
 }
@@ -77,7 +76,6 @@ impl GPU {
         cycles: u32,
     ) -> RenderTask {
         self.rendering_info.dots_clock += cycles;
-        self.rendering_info.dots_clock_sum += cycles;
         match self.gpu_registers.lcd_status.gpu_mode {
             RenderingMode::HBlank0 => {
                 // TODO: Implement rendering by lines instead of entire frame
@@ -210,7 +208,6 @@ impl GPU {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
             tile_set: [tile_handling::empty_tile(); 384],
             rendering_info: RenderingInfo {
-                dots_clock_sum: 0,
                 dots_clock: 0,
                 dots_for_transfer: 0,
             },
