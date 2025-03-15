@@ -54,8 +54,35 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
 
     var pixel_in_object = false;
     var object = vec4<u32>(0, 0, 0, 0);
+    // We have to adjust for x_position = 0 being 8 pixels to the left of the left border of the screen
+    let adjusted_x = x + 8;
 
-    let color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
+    // Check if the current pixel is in an object in the objects_in_scanline
+    for (var i = 0; i < 10; i = i + 1) {
+        if (objects_in_scanline.objects[i].x == 0) {
+            // objects_in_scanline.objects[i].x is the y coordinate of the object and if it is 0, it means that there are
+            // no more objects in the current scanline. Because, no object with a y coordinate of 0 would be added to the
+            // objects_in_scanline.
+            break;
+        }
+        if (objects_in_scanline.objects[i].y <= adjusted_x && objects_in_scanline.objects[i].y + 8 > adjusted_x) {
+            // objects_in_scanline.objects[i].y is the x coordinate of the object. With this, we check if the current pixel
+            // lies within the object. For the y coordinate this is already guaranteed by objects_in_scanline
+
+            // TODO: Handle, if the object actually covers the background (Byte 3 Priority)
+            pixel_in_object = true;
+            object = objects_in_scanline.objects[i];
+
+        }
+    }
+
+    var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+
+    if (pixel_in_object) {
+        color = compute_color_from_object();
+    } else {
+        color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
+    }
 
     textureStore(framebuffer, vec2<i32>(i32(x), i32(y)), color);
 }
@@ -109,6 +136,6 @@ fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: ve
     return color;
 }
 
-fn compute_color_from_object() {
-
+fn compute_color_from_object() -> vec4<f32>{
+    return vec4<f32>(1.0, 0.0, 0.0, 1.0);
 }
