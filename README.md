@@ -13,6 +13,15 @@ The app also runs in the web using WASM.
 - [GameBoy Emulation in JavaScript](https://imrannazar.com/series/gameboy-emulation-in-javascript)
 - [DMG-01: How to Emulate a Game Boy](https://rylev.github.io/DMG-01/public/book/introduction.html)
 
+## How to Start
+
+TBD
+TLDR:
+
+```
+RUST_BACKTRACE=1 RUST_LOG=info cargo run -- --SB --ROM "roms/[ROM_NAME].gb"
+```
+
 ## Implemented Instructions
 
 For a more interactive view,
