@@ -52,6 +52,11 @@ pub struct State<'a> {
     framebuffer_texture: wgpu::Texture,
     // Buffer to hold the current line to be rendered for the compute shader
     rendering_line_buffer: wgpu::Buffer,
+
+    // Storage texture (128 x 128 rgba) to hold the tiles used for objects/sprites
+    object_tile_atlas_texture: wgpu::Texture,
+    // Buffer to hold the information about the objects/sprites in the current scanline
+    objects_in_scanline_buffer: wgpu::Buffer,
 }
 
 impl<'a> State<'a> {
@@ -125,6 +130,8 @@ impl<'a> State<'a> {
             background_viewport_buffer,
             framebuffer_texture,
             rendering_line_buffer,
+            object_tile_atlas_texture,
+            objects_in_scanline_buffer,
         ) = setup_compute_shader_pipeline(&device);
 
         let (render_pipeline, vertex_buffer, num_vertices, render_bind_group) =
@@ -148,6 +155,8 @@ impl<'a> State<'a> {
             background_viewport_buffer,
             framebuffer_texture,
             rendering_line_buffer,
+            object_tile_atlas_texture,
+            objects_in_scanline_buffer,
         }
     }
 

@@ -3,11 +3,11 @@ struct TilemapUniform {
     tiles: array<vec4<u32>, 256>,
 }
 
-//// Struct to hold the possibly 10 objects/sprites in the current scanline
-//// If there are less than 10 objects, the rest of the array is filled with 0s.
-//struct ObjectsInScanline {
-//    objects: array<vec4<u32>, 10>,
-//}
+// Struct to hold the possibly 10 objects/sprites in the current scanline
+// If there are less than 10 objects, the rest of the array is filled with 0s.
+struct ObjectsInScanline {
+    objects: array<vec4<u32>, 10>,
+}
 
 // Tile atlas is a 2D texture containing all the tiles used in the tilemap.
 // The tiles here can be considered the building blocks used by the tilemap.
@@ -29,12 +29,12 @@ struct TilemapUniform {
 // the final image. It is a 2D texture with the same size as the screen (160 x 144)
 @group(0) @binding(4) var framebuffer: texture_storage_2d<rgba8unorm, write>;
 
-//// The sprite tile atlas is a 2D texture containing all the tiles used for the objects/sprites.
-//@group(0) @binding(5) var object_tile_atlas: texture_2d<f32>;
-//// The objects in the current scnaline are the objects that are visible in the current line of the screen.
-//// The objects are stored in an array of 10 elements, each element is a vec4<u32>.
-//// If there are less than 10 objects, the rest of the array is filled with 0s.
-//@group(0) @binding(6) var objects_in_scanline: ObjectsInScanline;
+// The sprite tile atlas is a 2D texture containing all the tiles used for the objects/sprites.
+@group(0) @binding(5) var object_tile_atlas: texture_2d<f32>;
+// The objects in the current scnaline are the objects that are visible in the current line of the screen.
+// The objects are stored in an array of 10 elements, each element is a vec4<u32>.
+// If there are less than 10 objects, the rest of the array is filled with 0s.
+@group(0) @binding(6) var<uniform> objects_in_scanline: ObjectsInScanline;
 
 @compute @workgroup_size(160, 1, 1)
 fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
@@ -51,6 +51,9 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
     // between 0 and 159 Thus, each workgroup will render a line/row of 160 pixels.
     let x = local_id.x;
     let y = current_line.x;
+
+    var pixel_in_object = false;
+    var object = vec4<u32>(0, 0, 0, 0);
 
     let color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
 
@@ -104,4 +107,8 @@ fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: ve
     let color = textureLoad(background_tile_atlas, atlas_texel_coord, 0);
 
     return color;
+}
+
+fn compute_color_from_object() {
+
 }

@@ -71,6 +71,12 @@ pub(super) struct TilemapUniform {
     pub(super) tiles: [PackedTileData; 256], // 32x32 grid
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub(super) struct ObjectsInScanline {
+    pub(super) objects: [[u32; 4]; 10],
+}
+
 impl TilemapUniform {
     pub fn from_array(input: &[u8; 1024]) -> Self {
         let mut tiles = [PackedTileData { indices: [0; 4] }; 256];
@@ -246,10 +252,12 @@ pub fn setup_compute_shader_pipeline(
     Buffer,
     wgpu::Texture,
     Buffer,
+    wgpu::Texture,
+    Buffer,
 ) {
-    // This holds all possible tiles (16x16 tiles, 8x8 pixels each)
-    let tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Tile Atlas"),
+    // This holds the background and window tiles (16x16 tiles, 8x8 pixels each)
+    let background_tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Background Tile Atlas"),
         size: wgpu::Extent3d {
             // Each tile is 8x8 pixels, and we have 16x16 tiles
             width: TILE_SIZE * ATLAS_COLS,
@@ -308,6 +316,34 @@ pub fn setup_compute_shader_pipeline(
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Rendering Line Buffer"),
             contents: bytemuck::cast_slice(&[initial_rendering_line]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+    // This holds the background and window tiles (16x16 tiles, 8x8 pixels each)
+    let object_tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Object Tile Atlas"),
+        size: wgpu::Extent3d {
+            // Each tile is 8x8 pixels, and we have 16x16 tiles
+            width: TILE_SIZE * ATLAS_COLS,
+            height: TILE_SIZE * ATLAS_COLS,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb, // Rust Boy uses 4 colors (RGBA for simplicity)
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+
+    // Represents the objects that
+    let initial_objects_in_scanline = ObjectsInScanline {
+        objects: [[0; 4]; 10],
+    };
+    let objects_in_scanline_buffer: Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Tilemap Buffer"),
+            contents: bytemuck::cast_slice(&[initial_objects_in_scanline]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -370,6 +406,28 @@ pub fn setup_compute_shader_pipeline(
                 },
                 count: None,
             },
+            // Object Atlas Texture (binding 5)
+            wgpu::BindGroupLayoutEntry {
+                binding: 5,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            // Objects in scanline Uniform Buffer (binding 6)
+            wgpu::BindGroupLayoutEntry {
+                binding: 6,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
         ],
     });
 
@@ -381,7 +439,8 @@ pub fn setup_compute_shader_pipeline(
             wgpu::BindGroupEntry {
                 binding: 0,
                 resource: wgpu::BindingResource::TextureView(
-                    &tile_atlas_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                    &background_tile_atlas_texture
+                        .create_view(&wgpu::TextureViewDescriptor::default()),
                 ),
             },
             wgpu::BindGroupEntry {
@@ -401,6 +460,16 @@ pub fn setup_compute_shader_pipeline(
                 resource: wgpu::BindingResource::TextureView(
                     &framebuffer_texture.create_view(&wgpu::TextureViewDescriptor::default()),
                 ),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: wgpu::BindingResource::TextureView(
+                    &object_tile_atlas_texture.create_view(&wgpu::TextureViewDescriptor::default()),
+                ),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: objects_in_scanline_buffer.as_entire_binding(),
             },
         ],
     });
@@ -428,10 +497,12 @@ pub fn setup_compute_shader_pipeline(
     (
         compute_pipeline,
         bind_group,
-        tile_atlas_texture,
+        background_tile_atlas_texture,
         tilemap_buffer,
         background_viewport_buffer,
         framebuffer_texture,
         rendering_line_buffer,
+        object_tile_atlas_texture,
+        objects_in_scanline_buffer,
     )
 }

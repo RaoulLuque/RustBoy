@@ -32,21 +32,12 @@ impl Default for Object {
 }
 
 impl Object {
-    pub fn from_bytes(bytes: &[u8; 4]) -> Self {
-        Object {
-            y_position: bytes[0],
-            x_position: bytes[1],
-            tile_index: bytes[2],
-            attributes: bytes[3],
-        }
-    }
-
-    pub fn to_bytes(&self) -> [u8; 4] {
+    pub fn to_bytes(&self) -> [u32; 4] {
         [
-            self.y_position,
-            self.x_position,
-            self.tile_index,
-            self.attributes,
+            self.y_position as u32,
+            self.x_position as u32,
+            self.tile_index as u32,
+            self.attributes as u32,
         ]
     }
 }
@@ -84,8 +75,8 @@ impl GPU {
         }
     }
 
-    pub fn get_objects_for_current_scanline(&self, scanline: u8) -> [Object; 10] {
-        let mut objects: [Object; 10] = Default::default();
+    pub fn get_objects_for_current_scanline(&self, scanline: u8) -> [[u32; 4]; 10] {
+        let mut objects: [[u32; 4]; 10] = Default::default();
         let mut count = 0;
         let adjusted_scanline = scanline + 16; // Adjust for y_position = 0 being 16 pixels above the top of the screen
 
@@ -101,7 +92,7 @@ impl GPU {
             if object.y_position <= adjusted_scanline
                 && object.y_position + object_height > adjusted_scanline
             {
-                objects[count] = object;
+                objects[count] = object.to_bytes();
                 count += 1;
                 if count == 10 {
                     break;
