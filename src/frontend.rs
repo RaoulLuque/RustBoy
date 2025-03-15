@@ -6,7 +6,7 @@ use winit::window::Window;
 
 use crate::frontend::shader::{
     setup_compute_shader_pipeline, setup_render_shader_pipeline, BackgroundViewportPosition,
-    RenderingLinePosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
+    ObjectsInScanline, RenderingLinePosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
 };
 use crate::gpu::tile_handling::{
     tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string, tile_to_string, Tile,
@@ -345,6 +345,39 @@ impl<'a> State<'a> {
             &self.rendering_line_buffer,
             0,
             bytemuck::cast_slice(&[updated_current_scanline]),
+        );
+
+        // Update the object tile atlas
+        // TODO: Update this only when necessary
+        let new_object_tile_data = tile_array_to_rgba_array(
+            <&[Tile; 256]>::try_from(&rust_boy_gpu.get_object_tile_data()).unwrap(),
+        );
+        self.queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &self.object_tile_atlas_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &new_object_tile_data,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * TILE_SIZE * ATLAS_COLS),
+                rows_per_image: None,
+            },
+            self.object_tile_atlas_texture.size(),
+        );
+
+        // Update the objects in scanline buffer
+        // TODO: Update this only when necessary
+        let objects_in_scanline = rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
+        let new_objects_in_scanline = ObjectsInScanline {
+            objects: objects_in_scanline,
+        };
+        self.queue.write_buffer(
+            &self.tilemap_buffer,
+            0,
+            bytemuck::cast_slice(&[new_objects_in_scanline]),
         );
 
         // Submit the compute commands to the GPU

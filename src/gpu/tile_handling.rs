@@ -125,6 +125,12 @@ impl GPU {
         }
     }
 
+    /// Returns the current tile set for the objects. That is, the tile set in
+    /// Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
+    pub fn get_object_tile_data(&self) -> [Tile; 256] {
+        self.get_background_and_window_tile_data_block_0_and_1()
+    }
+
     /// Returns the tile data in Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
     pub fn get_background_and_window_tile_data_block_0_and_1(&self) -> [Tile; 256] {
         self.tile_set[0..256]
