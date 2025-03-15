@@ -14,6 +14,7 @@ mod frontend;
 mod gpu;
 mod interrupts;
 mod memory_bus;
+mod timer;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -34,11 +35,13 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::WindowBuilder,
 };
+use timer::TimerInfo;
 
 const TARGET_FPS: u32 = 60;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
 const SCREEN_WIDTH: u32 = 160;
 const SCREEN_HEIGHT: u32 = 144;
+const M_CYCLES_PER_SECOND: u32 = 1_048_576;
 
 /// Struct to represent the Rust Boy.
 /// It is split into 3 main parts: The CPU, the memory bus, and the GPU.
@@ -89,6 +92,9 @@ pub struct RustBoy {
     // GPU
     gpu: GPU,
 
+    // Timers
+    timer_info: TimerInfo,
+
     // Interrupts
     interrupt_enable_register: InterruptEnableRegister,
     interrupt_flag_register: InterruptFlagRegister,
@@ -118,6 +124,7 @@ impl RustBoy {
             ime_to_be_set: false,
             halted: false,
             gpu: GPU::new_empty(debugging_flags),
+            timer_info: TimerInfo::new(),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
 
@@ -142,6 +149,7 @@ impl RustBoy {
             ime_to_be_set: false,
             halted: false,
             gpu: GPU::new_empty(debugging_flags),
+            timer_info: TimerInfo::new(),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
 
@@ -379,13 +387,21 @@ fn handle_no_rendering_task(
     rust_boy: &mut RustBoy,
     total_num_cpu_cycles: u64,
 ) -> (u64, RenderTask) {
+    // Fetch and execute next instruction with cpu_step().
     rust_boy.cpu_step();
     let last_num_of_cycles = rust_boy.cycle_counter - total_num_cpu_cycles;
     let total_num_cpu_cycles = rust_boy.cycle_counter;
-
+    
+    // Increment the timer and divider register according to the number of cycles that the
+    // last instruction took
+    rust_boy.handle_timer_and_divider(last_num_of_cycles as u32);
+    
+    // Check what has to be done for rendering and sync gpu with cpu with gpu_step()
     let new_rendering_task = rust_boy.gpu.gpu_step(
         &mut rust_boy.interrupt_flag_register,
         last_num_of_cycles as u32,
     );
+    
+    // Return the new total number of cpu cycles and possible rendering tasks
     (total_num_cpu_cycles, new_rendering_task)
 }

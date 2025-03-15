@@ -73,6 +73,10 @@ impl RustBoy {
                 }
                 self.memory[address as usize] = value;
             }
+            0xFF04 => {
+                // When a write happens to the divider register, it just resets to 0
+                self.memory[address as usize] = 0;
+            }
             0xFF0F => {
                 // Read the interrupt flag register
                 self.interrupt_flag_register = InterruptFlagRegister::from(value);
