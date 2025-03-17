@@ -68,6 +68,12 @@ impl RustBoy {
                 self.gpu
                     .write_registers(address, value, &mut self.interrupt_flag_register);
             }
+            // DMA transfer register
+            0xFF46 => {
+                // The value written to the DMA register is the starting address of the transfer
+                // divided by 0x100 (= 256). The transfer takes 160 cycles.
+                self.handle_dma(value);
+            }
             0xFF01 => {
                 if self.debugging_flags.sb_to_terminal {
                     println!("Write to SB: {}", value as char);

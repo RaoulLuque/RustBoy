@@ -8,6 +8,7 @@ pub mod registers;
 
 #[cfg(debug_assertions)]
 use crate::debugging::{doctor_log, instruction_log};
+use crate::memory_bus::{OAM_END, OAM_START};
 use crate::RustBoy;
 use instructions::Instruction;
 
@@ -32,7 +33,7 @@ impl RustBoy {
     }
 
     /// Increment the cycle counter by the provided value.
-    fn increment_cycle_counter(&mut self, value: u32) {
+    pub fn increment_cycle_counter(&mut self, value: u32) {
         self.cycle_counter += value as u64;
     }
 
@@ -169,5 +170,21 @@ impl RustBoy {
         self.write_byte(0xFF4A, 0x00);
         self.write_byte(0xFF4B, 0x00);
         self.write_byte(0xFFFF, 0x00);
+    }
+
+    /// The DMA transfer is started by writing to the DMA register at 0xFF46. The value written
+    /// is the starting address of the transfer divided by 0x100 (= 256). The transfer takes 160
+    /// cycles.
+    ///
+    /// TODO: Possibly split the copy instruction into 40 individual writes each taking 4 cycles
+    /// to simulate the transfer speed of the DMG.
+    pub(crate) fn handle_dma(&mut self, address: u8) {
+        let address = (address as u16) << 8;
+        for i in 0..(OAM_END - OAM_START) + 1 {
+            let value = self.read_byte(address + i);
+            self.write_byte(OAM_START + i, value);
+        }
+
+        self.increment_cycle_counter(160);
     }
 }
