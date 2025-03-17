@@ -1,6 +1,7 @@
 use super::{RenderingMode, GPU};
 
 use crate::debugging::DebuggingFlags;
+use crate::interrupts::InterruptFlagRegister;
 
 const LCD_ENABLE_BYTE_POSITION: usize = 7;
 const WINDOW_TILE_MAP_BYTE_POSITION: usize = 6;
@@ -95,7 +96,17 @@ impl GPU {
         }
     }
 
-    pub fn write_registers(&mut self, address: u16, value: u8) {
+    /// Writes to the GPU registers.
+    ///
+    /// Needs a reference to the interrupt flag register, if a write
+    /// to the scanline register is made and LY=LYC is set, in which case a stat interrupt might
+    /// be requested.
+    pub fn write_registers(
+        &mut self,
+        address: u16,
+        value: u8,
+        interrupt_flag_register: &mut InterruptFlagRegister,
+    ) {
         match address {
             0xFF40 => self.gpu_registers.set_lcd_control(value),
             0xFF41 => self.gpu_registers.set_lcd_status(value),
@@ -103,7 +114,9 @@ impl GPU {
             0xFF43 => self.gpu_registers.set_scroll_x(value),
             // If the rom tries writing to the scanline register, it gets reset to 0
             0xFF44 => self.gpu_registers.set_scanline(0),
-            0xFF45 => self.gpu_registers.set_scanline_compare(value),
+            0xFF45 => self
+                .gpu_registers
+                .set_scanline_compare(value, interrupt_flag_register),
             0xFF47 => self.gpu_registers.set_background_palette(value),
             _ => panic!("Writing to invalid GPU register address: {:#04X}", address),
         }
@@ -175,15 +188,66 @@ impl GPURegisters {
     }
 
     /// Set the LY (Scanline) Compare register to the provided value.
-    /// TODO: Handle LYC=LY Coincidence Flag interrupt?
-    fn set_scanline_compare(&mut self, value: u8) {
+    ///
+    /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
+    /// LY=LYC and the LYC int select is set.
+    fn set_scanline_compare(
+        &mut self,
+        value: u8,
+        interrupt_flag_register: &mut InterruptFlagRegister,
+    ) {
         self.scanline_compare = value;
-        self.lcd_status.lyc_ly_coincidence_flag = self.current_scanline == self.scanline_compare;
+        self.set_lyc_ly_coincidence_flag(
+            self.current_scanline == self.scanline_compare,
+            interrupt_flag_register,
+        );
+    }
+
+    /// Set the LYC=LY Coincidence Flag to the provided value.
+    ///
+    /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
+    /// LY=LYC and the LYC int select is set.
+    fn set_lyc_ly_coincidence_flag(
+        &mut self,
+        value: bool,
+        interrupt_flag_register: &mut InterruptFlagRegister,
+    ) {
+        self.lcd_status.lyc_ly_coincidence_flag = value;
+        if value {
+            if self.lcd_status.lyc_int_select {
+                interrupt_flag_register.lcd_stat = true;
+            }
+        }
     }
 
     /// Set the GPU/PPU Mode to the provided value.
-    pub(crate) fn set_ppu_mode(&mut self, mode: RenderingMode) {
+    ///
+    /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
+    /// the corresponding mode int select flag is set to the provided mode which is being entered.
+    pub(crate) fn set_ppu_mode(
+        &mut self,
+        mode: RenderingMode,
+        interrupt_flag_register: &mut InterruptFlagRegister,
+    ) {
         self.lcd_status.gpu_mode = mode;
+        match mode {
+            RenderingMode::HBlank0 => {
+                if self.lcd_status.mode_0_int_select {
+                    interrupt_flag_register.lcd_stat = true;
+                }
+            }
+            RenderingMode::VBlank1 => {
+                if self.lcd_status.mode_1_int_select {
+                    interrupt_flag_register.lcd_stat = true;
+                }
+            }
+            RenderingMode::OAMScan2 => {
+                if self.lcd_status.mode_2_int_select {
+                    interrupt_flag_register.lcd_stat = true;
+                }
+            }
+            RenderingMode::Transfer3 => {}
+        }
     }
 
     /// Set the background palette register to the provided value.

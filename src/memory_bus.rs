@@ -65,7 +65,8 @@ impl RustBoy {
             VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address, value),
             OAM_START..OAM_END => self.gpu.write_oam(address, value),
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
-                self.gpu.write_registers(address, value)
+                self.gpu
+                    .write_registers(address, value, &mut self.interrupt_flag_register);
             }
             0xFF01 => {
                 if self.debugging_flags.sb_to_terminal {

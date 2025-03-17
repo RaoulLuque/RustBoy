@@ -32,6 +32,10 @@ impl TimerInfo {
 }
 
 impl RustBoy {
+    /// Handles the timer and divider registers. This function is called every time the CPU makes
+    /// a step, that is, executes an instruction, to check whether the timer and divider registers
+    /// should be incremented. To do so, the functions [RustBoy::handle_divider] and
+    /// [RustBoy::handle_timer] are called.
     pub fn handle_timer_and_divider(&mut self, cycles_passed: u32) {
         self.handle_divider(cycles_passed);
         self.handle_timer(cycles_passed);

@@ -32,7 +32,6 @@ mod sla_sra_and_srl;
 mod sub_and_sbc;
 mod swap;
 
-use crate::cpu::instructions::Instruction::{RLA, RLCA, RRA, RRCA};
 use crate::cpu::registers::{CPURegisters, FlagsRegister};
 use crate::RustBoy;
 use add_and_adc::{AddWordSource, AddWordTarget};

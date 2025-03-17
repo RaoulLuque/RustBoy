@@ -8,7 +8,7 @@ use crate::debugging::DebuggingFlags;
 use crate::interrupts::InterruptFlagRegister;
 use object_handling::Object;
 use registers::GPURegisters;
-use tile_handling::{Tile, TilePixelValue};
+use tile_handling::Tile;
 
 const TILEMAP_ONE_START: usize = 0x9800;
 const TILEMAP_TWO_START: usize = 0x9C00;
@@ -93,7 +93,8 @@ impl GPU {
                         // and set the GPU mode to VBlank. Also, we send a render frame request to
                         // the GPU, which renders the framebuffer to the screen.
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::VBlank1;
-                        self.gpu_registers.set_ppu_mode(RenderingMode::VBlank1);
+                        self.gpu_registers
+                            .set_ppu_mode(RenderingMode::VBlank1, interrupt_flags);
                         interrupt_flags.vblank = true;
                         return RenderTask::RenderFrame;
                     } else {
@@ -101,7 +102,8 @@ impl GPU {
                         // Also we send a request to the GPU to write the current line to the
                         // framebuffer
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
-                        self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
+                        self.gpu_registers
+                            .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
                         return RenderTask::WriteLineToBuffer(
                             self.gpu_registers.get_scanline() - 1,
                         );
@@ -116,7 +118,8 @@ impl GPU {
                     if self.gpu_registers.get_scanline() == 154 {
                         self.gpu_registers.set_scanline(0);
                         self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
-                        self.gpu_registers.set_ppu_mode(RenderingMode::OAMScan2);
+                        self.gpu_registers
+                            .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
                     }
                 }
             }
@@ -124,7 +127,8 @@ impl GPU {
                 if self.rendering_info.dots_clock >= 80 {
                     self.rendering_info.dots_clock -= 80;
                     self.gpu_registers.lcd_status.gpu_mode = RenderingMode::Transfer3;
-                    self.gpu_registers.set_ppu_mode(RenderingMode::Transfer3);
+                    self.gpu_registers
+                        .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
                 }
             }
             RenderingMode::Transfer3 => {
@@ -133,7 +137,8 @@ impl GPU {
                     self.rendering_info.dots_clock -= 172;
                     self.rendering_info.dots_for_transfer = 172;
                     self.gpu_registers.lcd_status.gpu_mode = RenderingMode::HBlank0;
-                    self.gpu_registers.set_ppu_mode(RenderingMode::HBlank0);
+                    self.gpu_registers
+                        .set_ppu_mode(RenderingMode::HBlank0, interrupt_flags);
                 }
             }
         }

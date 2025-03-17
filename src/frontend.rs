@@ -9,7 +9,7 @@ use crate::frontend::shader::{
     ObjectsInScanline, RenderingLinePosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
 };
 use crate::gpu::tile_handling::{
-    tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string, tile_to_string, Tile,
+    tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string, Tile,
 };
 use crate::gpu::GPU;
 
