@@ -109,11 +109,13 @@ impl GPU {
     ) {
         match address {
             0xFF40 => self.gpu_registers.set_lcd_control(value),
-            0xFF41 => self.gpu_registers.set_lcd_status(value),
+            0xFF41 => self
+                .gpu_registers
+                .set_lcd_status(value, interrupt_flag_register),
             0xFF42 => self.gpu_registers.set_scroll_y(value),
             0xFF43 => self.gpu_registers.set_scroll_x(value),
             // If the rom tries writing to the scanline register, it gets reset to 0
-            0xFF44 => self.gpu_registers.set_scanline(0),
+            0xFF44 => self.gpu_registers.set_scanline(0, interrupt_flag_register),
             0xFF45 => self
                 .gpu_registers
                 .set_scanline_compare(value, interrupt_flag_register),
@@ -158,16 +160,22 @@ impl GPURegisters {
     /// Set the LCD Control register to the provided value.
     pub fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control = LCDCRegister::from(value);
-        // If the display is turned off, set the GPU mode to VBlank
-        if !self.lcd_control.display_on_off {
-            self.lcd_status.gpu_mode = RenderingMode::VBlank1;
-        }
-        self.lcd_status.lyc_ly_coincidence_flag = self.current_scanline == self.scanline_compare;
     }
 
     /// Set the LCD Status register to the provided value.
-    pub fn set_lcd_status(&mut self, value: u8) {
+    ///
+    /// Needs a reference to the interrupt flag register, if the LYC=LY Coincidence Flag is set,
+    /// in which case a stat interrupt might be requested.
+    pub fn set_lcd_status(
+        &mut self,
+        value: u8,
+        interrupt_flag_register: &mut InterruptFlagRegister,
+    ) {
         self.lcd_status = self.lcd_status.with_self_from_u8(&self, value);
+        self.set_lyc_ly_coincidence_flag(
+            self.current_scanline == self.scanline_compare,
+            interrupt_flag_register,
+        );
     }
 
     /// Set the scroll y register to the provided value.
@@ -181,10 +189,19 @@ impl GPURegisters {
     }
 
     /// Set the current scanline register to the provided value.
-    /// TODO: Handle LYC=LY Coincidence Flag interrupt?
-    pub(super) fn set_scanline(&mut self, value: u8) {
+    ///
+    /// Needs a reference to the interrupt flag register, if LY=LYC and a stat interrupt might be
+    /// requested.
+    pub(super) fn set_scanline(
+        &mut self,
+        value: u8,
+        interrupt_flag_register: &mut InterruptFlagRegister,
+    ) {
         self.current_scanline = value;
-        self.lcd_status.lyc_ly_coincidence_flag = self.current_scanline == self.scanline_compare;
+        self.set_lyc_ly_coincidence_flag(
+            self.current_scanline == self.scanline_compare,
+            interrupt_flag_register,
+        );
     }
 
     /// Set the LY (Scanline) Compare register to the provided value.

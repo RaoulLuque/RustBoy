@@ -81,68 +81,80 @@ impl GPU {
         interrupt_flags: &mut InterruptFlagRegister,
         cycles: u32,
     ) -> RenderTask {
-        self.rendering_info.dots_clock += cycles;
-        match self.gpu_registers.lcd_status.gpu_mode {
-            RenderingMode::HBlank0 => {
-                if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer {
-                    self.rendering_info.dots_clock -= 456 - self.rendering_info.dots_for_transfer;
-                    self.gpu_registers
-                        .set_scanline(self.gpu_registers.get_scanline() + 1);
-                    if self.gpu_registers.get_scanline() == 144 {
-                        // We are entering VBlank, so we need to set the VBlank flag
-                        // and set the GPU mode to VBlank. Also, we send a render frame request to
-                        // the GPU, which renders the framebuffer to the screen.
-                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::VBlank1;
+        if self.gpu_registers.lcd_control.display_on_off == false {
+            // If the LCD is not enabled, there is no rendering task and we can reset the GPU
+            self.rendering_info.dots_clock = 0;
+            self.rendering_info.dots_for_transfer = 0;
+            self.gpu_registers
+                .set_ppu_mode(RenderingMode::VBlank1, interrupt_flags);
+            self.gpu_registers.set_scanline(0, interrupt_flags);
+            RenderTask::None
+        } else {
+            self.rendering_info.dots_clock += cycles;
+            match self.gpu_registers.lcd_status.gpu_mode {
+                RenderingMode::HBlank0 => {
+                    if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer
+                    {
+                        self.rendering_info.dots_clock -=
+                            456 - self.rendering_info.dots_for_transfer;
                         self.gpu_registers
-                            .set_ppu_mode(RenderingMode::VBlank1, interrupt_flags);
-                        interrupt_flags.vblank = true;
-                        return RenderTask::RenderFrame;
-                    } else {
-                        // We are still in HBlank, so we need to set the GPU mode to OAMScan2.
-                        // Also we send a request to the GPU to write the current line to the
-                        // framebuffer
-                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
+                            .set_scanline(self.gpu_registers.get_scanline() + 1, interrupt_flags);
+                        if self.gpu_registers.get_scanline() == 144 {
+                            // We are entering VBlank, so we need to set the VBlank flag
+                            // and set the GPU mode to VBlank. Also, we send a render frame request to
+                            // the GPU, which renders the framebuffer to the screen.
+                            self.gpu_registers.lcd_status.gpu_mode = RenderingMode::VBlank1;
+                            self.gpu_registers
+                                .set_ppu_mode(RenderingMode::VBlank1, interrupt_flags);
+                            interrupt_flags.vblank = true;
+                            return RenderTask::RenderFrame;
+                        } else {
+                            // We are still in HBlank, so we need to set the GPU mode to OAMScan2.
+                            // Also we send a request to the GPU to write the current line to the
+                            // framebuffer
+                            self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
+                            self.gpu_registers
+                                .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
+                            return RenderTask::WriteLineToBuffer(
+                                self.gpu_registers.get_scanline() - 1,
+                            );
+                        }
+                    }
+                }
+                RenderingMode::VBlank1 => {
+                    if self.rendering_info.dots_clock >= 456 {
+                        self.rendering_info.dots_clock -= 456;
                         self.gpu_registers
-                            .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
-                        return RenderTask::WriteLineToBuffer(
-                            self.gpu_registers.get_scanline() - 1,
-                        );
+                            .set_scanline(self.gpu_registers.get_scanline() + 1, interrupt_flags);
+                        if self.gpu_registers.get_scanline() == 154 {
+                            self.gpu_registers.set_scanline(0, interrupt_flags);
+                            self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
+                            self.gpu_registers
+                                .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
+                        }
+                    }
+                }
+                RenderingMode::OAMScan2 => {
+                    if self.rendering_info.dots_clock >= 80 {
+                        self.rendering_info.dots_clock -= 80;
+                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::Transfer3;
+                        self.gpu_registers
+                            .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
+                    }
+                }
+                RenderingMode::Transfer3 => {
+                    // TODO: Implement possible delay in this Mode if background scrolling or sprite fetching happened
+                    if self.rendering_info.dots_clock >= 172 {
+                        self.rendering_info.dots_clock -= 172;
+                        self.rendering_info.dots_for_transfer = 172;
+                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::HBlank0;
+                        self.gpu_registers
+                            .set_ppu_mode(RenderingMode::HBlank0, interrupt_flags);
                     }
                 }
             }
-            RenderingMode::VBlank1 => {
-                if self.rendering_info.dots_clock >= 456 {
-                    self.rendering_info.dots_clock -= 456;
-                    self.gpu_registers
-                        .set_scanline(self.gpu_registers.get_scanline() + 1);
-                    if self.gpu_registers.get_scanline() == 154 {
-                        self.gpu_registers.set_scanline(0);
-                        self.gpu_registers.lcd_status.gpu_mode = RenderingMode::OAMScan2;
-                        self.gpu_registers
-                            .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
-                    }
-                }
-            }
-            RenderingMode::OAMScan2 => {
-                if self.rendering_info.dots_clock >= 80 {
-                    self.rendering_info.dots_clock -= 80;
-                    self.gpu_registers.lcd_status.gpu_mode = RenderingMode::Transfer3;
-                    self.gpu_registers
-                        .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
-                }
-            }
-            RenderingMode::Transfer3 => {
-                // TODO: Implement possible delay in this Mode if background scrolling or sprite fetching happened
-                if self.rendering_info.dots_clock >= 172 {
-                    self.rendering_info.dots_clock -= 172;
-                    self.rendering_info.dots_for_transfer = 172;
-                    self.gpu_registers.lcd_status.gpu_mode = RenderingMode::HBlank0;
-                    self.gpu_registers
-                        .set_ppu_mode(RenderingMode::HBlank0, interrupt_flags);
-                }
-            }
+            RenderTask::None
         }
-        RenderTask::None
     }
 
     /// Reads a byte from the VRAM at the given address.
