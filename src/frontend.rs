@@ -371,6 +371,9 @@ impl<'a> State<'a> {
         // Update the objects in scanline buffer
         // TODO: Update this only when necessary
         let objects_in_scanline = rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
+        if objects_in_scanline[0][0] != 0 {
+            println!("Objects in scanline: {:?}", objects_in_scanline);
+        }
         let new_objects_in_scanline = ObjectsInScanline {
             objects: objects_in_scanline,
         };

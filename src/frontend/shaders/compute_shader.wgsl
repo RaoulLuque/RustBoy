@@ -78,7 +78,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
 
     var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
-    if (false) {
+    if (pixel_in_object) {
         color = compute_color_from_object();
     } else {
         color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
