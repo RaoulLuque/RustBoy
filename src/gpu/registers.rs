@@ -145,6 +145,10 @@ impl GPURegisters {
     /// Set the LCD Control register to the provided value.
     pub fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control = LCDCRegister::from(value);
+        // If the display is turned off, set the GPU mode to VBlank
+        if !self.lcd_control.display_on_off {
+            self.lcd_status.gpu_mode = RenderingMode::VBlank1;
+        }
         self.lcd_status.lyc_ly_coincidence_flag = self.current_scanline == self.scanline_compare;
     }
 
