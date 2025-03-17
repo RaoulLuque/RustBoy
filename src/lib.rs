@@ -28,6 +28,7 @@ use debugging::DebuggingFlags;
 use frontend::State;
 use gpu::GPU;
 use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
+use timer::TimerInfo;
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -35,7 +36,6 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::WindowBuilder,
 };
-use timer::TimerInfo;
 
 const TARGET_FPS: u32 = 60;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
@@ -391,17 +391,17 @@ fn handle_no_rendering_task(
     rust_boy.cpu_step();
     let last_num_of_cycles = rust_boy.cycle_counter - total_num_cpu_cycles;
     let total_num_cpu_cycles = rust_boy.cycle_counter;
-    
+
     // Increment the timer and divider register according to the number of cycles that the
     // last instruction took
     rust_boy.handle_timer_and_divider(last_num_of_cycles as u32);
-    
+
     // Check what has to be done for rendering and sync gpu with cpu with gpu_step()
     let new_rendering_task = rust_boy.gpu.gpu_step(
         &mut rust_boy.interrupt_flag_register,
         last_num_of_cycles as u32,
     );
-    
+
     // Return the new total number of cpu cycles and possible rendering tasks
     (total_num_cpu_cycles, new_rendering_task)
 }

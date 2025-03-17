@@ -1,7 +1,8 @@
 use crate::{RustBoy, M_CYCLES_PER_SECOND};
 
 const DIVIDER_REGISTER_FREQUENCY: u32 = 16_384;
-const M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT: u32 = M_CYCLES_PER_SECOND / DIVIDER_REGISTER_FREQUENCY;
+const M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT: u32 =
+    M_CYCLES_PER_SECOND / DIVIDER_REGISTER_FREQUENCY;
 const DIVIDER_REGISTER_ADDRESS: usize = 0xFF04;
 const TIMER_ADDRESS: u16 = 0xFF05;
 const TIMER_MODULO_ADDRESS: u16 = 0xFF06;
@@ -15,7 +16,6 @@ const TIMER_FREQUENCY_ZERO_IN_M_CYCLES: u32 = M_CYCLES_PER_SECOND / TIMER_FREQUE
 const TIMER_FREQUENCY_ONE_IN_M_CYCLES: u32 = M_CYCLES_PER_SECOND / TIMER_FREQUENCY_ONE;
 const TIMER_FREQUENCY_TWO_IN_M_CYCLES: u32 = M_CYCLES_PER_SECOND / TIMER_FREQUENCY_TWO;
 const TIMER_FREQUENCY_THREE_IN_M_CYCLES: u32 = M_CYCLES_PER_SECOND / TIMER_FREQUENCY_THREE;
-
 
 pub struct TimerInfo {
     divider_running_m_cycle_counter: u32,
@@ -36,7 +36,7 @@ impl RustBoy {
         self.handle_divider(cycles_passed);
         self.handle_timer(cycles_passed);
     }
-    
+
     /// Handles the incrementing of divider register. This register is incremented at a rate of
     /// [DIVIDER_REGISTER_FREQUENCY] Hz. This function is called every time the CPU makes
     /// a step, that is executes an instruction, to check whether the divider register should be
@@ -44,9 +44,13 @@ impl RustBoy {
     /// [M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT] cycles).
     fn handle_divider(&mut self, cycles_passed: u32) {
         self.timer_info.divider_running_m_cycle_counter += cycles_passed;
-        if self.timer_info.divider_running_m_cycle_counter >= M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT {
-            self.memory[DIVIDER_REGISTER_ADDRESS] = self.memory[DIVIDER_REGISTER_ADDRESS].wrapping_add(1);
-            self.timer_info.divider_running_m_cycle_counter -= M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT;
+        if self.timer_info.divider_running_m_cycle_counter
+            >= M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT
+        {
+            self.memory[DIVIDER_REGISTER_ADDRESS] =
+                self.memory[DIVIDER_REGISTER_ADDRESS].wrapping_add(1);
+            self.timer_info.divider_running_m_cycle_counter -=
+                M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT;
         }
     }
 
