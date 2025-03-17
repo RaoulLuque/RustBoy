@@ -101,7 +101,8 @@ impl GPU {
             0xFF41 => self.gpu_registers.set_lcd_status(value),
             0xFF42 => self.gpu_registers.set_scroll_y(value),
             0xFF43 => self.gpu_registers.set_scroll_x(value),
-            0xFF44 => self.gpu_registers.set_scanline(value),
+            // If the rom tries writing to the scanline register, it gets reset to 0
+            0xFF44 => self.gpu_registers.set_scanline(0),
             0xFF45 => self.gpu_registers.set_scanline_compare(value),
             0xFF47 => self.gpu_registers.set_background_palette(value),
             _ => panic!("Writing to invalid GPU register address: {:#04X}", address),
