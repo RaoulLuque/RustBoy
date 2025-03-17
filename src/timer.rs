@@ -58,8 +58,8 @@ impl RustBoy {
     /// incremented at the rate configured by the [TIMER_CONTROL_ADDRESS]. For more information, see
     /// https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#timer-and-divider-registers
     fn handle_timer(&mut self, cycles_passed: u32) {
-        self.timer_info.timer_running_m_cycle_counter += cycles_passed;
         if self.is_timer_enabled() {
+            self.timer_info.timer_running_m_cycle_counter += cycles_passed;
             let timer_frequency_in_m_cycles = self.get_timer_frequency_in_m_cycles();
             if self.timer_info.timer_running_m_cycle_counter >= timer_frequency_in_m_cycles {
                 self.increment_timer();
