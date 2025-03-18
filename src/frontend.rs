@@ -378,7 +378,7 @@ impl<'a> State<'a> {
             objects: objects_in_scanline,
         };
         self.queue.write_buffer(
-            &self.tilemap_buffer,
+            &self.objects_in_scanline_buffer,
             0,
             bytemuck::cast_slice(&[new_objects_in_scanline]),
         );
