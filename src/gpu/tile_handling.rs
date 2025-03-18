@@ -247,24 +247,38 @@ pub fn tile_to_string(tile: &Tile) -> String {
 }
 
 pub fn tile_data_to_string(tile_data: &[Tile; 256]) -> String {
-    let mut string = String::new();
+    let mut res_string = String::new();
     for tile_row in 0..16 {
         for in_tile_row in 0..8 {
             for tile_column in 0..16 {
                 for in_tile_column in 0..8 {
+                    if in_tile_row == 0 && tile_column == 0 && in_tile_column == 0 {
+                        let tile_index_for_printing: usize = tile_row * 16 + tile_column;
+                        for i in 0..16 {
+                            res_string.push_str(&format!(
+                                "{:<17}",
+                                tile_n_string(tile_index_for_printing + i),
+                            ));
+                        }
+                        res_string.push_str("\n");
+                    }
                     let tile_index = tile_row * 16 + tile_column;
                     let tile: Tile = tile_data[tile_index];
                     let pixel_value = tile[in_tile_row][in_tile_column];
-                    string.push_str(&convert_pixel_to_string(&pixel_value));
-                    string.push_str(" ");
+                    res_string.push_str(&convert_pixel_to_string(&pixel_value));
+                    res_string.push_str(" ");
                 }
-                string.push_str(" ");
+                res_string.push_str(" ");
             }
-            string.push('\n');
+            res_string.push('\n');
         }
-        string.push('\n');
+        res_string.push('\n');
     }
-    string
+    res_string
+}
+
+fn tile_n_string(tile_index: usize) -> String {
+    format!("Tile {}:", tile_index)
 }
 
 pub fn convert_pixel_to_string(pixel: &TilePixelValue) -> String {
