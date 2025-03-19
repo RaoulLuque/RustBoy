@@ -69,7 +69,7 @@ pub enum RenderTask {
 }
 
 impl GPU {
-    /// Steps the GPU by the given number of cycles.
+    /// Steps the GPU by the given number of dots.
     /// Returns a RenderTask indicating what the GPU should do next.
     /// For now, the GPU only renders the entire frame before entering VBlank.
     /// In the future, the GPU should render by lines.
@@ -79,7 +79,7 @@ impl GPU {
     pub fn gpu_step(
         &mut self,
         interrupt_flags: &mut InterruptFlagRegister,
-        cycles: u32,
+        dots: u32,
     ) -> RenderTask {
         if self.gpu_registers.lcd_control.display_on_off == false {
             // If the LCD is not enabled, there is no rendering task and we can reset the GPU
