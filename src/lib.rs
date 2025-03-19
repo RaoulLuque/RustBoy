@@ -67,6 +67,9 @@ const M_CYCLES_PER_SECOND: u32 = 1_048_576;
 /// 65536 is the size of the memory in bytes
 /// The memory bus also has a bios array that represents the BIOS of the RustBoy which is used
 /// during startup instead of the first 0x0100 bytes of the memory.
+/// Furthermore, there is a being_initialized flag to indicate if the memory bus is being
+/// initialized. In this case, some writes should not cause side effects like DMA transfers being
+/// scheduled.
 ///
 /// The GPU is a struct that represents the graphics processing unit of the RustBoy. It contains
 /// the registers, VRAM and other graphics related data.
@@ -88,6 +91,7 @@ pub struct RustBoy {
     // Memory
     memory: [u8; 65536],
     bios: [u8; 0x0100],
+    being_initialized: bool,
 
     // GPU
     gpu: GPU,
@@ -120,6 +124,7 @@ impl RustBoy {
             memory: [0; 65536],
             bios: [0; 0x0100],
             starting_up: true,
+            being_initialized: true,
             ime: false,
             ime_to_be_set: false,
             halted: false,
@@ -137,7 +142,7 @@ impl RustBoy {
     /// boot rom has been executed. For reference, see in the
     /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
     pub fn new_after_boot(debugging_flags: DebuggingFlags) -> RustBoy {
-        let mut cpu = RustBoy {
+        let mut rust_boy = RustBoy {
             registers: CPURegisters::new_after_boot(),
             pc: 0x0100,
             sp: 0xFFFE,
@@ -145,6 +150,7 @@ impl RustBoy {
             memory: [0; 65536],
             bios: [0; 0x0100],
             starting_up: false,
+            being_initialized: true,
             ime: false,
             ime_to_be_set: false,
             halted: false,
@@ -156,8 +162,9 @@ impl RustBoy {
             debugging_flags,
         };
 
-        cpu.initialize_hardware_registers();
-        cpu
+        rust_boy.initialize_hardware_registers();
+        rust_boy.being_initialized = false;
+        rust_boy
     }
 }
 

@@ -70,9 +70,13 @@ impl RustBoy {
             }
             // DMA transfer register
             0xFF46 => {
-                // The value written to the DMA register is the starting address of the transfer
-                // divided by 0x100 (= 256). The transfer takes 160 cycles.
-                self.handle_dma(value);
+                // If the RustBoy and Memory is being initialized by the BIOS, we do not want to
+                // trigger a DMA transfer
+                if !self.being_initialized {
+                    // The value written to the DMA register is the starting address of the transfer
+                    // divided by 0x100 (= 256). The transfer takes 160 cycles.
+                    self.handle_dma(value);
+                }
             }
             0xFF01 => {
                 if self.debugging_flags.sb_to_terminal {
