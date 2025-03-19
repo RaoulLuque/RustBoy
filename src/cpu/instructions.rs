@@ -20,7 +20,7 @@ mod halt;
 mod inc_and_dec;
 mod jr;
 mod jump;
-mod ldh;
+pub(crate) mod ldh;
 pub(crate) mod load;
 mod logical_operators;
 mod parsing;
