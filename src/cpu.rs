@@ -6,10 +6,10 @@ pub(crate) mod instructions;
 mod memory_bus;
 pub mod registers;
 
+use crate::RustBoy;
 #[cfg(debug_assertions)]
 use crate::debugging::{doctor_log, instruction_log};
 use crate::memory_bus::{OAM_END, OAM_START};
-use crate::RustBoy;
 use instructions::Instruction;
 
 impl RustBoy {

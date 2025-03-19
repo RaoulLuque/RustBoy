@@ -3,11 +3,11 @@ use super::{
     BitTarget, IncDecTarget, Instruction, InstructionCondition, JumpType, LDHType, PopTarget,
     PushSource, Register, SixteenBitInstructionTarget,
 };
+use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::cpu::instructions::add_and_adc::{AddWordSource, AddWordTarget};
 use crate::cpu::instructions::bit::BitInstructionType;
 use crate::cpu::instructions::ldh::LDHSourceOrTarget;
 use crate::cpu::instructions::res_and_set::ResAndSetInstructionType;
-use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
 impl Instruction {
     /// Returns the non-prefix instruction corresponding to the given byte in group 0.

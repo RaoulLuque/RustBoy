@@ -1,4 +1,4 @@
-use super::{check_instruction_condition, InstructionCondition};
+use super::{InstructionCondition, check_instruction_condition};
 use crate::RustBoy;
 
 /// Represents the possible targets for the jump instruction.

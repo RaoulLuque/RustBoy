@@ -1,5 +1,5 @@
-use crate::cpu::instructions::Register;
 use crate::RustBoy;
+use crate::cpu::instructions::Register;
 
 /// Represents the possible targets for a byte load instruction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

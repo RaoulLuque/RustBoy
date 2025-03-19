@@ -32,8 +32,8 @@ mod sla_sra_and_srl;
 mod sub_and_sbc;
 mod swap;
 
-use crate::cpu::registers::{CPURegisters, FlagsRegister};
 use crate::RustBoy;
+use crate::cpu::registers::{CPURegisters, FlagsRegister};
 use add_and_adc::{AddWordSource, AddWordTarget};
 use bit::BitInstructionType;
 use inc_and_dec::IncDecTarget;

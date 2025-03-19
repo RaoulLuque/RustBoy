@@ -1,5 +1,5 @@
-use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::RustBoy;
+use crate::cpu::instructions::ArithmeticOrLogicalSource;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AddWordTarget {

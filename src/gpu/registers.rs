@@ -1,4 +1,4 @@
-use super::{RenderingMode, GPU};
+use super::{GPU, RenderingMode};
 
 use crate::debugging::DebuggingFlags;
 use crate::interrupts::InterruptFlagRegister;

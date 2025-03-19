@@ -1,5 +1,5 @@
-use crate::cpu::registers::CPURegisters;
 use crate::RustBoy;
+use crate::cpu::registers::CPURegisters;
 
 /// Represents the possible sources for the values of a push instruction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
