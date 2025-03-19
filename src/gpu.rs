@@ -34,7 +34,7 @@ pub struct GPU {
     tile_map_changed: bool,
     background_viewport_changed: bool,
 
-    oam: [Object; 40],
+    pub(crate) oam: [Object; 40],
 
     debugging_flags: DebuggingFlags,
 }
@@ -91,7 +91,7 @@ impl GPU {
             RenderTask::None
         } else {
             self.rendering_info.dots_clock += cycles;
-            match self.gpu_registers.lcd_status.gpu_mode {
+            match self.gpu_registers.get_gpu_mode() {
                 RenderingMode::HBlank0 => {
                     if self.rendering_info.dots_clock >= 456 - self.rendering_info.dots_for_transfer
                     {
@@ -210,6 +210,22 @@ impl GPU {
             oam: [Object::default(); 40],
 
             debugging_flags,
+        }
+    }
+}
+
+impl RenderingMode {
+    /// Returns the current rendering mode of the GPU as an u8. The conversions are as follows
+    /// - HBlank: 0
+    /// - VBlank: 1
+    /// - OAMScan: 2
+    /// - Transfer: 3
+    pub fn as_u8(&self) -> u8 {
+        match self {
+            RenderingMode::HBlank0 => 0,
+            RenderingMode::VBlank1 => 1,
+            RenderingMode::OAMScan2 => 2,
+            RenderingMode::Transfer3 => 3,
         }
     }
 }

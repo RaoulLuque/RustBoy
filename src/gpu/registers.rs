@@ -315,6 +315,11 @@ impl GPURegisters {
     pub fn get_background_palette(&self) -> u8 {
         self.background_palette
     }
+
+    /// Get the GPU Mode
+    pub fn get_gpu_mode(&self) -> RenderingMode {
+        self.lcd_status.gpu_mode
+    }
 }
 
 impl From<LCDCRegister> for u8 {

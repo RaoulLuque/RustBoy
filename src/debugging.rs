@@ -62,7 +62,7 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
     if log_file == "doctors_augmented" {
         data.pop();
         data.push_str(&format!(
-            " SPMEM:{:02X},{:02X},{:02X},{:02X},CURR:{:02X},{:02X},{:02X},{:02X},{:02X}\n",
+            " SPMEM:{:02X},{:02X},{:02X},{:02X},CURR:{:02X},{:02X},{:02X},{:02X},{:02X}",
             rust_boy.read_byte(rust_boy.sp.saturating_sub(4)),
             rust_boy.read_byte(rust_boy.sp.saturating_sub(3)),
             rust_boy.read_byte(rust_boy.sp.saturating_sub(2)),
@@ -72,7 +72,9 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
             rust_boy.read_byte(rust_boy.sp.saturating_add(2)),
             rust_boy.read_byte(rust_boy.sp.saturating_add(3)),
             rust_boy.read_byte(rust_boy.sp.saturating_add(4)),
-        ))
+        ));
+        let ppu_mode_as_u8 = rust_boy.gpu.gpu_registers.get_gpu_mode().as_u8();
+        data.push_str(&format!(" PPU:{}\n", ppu_mode_as_u8));
     }
     let file = fs::OpenOptions::new()
         .write(true)
@@ -159,6 +161,15 @@ pub fn entire_instruction_to_string(
                 }
             }
         },
+        Instruction::LDH(crate::cpu::instructions::ldh::LDHType::LDH(target, source)) => {
+            match (target, source) {
+                (
+                    crate::cpu::instructions::ldh::LDHSourceOrTarget::A,
+                    crate::cpu::instructions::ldh::LDHSourceOrTarget::A8Ref,
+                ) => res.push_str(&rust_boy.gpu.gpu_registers.get_scanline().to_string()),
+                _ => {}
+            }
+        }
         Instruction::JR(_) => {
             push_next_immediate_byte_as_signed_integer_to_string(rust_boy, &mut res);
         }
