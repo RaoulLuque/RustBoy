@@ -5,13 +5,13 @@ use winit::event::WindowEvent;
 use winit::window::Window;
 
 use crate::frontend::shader::{
-    setup_compute_shader_pipeline, setup_render_shader_pipeline, BackgroundViewportPosition,
-    ObjectsInScanline, RenderingLinePosition, TilemapUniform, ATLAS_COLS, TILE_SIZE,
-};
-use crate::gpu::tile_handling::{
-    tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string, Tile,
+    ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, RenderingLinePosition, TILE_SIZE,
+    TilemapUniform, setup_compute_shader_pipeline, setup_render_shader_pipeline,
 };
 use crate::gpu::GPU;
+use crate::gpu::tile_handling::{
+    Tile, tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string,
+};
 
 /// TODO: Add docstring
 pub struct State<'a> {
@@ -258,13 +258,13 @@ impl<'a> State<'a> {
         }
 
         if rust_boy_gpu.tile_map_changed() {
-            debug!("Updating tilemap");
-            debug!(
+            trace!("Updating tilemap");
+            trace!(
                 "Current Scrolling: x: {} y: {}",
                 rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
                 rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
             );
-            debug!(
+            trace!(
                 "New Tilemap (in use) \n {} \n \n",
                 tile_map_to_string(rust_boy_gpu.get_background_tile_map())
             );
@@ -290,10 +290,10 @@ impl<'a> State<'a> {
         empty_tiles[0] = tile;
 
         if rust_boy_gpu.tile_data_changed() {
-            debug!("Updating tile data");
+            trace!("Updating tile data");
             let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
-            debug!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
-            debug!(
+            trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
+            trace!(
                 "Tile data Block 0 and 1: \n {}",
                 tile_data_to_string(
                     &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1()
