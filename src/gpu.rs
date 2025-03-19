@@ -28,7 +28,7 @@ const TILEMAP_SIZE: usize = 1024;
 pub struct GPU {
     vram: [u8; VRAM_END as usize - VRAM_BEGIN as usize + 1],
     pub tile_set: [Tile; 384],
-    rendering_info: RenderingInfo,
+    pub(crate) rendering_info: RenderingInfo,
     pub gpu_registers: GPURegisters,
     tile_data_changed: bool,
     tile_map_changed: bool,
@@ -41,7 +41,7 @@ pub struct GPU {
 
 /// Struct to collect the information about the current rendering state of the GPU.
 pub struct RenderingInfo {
-    dots_clock: u32,
+    pub(crate) dots_clock: u32,
     dots_for_transfer: u32,
 }
 

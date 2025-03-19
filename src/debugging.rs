@@ -1,5 +1,5 @@
-use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::RustBoy;
+use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use std::fs;
 
 /// Struct to represent the debugging flags.
@@ -52,11 +52,22 @@ pub fn setup_debugging_logs_files(_: DebuggingFlags, rom_path: &str) {
 pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
     use std::fs;
     let file_name = format!("logs/{}.log", log_file);
-    let mut data = format!("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n"
-                       , rust_boy.registers.a, u8::from(&rust_boy.registers.f), rust_boy.registers.b, rust_boy.registers.c,
-                       rust_boy.registers.d, rust_boy.registers.e, rust_boy.registers.h, rust_boy.registers.l, rust_boy.sp, rust_boy.pc,
-                       rust_boy.read_byte(rust_boy.pc), rust_boy.read_byte(rust_boy.pc.wrapping_add(1)),
-                       rust_boy.read_byte(rust_boy.pc.wrapping_add(2)), rust_boy.read_byte(rust_boy.pc.wrapping_add(3))
+    let mut data = format!(
+        "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
+        rust_boy.registers.a,
+        u8::from(&rust_boy.registers.f),
+        rust_boy.registers.b,
+        rust_boy.registers.c,
+        rust_boy.registers.d,
+        rust_boy.registers.e,
+        rust_boy.registers.h,
+        rust_boy.registers.l,
+        rust_boy.sp,
+        rust_boy.pc,
+        rust_boy.read_byte(rust_boy.pc),
+        rust_boy.read_byte(rust_boy.pc.wrapping_add(1)),
+        rust_boy.read_byte(rust_boy.pc.wrapping_add(2)),
+        rust_boy.read_byte(rust_boy.pc.wrapping_add(3))
     );
 
     if log_file == "doctors_augmented" {
@@ -73,8 +84,12 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
             rust_boy.read_byte(rust_boy.sp.saturating_add(3)),
             rust_boy.read_byte(rust_boy.sp.saturating_add(4)),
         ));
+
         let ppu_mode_as_u8 = rust_boy.gpu.gpu_registers.get_gpu_mode().as_u8();
-        data.push_str(&format!(" PPU:{}\n", ppu_mode_as_u8));
+        data.push_str(&format!(" PPU:{}", ppu_mode_as_u8));
+
+        let cycles_in_dots: u32 = rust_boy.gpu.rendering_info.dots_clock;
+        data.push_str(&format!(" CY_DOTS:{}\n", cycles_in_dots));
     }
     let file = fs::OpenOptions::new()
         .write(true)
@@ -123,9 +138,9 @@ pub fn entire_instruction_to_string(
     rust_boy: &RustBoy,
     instruction: crate::cpu::instructions::Instruction,
 ) -> String {
+    use crate::cpu::instructions::Instruction;
     use crate::cpu::instructions::add_and_adc::AddWordSource;
     use crate::cpu::instructions::load::{LoadType, LoadWordSource};
-    use crate::cpu::instructions::Instruction;
     let mut res = format!("{:?}", instruction);
     match instruction {
         Instruction::ADDByte(source)
