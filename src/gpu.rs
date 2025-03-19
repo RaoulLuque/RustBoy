@@ -224,6 +224,10 @@ impl GPU {
     }
 
     /// Returns a new GPU with empty tile set and empty VRAM.
+    ///
+    /// The lcd_was_turned_off flag is set to
+    /// true, so the GPU starts off in HBlank mode instead of OAMScan, which is the supposed
+    /// behavior after the LCD was turned on (for the first time or after being turned off).
     pub fn new_empty(debugging_flags: DebuggingFlags) -> Self {
         Self {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
@@ -231,7 +235,7 @@ impl GPU {
             rendering_info: RenderingInfo {
                 dots_clock: 0,
                 dots_for_transfer: 0,
-                lcd_was_turned_off: false,
+                lcd_was_turned_off: true,
                 first_scanline_after_lcd_was_turned_on: false,
             },
             gpu_registers: GPURegisters::new(debugging_flags),
