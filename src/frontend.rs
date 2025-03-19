@@ -1,6 +1,6 @@
 mod shader;
 
-use log::trace;
+use log::{debug, trace};
 use winit::event::WindowEvent;
 use winit::window::Window;
 
@@ -258,8 +258,13 @@ impl<'a> State<'a> {
         }
 
         if rust_boy_gpu.tile_map_changed() {
-            trace!("Updating tilemap");
-            trace!(
+            debug!("Updating tilemap");
+            debug!(
+                "Current Scrolling: x: {} y: {}",
+                rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
+                rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
+            );
+            debug!(
                 "New Tilemap (in use) \n {} \n \n",
                 tile_map_to_string(rust_boy_gpu.get_background_tile_map())
             );
@@ -285,10 +290,10 @@ impl<'a> State<'a> {
         empty_tiles[0] = tile;
 
         if rust_boy_gpu.tile_data_changed() {
-            trace!("Updating tile data");
+            debug!("Updating tile data");
             let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
-            trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
-            trace!(
+            debug!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
+            debug!(
                 "Tile data Block 0 and 1: \n {}",
                 tile_data_to_string(
                     &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1()
@@ -371,9 +376,12 @@ impl<'a> State<'a> {
         // Update the objects in scanline buffer
         // TODO: Update this only when necessary
         let objects_in_scanline = rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
-        if objects_in_scanline[0][0] != 0 {
-            println!("Objects in scanline: {:?}", objects_in_scanline);
-        }
+        let oam = rust_boy_gpu.oam;
+        // if objects_in_scanline[0][0] != 0 {
+        //     println!("Current scanline: {}", current_scanline);
+        //     println!("Objects in scanline: {:?}", objects_in_scanline);
+        //     println!("OAM: {:?}", oam);
+        // }
         let new_objects_in_scanline = ObjectsInScanline {
             objects: objects_in_scanline,
         };
@@ -382,7 +390,6 @@ impl<'a> State<'a> {
             0,
             bytemuck::cast_slice(&[new_objects_in_scanline]),
         );
-
         // Submit the compute commands to the GPU
         // Submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));

@@ -160,6 +160,11 @@ impl GPURegisters {
     /// Set the LCD Control register to the provided value.
     pub fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control = LCDCRegister::from(value);
+        if self.lcd_control.display_on_off {
+            log::debug!("LCD is turned on");
+        } else {
+            log::debug!("LCD is turned off");
+        }
     }
 
     /// Set the LCD Status register to the provided value.

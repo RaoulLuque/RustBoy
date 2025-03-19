@@ -63,8 +63,11 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
             // objects_in_scanline.objects[i].x is the y coordinate of the object and if it is 0, it means that there are
             // no more objects in the current scanline. Because, no object with a y coordinate of 0 would be added to the
             // objects_in_scanline.
+
             break;
         }
+//        textureStore(framebuffer, vec2<i32>(i32(x), i32(y)), vec4<f32>(1.0, 0.0, 0.0, 1.0));
+//        return;
         if (objects_in_scanline.objects[i].y <= adjusted_x && objects_in_scanline.objects[i].y + 8 > adjusted_x) {
             // objects_in_scanline.objects[i].y is the x coordinate of the object. With this, we check if the current pixel
             // lies within the object. For the y coordinate this is already guaranteed by objects_in_scanline

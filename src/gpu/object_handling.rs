@@ -73,11 +73,11 @@ impl GPU {
             3 => self.oam[object_index].attributes = value,
             _ => unreachable!(),
         }
-        if value != 0 {
-            println!("Oam write: {}", address);
-            println!("Wrote the following value: {}, to object_index: {}, which is the following object: {:?}", value, object_index, self.oam[object_index]);
-            println!("OAM: Looks like:, {:?} \n \n", self.oam);
-        }
+        // if value != 0 {
+        //     println!("Oam write: {}", address);
+        //     println!("Wrote the following value: {}, to object_index: {}, which is the following object: {:?}", value, object_index, self.oam[object_index]);
+        //     println!("OAM: Looks like:, {:?} \n \n", self.oam);
+        // }
     }
 
     pub fn get_objects_for_current_scanline(&self, scanline: u8) -> [[u32; 4]; 10] {
