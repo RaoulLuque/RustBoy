@@ -118,7 +118,7 @@ impl GPU {
                     if self.rendering_info.first_scanline_after_lcd_was_turned_on {
                         // If the LCD was turned off, it immediately enters HBlank mode which only
                         // lasts 80 dots and then enters Transfer mode.
-                        if self.rendering_info.dots_clock >= 80 {
+                        if self.rendering_info.dots_clock > 80 {
                             self.rendering_info.dots_clock -= 80;
                             self.gpu_registers
                                 .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
@@ -129,10 +129,10 @@ impl GPU {
                         }
                     } else {
                         if self.rendering_info.dots_clock
-                            >= 456 - self.rendering_info.dots_for_transfer
+                            > 376 - self.rendering_info.dots_for_transfer
                         {
                             self.rendering_info.dots_clock -=
-                                456 - self.rendering_info.dots_for_transfer;
+                                376 - self.rendering_info.dots_for_transfer;
                             self.gpu_registers.set_scanline(
                                 self.gpu_registers.get_scanline() + 1,
                                 interrupt_flags,
@@ -159,7 +159,7 @@ impl GPU {
                     }
                 }
                 RenderingMode::VBlank1 => {
-                    if self.rendering_info.dots_clock >= 456 {
+                    if self.rendering_info.dots_clock > 456 {
                         self.rendering_info.dots_clock -= 456;
                         self.gpu_registers
                             .set_scanline(self.gpu_registers.get_scanline() + 1, interrupt_flags);
@@ -171,7 +171,7 @@ impl GPU {
                     }
                 }
                 RenderingMode::OAMScan2 => {
-                    if self.rendering_info.dots_clock >= 80 {
+                    if self.rendering_info.dots_clock > 80 {
                         self.rendering_info.dots_clock -= 80;
                         self.gpu_registers
                             .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
@@ -179,7 +179,7 @@ impl GPU {
                 }
                 RenderingMode::Transfer3 => {
                     // TODO: Implement possible delay in this Mode if background scrolling or sprite fetching happened
-                    if self.rendering_info.dots_clock >= 172 {
+                    if self.rendering_info.dots_clock > 172 {
                         self.rendering_info.dots_clock -= 172;
                         self.rendering_info.dots_for_transfer = 172;
                         self.gpu_registers
