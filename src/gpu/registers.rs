@@ -1,4 +1,4 @@
-use super::{DOTS_IN_HBLANK_PLUS_TRANSFER, GPU, RenderingInfo, RenderingMode};
+use super::{DOTS_IN_HBLANK_PLUS_TRANSFER, DOTS_IN_VBLANK, GPU, RenderingInfo, RenderingMode};
 
 use crate::debugging::DebuggingFlags;
 use crate::interrupts::InterruptFlagRegister;
@@ -340,8 +340,14 @@ impl GPURegisters {
                         if let Some(cycles_current_instruction) = cycles_current_instruction {
                             if current_rendering_mode == RenderingMode::HBlank0 {
                                 if rendering_info.dots_clock + cycles_current_instruction as u32 * 4
-                                    >= DOTS_IN_HBLANK_PLUS_TRANSFER
-                                        - rendering_info.dots_for_transfer
+                                    >= (DOTS_IN_HBLANK_PLUS_TRANSFER
+                                        - rendering_info.dots_for_transfer)
+                                {
+                                    return self.current_scanline + 1;
+                                }
+                            } else if current_rendering_mode == RenderingMode::VBlank1 {
+                                if rendering_info.dots_clock + cycles_current_instruction as u32 * 4
+                                    >= DOTS_IN_VBLANK / 10
                                 {
                                     return self.current_scanline + 1;
                                 }

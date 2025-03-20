@@ -15,9 +15,9 @@ const TILEMAP_TWO_START: usize = 0x9C00;
 const TILEMAP_SIZE: usize = 1024;
 
 const DOTS_IN_TRANSFER: u32 = 172;
-pub const DOTS_IN_HBLANK_PLUS_TRANSFER: u32 = 376;
+pub(crate) const DOTS_IN_HBLANK_PLUS_TRANSFER: u32 = 376;
 const DOTS_IN_OAM_SCAN: u32 = 80;
-const DOTS_IN_VBLANK: u32 = 4560;
+pub(crate) const DOTS_IN_VBLANK: u32 = 4560;
 
 /// Represents the GPU of the Rust Boy.
 /// It has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF) containing the tile set with 384 tiles
