@@ -1,4 +1,4 @@
-use super::{GPU, RenderingMode};
+use super::{DOTS_IN_HBLANK_PLUS_TRANSFER, GPU, RenderingInfo, RenderingMode};
 
 use crate::debugging::DebuggingFlags;
 use crate::interrupts::InterruptFlagRegister;
@@ -80,13 +80,18 @@ pub struct LCDStatusRegister {
 }
 
 impl GPU {
-    pub fn read_registers(&self, address: u16) -> u8 {
+    pub fn read_registers(&self, address: u16, cycles_current_instruction: u8) -> u8 {
         match address {
             0xFF40 => self.gpu_registers.get_lcd_control(),
             0xFF41 => self.gpu_registers.get_lcd_status(),
             0xFF42 => self.gpu_registers.get_scroll_y(),
             0xFF43 => self.gpu_registers.get_scroll_x(),
-            0xFF44 => self.gpu_registers.get_scanline(),
+            0xFF44 => self.gpu_registers.get_scanline(
+                Some(&self.rendering_info),
+                Some(self.gpu_registers.lcd_status.gpu_mode),
+                Some(cycles_current_instruction),
+                true,
+            ),
             0xFF45 => self.gpu_registers.get_scanline_compare(),
             0xFF47 => self.gpu_registers.get_background_palette(),
             _ => panic!(
@@ -303,17 +308,48 @@ impl GPURegisters {
     }
 
     /// Get the current scanline register.
-    pub fn get_scanline(&self) -> u8 {
+    ///
+    /// This function has rendering info, the current rendering mode and the cycles of the current
+    /// instruction as optional parameters. These are used to correctly determine the current scanline
+    /// based on a quirk if called from the memory bus (that is, called by the CPU). If the GPU is
+    /// in HBlank mode and about to increment the scanline, we want to return this already incremented
+    /// scanline instead of the current one since in the real Game Boy they (GPU and CPU) would run in
+    /// parallel.
+    pub fn get_scanline(
+        &self,
+        rendering_info: Option<&RenderingInfo>,
+        current_rendering_mode: Option<RenderingMode>,
+        cycles_current_instruction: Option<u8>,
+        calling_from_memory_bus: bool,
+    ) -> u8 {
         if self.debugging_flags.doctor {
+            // Game Boy Doctor specifies that reading from the LY register (scanline) should always
+            // return 0x90.
             0x90
         } else {
-            // TODO: Possibly add handling if the CPU is fetching this value and with the current instruction
-            // would trigger an increment in the scanline in the GPU step(). However, since the real
-            // RustBoy runs the CPU and GPU in parallel, the scanline register would be incremented
-            // before the CPU fetches the value. Currently, our emulator does not do this, we just
-            // update the GPU after the CPU. So possibly account for this case by checking if the
-            // cycle count of the current instruction trying to fetch the current scanline would
-            // trigger an increment in the scanline, in which case, we would return the current scanline + 1?
+            // If we are calling from the memory bus, we are calling from the CPU, so we need to
+            // work around a quirk with our implementation. The GPU and CPU run in parallel
+            // in the real hardware, and in sequence (CPU step then GPU step) in our implementation.
+            // Therefore, it can happen that right at the moment that CPU wants to read the current scanline (LY),
+            // the GPU would actually increment the scanline. We account for this by checking if
+            // the GPU would increment the scanline in the next step, and if so, we return the current
+            // scanline + 1.
+            if calling_from_memory_bus {
+                if let Some(rendering_info) = rendering_info {
+                    if let Some(current_rendering_mode) = current_rendering_mode {
+                        if let Some(cycles_current_instruction) = cycles_current_instruction {
+                            if current_rendering_mode == RenderingMode::HBlank0 {
+                                if rendering_info.dots_clock + cycles_current_instruction as u32 * 4
+                                    >= DOTS_IN_HBLANK_PLUS_TRANSFER
+                                        - rendering_info.dots_for_transfer
+                                {
+                                    return self.current_scanline + 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             self.current_scanline
         }
     }

@@ -400,13 +400,12 @@ fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
     rust_boy.handle_timer_and_divider(last_num_of_cycles as u32);
 
     // Convert m-cycles to dots (1 m-cycle = 4 dots)
-    let last_num_of_dots = last_num_of_cycles * 4;
+    let last_num_of_dots = last_num_of_cycles as u32 * 4;
 
     // Check what has to be done for rendering and sync gpu with cpu with gpu_step()
-    let new_rendering_task = rust_boy.gpu.gpu_step(
-        &mut rust_boy.interrupt_flag_register,
-        last_num_of_dots as u32,
-    );
+    let new_rendering_task = rust_boy
+        .gpu
+        .gpu_step(&mut rust_boy.interrupt_flag_register, last_num_of_dots);
 
     // Reset the cycles of the current instruction
     rust_boy.cycles_current_instruction = None;

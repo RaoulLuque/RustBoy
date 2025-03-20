@@ -45,7 +45,11 @@ impl RustBoy {
             OAM_START..OAM_END => self.gpu.read_oam(address),
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
                 // Read the GPU registers
-                self.gpu.read_registers(address)
+                self.gpu.read_registers(
+                    address,
+                    self.cycles_current_instruction
+                        .expect("Cycles for the current instruction should already be set"),
+                )
             }
             0xFF0F => {
                 // Read the interrupt flag register
