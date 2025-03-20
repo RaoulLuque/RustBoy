@@ -89,7 +89,10 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
         data.push_str(&format!(" PPU:{}", ppu_mode_as_u8));
 
         let cycles_in_dots: u32 = rust_boy.gpu.rendering_info.dots_clock;
-        data.push_str(&format!(" CY_DOTS:{}\n", cycles_in_dots));
+        data.push_str(&format!(" CY_DOTS:{}", cycles_in_dots));
+
+        let current_scanline = rust_boy.gpu.gpu_registers.get_scanline();
+        data.push_str(&format!(" SCANLINE:{}\n", current_scanline));
     }
     let file = fs::OpenOptions::new()
         .write(true)
