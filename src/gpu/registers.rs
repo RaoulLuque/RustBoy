@@ -141,7 +141,7 @@ impl GPURegisters {
                 display_on_off: false,
             },
             lcd_status: LCDStatusRegister {
-                gpu_mode: RenderingMode::OAMScan2,
+                gpu_mode: RenderingMode::HBlank0,
                 lyc_ly_coincidence_flag: false,
                 mode_0_int_select: false,
                 mode_1_int_select: false,
