@@ -190,7 +190,7 @@ pub fn entire_instruction_to_string(
                 (
                     crate::cpu::instructions::ldh::LDHSourceOrTarget::A,
                     crate::cpu::instructions::ldh::LDHSourceOrTarget::A8Ref,
-                ) => res.push_str(&rust_boy.gpu.gpu_registers.get_scanline().to_string()),
+                ) => push_next_immediate_byte_as_hex_to_string(rust_boy, &mut res),
                 _ => {}
             }
         }

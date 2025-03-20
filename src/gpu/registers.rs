@@ -307,6 +307,13 @@ impl GPURegisters {
         if self.debugging_flags.doctor {
             0x90
         } else {
+            // TODO: Possibly add handling if the CPU is fetching this value and with the current instruction
+            // would trigger an increment in the scanline in the GPU step(). However, since the real
+            // RustBoy runs the CPU and GPU in parallel, the scanline register would be incremented
+            // before the CPU fetches the value. Currently, our emulator does not do this, we just
+            // update the GPU after the CPU. So possibly account for this case by checking if the
+            // cycle count of the current instruction trying to fetch the current scanline would
+            // trigger an increment in the scanline, in which case, we would return the current scanline + 1?
             self.current_scanline
         }
     }
