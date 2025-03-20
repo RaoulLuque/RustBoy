@@ -42,6 +42,7 @@ pub struct GPU {
 /// Struct to collect the information about the current rendering state of the GPU.
 pub struct RenderingInfo {
     pub(crate) dots_clock: u32,
+    pub(crate) total_dots: u128,
     dots_for_transfer: u32,
     lcd_was_turned_off: bool,
     first_scanline_after_lcd_was_turned_on: bool,
@@ -108,6 +109,7 @@ impl GPU {
                 self.rendering_info.lcd_was_turned_off = false;
             }
             self.rendering_info.dots_clock += dots;
+            self.rendering_info.total_dots += dots as u128;
             match self.gpu_registers.get_gpu_mode() {
                 RenderingMode::HBlank0 => {
                     if self.rendering_info.first_scanline_after_lcd_was_turned_on {
@@ -234,6 +236,7 @@ impl GPU {
             tile_set: [tile_handling::empty_tile(); 384],
             rendering_info: RenderingInfo {
                 dots_clock: 0,
+                total_dots: 0,
                 dots_for_transfer: 0,
                 lcd_was_turned_off: true,
                 first_scanline_after_lcd_was_turned_on: false,
