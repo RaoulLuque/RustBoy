@@ -14,6 +14,11 @@ const TILEMAP_ONE_START: usize = 0x9800;
 const TILEMAP_TWO_START: usize = 0x9C00;
 const TILEMAP_SIZE: usize = 1024;
 
+const DOTS_IN_TRANSFER: u32 = 172;
+const DOTS_IN_HBLANK_PLUS_TRANSFER: u32 = 376;
+const DOTS_IN_OAM_SCAN: u32 = 80;
+const DOTS_IN_VBLANK: u32 = 4560;
+
 /// Represents the GPU of the Rust Boy.
 /// It has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF) containing the tile set with 384 tiles
 /// and two tile maps of 32 * 32 = 1024 bytes each.
@@ -117,9 +122,9 @@ impl GPU {
                 RenderingMode::HBlank0 => {
                     if self.rendering_info.first_scanline_after_lcd_was_turned_on {
                         // If the LCD was turned off, it immediately enters HBlank mode which only
-                        // lasts 80 dots and then enters Transfer mode.
-                        if self.rendering_info.dots_clock >= 80 {
-                            self.rendering_info.dots_clock -= 80;
+                        // lasts [DOTS_IN_OAM_SCAN] dots and then enters Transfer mode.
+                        if self.rendering_info.dots_clock >= DOTS_IN_OAM_SCAN {
+                            self.rendering_info.dots_clock -= DOTS_IN_OAM_SCAN;
                             self.gpu_registers
                                 .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
                             // We can now set the first_scanline_after_lcd_was_turned_on flag to
@@ -129,10 +134,10 @@ impl GPU {
                         }
                     } else {
                         if self.rendering_info.dots_clock
-                            >= 376 - self.rendering_info.dots_for_transfer
+                            >= DOTS_IN_HBLANK_PLUS_TRANSFER - self.rendering_info.dots_for_transfer
                         {
-                            self.rendering_info.dots_clock -=
-                                376 - self.rendering_info.dots_for_transfer;
+                            self.rendering_info.dots_clock -= DOTS_IN_HBLANK_PLUS_TRANSFER
+                                - self.rendering_info.dots_for_transfer;
                             self.gpu_registers.set_scanline(
                                 self.gpu_registers.get_scanline() + 1,
                                 interrupt_flags,
@@ -159,8 +164,8 @@ impl GPU {
                     }
                 }
                 RenderingMode::VBlank1 => {
-                    if self.rendering_info.dots_clock >= 456 {
-                        self.rendering_info.dots_clock -= 456;
+                    if self.rendering_info.dots_clock >= DOTS_IN_VBLANK / 10 {
+                        self.rendering_info.dots_clock -= DOTS_IN_VBLANK / 10;
                         self.gpu_registers
                             .set_scanline(self.gpu_registers.get_scanline() + 1, interrupt_flags);
                         if self.gpu_registers.get_scanline() == 154 {
@@ -171,17 +176,17 @@ impl GPU {
                     }
                 }
                 RenderingMode::OAMScan2 => {
-                    if self.rendering_info.dots_clock >= 80 {
-                        self.rendering_info.dots_clock -= 80;
+                    if self.rendering_info.dots_clock >= DOTS_IN_OAM_SCAN {
+                        self.rendering_info.dots_clock -= DOTS_IN_OAM_SCAN;
                         self.gpu_registers
                             .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
                     }
                 }
                 RenderingMode::Transfer3 => {
                     // TODO: Implement possible delay in this Mode if background scrolling or sprite fetching happened
-                    if self.rendering_info.dots_clock >= 172 {
-                        self.rendering_info.dots_clock -= 172;
-                        self.rendering_info.dots_for_transfer = 172;
+                    if self.rendering_info.dots_clock >= DOTS_IN_TRANSFER {
+                        self.rendering_info.dots_clock -= DOTS_IN_TRANSFER;
+                        self.rendering_info.dots_for_transfer = DOTS_IN_TRANSFER;
                         self.gpu_registers
                             .set_ppu_mode(RenderingMode::HBlank0, interrupt_flags);
                     }
