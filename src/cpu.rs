@@ -29,6 +29,10 @@ impl RustBoy {
     /// Increment the cycle counter by the provided value.
     pub fn increment_cycle_counter(&mut self, value: u32) {
         self.cycle_counter += value as u64;
+        self.cycles_current_instruction = match self.cycles_current_instruction {
+            Some(cycles) => Some(cycles + value as u8),
+            None => Some(value as u8),
+        };
     }
 
     /// Reads the next instruction and executes it in the CPU.

@@ -83,6 +83,7 @@ pub struct RustBoy {
     pc: u16,
     sp: u16,
     cycle_counter: u64,
+    cycles_current_instruction: Option<u8>,
     ime: bool,
     ime_to_be_set: bool,
     halted: bool,
@@ -121,6 +122,7 @@ impl RustBoy {
             pc: 0x0000,
             sp: 0xFFFE,
             cycle_counter: 0,
+            cycles_current_instruction: None,
             memory: [0; 65536],
             bios: [0; 0x0100],
             starting_up: true,
@@ -147,6 +149,7 @@ impl RustBoy {
             pc: 0x0100,
             sp: 0xFFFE,
             cycle_counter: 0,
+            cycles_current_instruction: None,
             memory: [0; 65536],
             bios: [0; 0x0100],
             starting_up: false,
@@ -236,9 +239,6 @@ pub async fn run(
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
 
-    // Track the cpu cycles
-    let mut total_num_cpu_cycles = 0;
-
     // Variable to keep track of the current [gpu::RenderTask] to be executed
     let mut current_rendering_task: RenderTask = RenderTask::None;
 
@@ -279,8 +279,7 @@ pub async fn run(
 
                             // Make multiple steps per redraw request until something has to be rendered
                             while current_rendering_task != RenderTask::RenderFrame {
-                                (total_num_cpu_cycles, current_rendering_task) =
-                                    handle_no_rendering_task(&mut rust_boy, total_num_cpu_cycles);
+                                current_rendering_task = handle_no_rendering_task(&mut rust_boy);
 
                                 // We draw a new line to the framebuffer whenever the gpu requests a new line or when it requests a
                                 // new frame, since in the latter case, the last line is still missing
@@ -368,14 +367,11 @@ fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
 #[cfg(debug_assertions)]
 fn run_headless(rust_boy: &mut RustBoy) {
     let mut current_rendering_task: RenderTask = RenderTask::None;
-    // TODO: Check there is no overflow errors with total_num_cpu_cycles
-    let mut total_num_cpu_cycles = 0;
     let mut last_frame_time = Instant::now();
     loop {
         // Make multiple steps per redraw request until something has to be rendered
         while current_rendering_task != RenderTask::RenderFrame {
-            (total_num_cpu_cycles, current_rendering_task) =
-                handle_no_rendering_task(rust_boy, total_num_cpu_cycles);
+            current_rendering_task = handle_no_rendering_task(rust_boy);
         }
 
         if current_rendering_task == RenderTask::RenderFrame {
@@ -392,14 +388,12 @@ fn run_headless(rust_boy: &mut RustBoy) {
 }
 
 /// Handle the case in the game boy loop, where we are not requesting a redraw.
-fn handle_no_rendering_task(
-    rust_boy: &mut RustBoy,
-    total_num_cpu_cycles: u64,
-) -> (u64, RenderTask) {
+fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
     // Fetch and execute next instruction with cpu_step().
     rust_boy.cpu_step();
-    let last_num_of_cycles = rust_boy.cycle_counter - total_num_cpu_cycles;
-    let total_num_cpu_cycles = rust_boy.cycle_counter;
+    let last_num_of_cycles = rust_boy
+        .cycles_current_instruction
+        .expect("Cycles should be set by cpu_step()");
 
     // Increment the timer and divider register according to the number of cycles that the
     // last instruction took
@@ -414,6 +408,9 @@ fn handle_no_rendering_task(
         last_num_of_dots as u32,
     );
 
+    // Reset the cycles of the current instruction
+    rust_boy.cycles_current_instruction = None;
+
     // Return the new total number of cpu cycles and possible rendering tasks
-    (total_num_cpu_cycles, new_rendering_task)
+    new_rendering_task
 }
