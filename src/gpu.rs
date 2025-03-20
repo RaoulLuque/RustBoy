@@ -85,13 +85,16 @@ impl GPU {
         dots: u32,
     ) -> RenderTask {
         if self.gpu_registers.lcd_control.display_on_off == false {
-            // If the LCD is not enabled, there is no rendering task and we can reset the GPU
-            self.rendering_info.dots_clock = 0;
-            self.rendering_info.dots_for_transfer = 0;
-            self.gpu_registers
-                .set_ppu_mode(RenderingMode::VBlank1, interrupt_flags);
-            self.gpu_registers.set_scanline(0, interrupt_flags);
-            self.rendering_info.lcd_was_turned_off = true;
+            if self.rendering_info.lcd_was_turned_off == false {
+                // If the LCD is not enabled, there is no rendering task and we can reset the GPU
+                // to its initial state. We only do this once when the LCD is turned off.
+                self.rendering_info.dots_clock = 0;
+                self.rendering_info.dots_for_transfer = 0;
+                self.gpu_registers
+                    .set_ppu_mode(RenderingMode::VBlank1, interrupt_flags);
+                self.gpu_registers.set_scanline(0, interrupt_flags);
+                self.rendering_info.lcd_was_turned_off = true;
+            }
             RenderTask::None
         } else {
             if self.rendering_info.lcd_was_turned_off {
