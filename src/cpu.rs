@@ -20,13 +20,6 @@ impl RustBoy {
         self.load(0x0000, &program);
     }
 
-    /// Runs the CPU.
-    pub fn run(&mut self) {
-        loop {
-            self.cpu_step();
-        }
-    }
-
     /// Sets the stackpointer (SP) to the provided value.
     fn set_sp(&mut self, value: u16) {
         self.sp = value;
