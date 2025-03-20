@@ -2,6 +2,8 @@ use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use std::fs;
 
+pub const LOG_FILE_NAME: &str = "extensive_logs";
+
 /// Struct to represent the debugging flags.
 /// The flags are:
 /// - 'doctor': If true, the emulator runs in game boy doctor compatible mode,
@@ -10,6 +12,7 @@ use std::fs;
 #[derive(Copy, Clone, Debug)]
 pub struct DebuggingFlags {
     pub doctor: bool,
+    pub file_logs: bool,
     pub sb_to_terminal: bool,
 }
 
@@ -18,7 +21,7 @@ pub fn setup_debugging_logs_files(_: DebuggingFlags, rom_path: &str) {
     // Create the log directory if it doesn't exist
     fs::create_dir_all("logs").unwrap();
 
-    let log_file_paths = ["logs/doctor.log", "logs/doctors_augmented.log"];
+    let log_file_paths = ["logs/doctor.log", &format!("logs/{LOG_FILE_NAME}.log")];
     for path in log_file_paths {
         fs::OpenOptions::new()
             .write(true)
@@ -35,7 +38,7 @@ pub fn setup_debugging_logs_files(_: DebuggingFlags, rom_path: &str) {
         .write(true)
         .append(true)
         .create(true)
-        .open("logs/doctors_augmented.log");
+        .open(&format!("logs/{LOG_FILE_NAME}.log"));
     if let Ok(mut file) = file {
         use std::io::Write;
         file.write_all(data.as_bytes())
@@ -70,7 +73,7 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
         rust_boy.read_byte(rust_boy.pc.wrapping_add(3))
     );
 
-    if log_file == "doctors_augmented" {
+    if log_file == LOG_FILE_NAME {
         data.pop();
         data.push_str(&format!(
             " SPMEM:{:02X},{:02X},{:02X},{:02X},CURR:{:02X},{:02X},{:02X},{:02X},{:02X}",

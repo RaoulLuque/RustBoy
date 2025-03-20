@@ -181,6 +181,7 @@ impl RustBoy {
 pub async fn run(
     headless: bool,
     game_boy_doctor_mode: bool,
+    file_logs: bool,
     print_serial_output_to_terminal: bool,
     rom_path: &str,
 ) {
@@ -197,6 +198,7 @@ pub async fn run(
 
     let debugging_flags = DebuggingFlags {
         doctor: game_boy_doctor_mode,
+        file_logs,
         sb_to_terminal: print_serial_output_to_terminal,
     };
 

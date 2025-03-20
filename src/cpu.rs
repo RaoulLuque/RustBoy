@@ -7,6 +7,7 @@ mod memory_bus;
 pub mod registers;
 
 use crate::RustBoy;
+use crate::debugging::LOG_FILE_NAME;
 #[cfg(debug_assertions)]
 use crate::debugging::{doctor_log, instruction_log};
 use crate::memory_bus::{OAM_END, OAM_START};
@@ -38,7 +39,10 @@ impl RustBoy {
         #[cfg(debug_assertions)]
         if self.debugging_flags.doctor {
             doctor_log(&self, "doctor");
-            doctor_log(&self, "doctors_augmented")
+        }
+        #[cfg(debug_assertions)]
+        if self.debugging_flags.file_logs {
+            doctor_log(&self, LOG_FILE_NAME)
         }
 
         // Check if an interrupt needs to be handled. If so, Some(u16) is returned with the
@@ -100,8 +104,8 @@ impl RustBoy {
                 if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed) {
                     // Log the instruction byte if in debug mode.
                     #[cfg(debug_assertions)]
-                    if self.debugging_flags.doctor {
-                        instruction_log(&self, "doctors_augmented", instruction);
+                    if self.debugging_flags.file_logs {
+                        instruction_log(&self, LOG_FILE_NAME, instruction);
                     }
 
                     log::trace!("Executing instruction: {:?} ", instruction);
