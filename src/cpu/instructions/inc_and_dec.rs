@@ -20,35 +20,35 @@ impl RustBoy {
     pub fn handle_inc_instruction(&mut self, target: IncDecTarget) -> u16 {
         match target {
             IncDecTarget::Register(register) => {
+                self.increment_cycle_counter(1);
                 let new_value = self.inc(register.get_register(&self.registers));
                 register.set_register(&mut self.registers, new_value);
-                self.increment_cycle_counter(1);
             }
             IncDecTarget::HLRef => {
+                self.increment_cycle_counter(3);
                 let address = self.registers.get_hl();
                 let value = self.read_byte(address);
                 let new_value = self.inc(value);
                 self.write_byte(address, new_value);
-                self.increment_cycle_counter(3);
             }
             IncDecTarget::BC => {
+                self.increment_cycle_counter(2);
                 self.registers
                     .set_bc(self.registers.get_bc().wrapping_add(1));
-                self.increment_cycle_counter(2);
             }
             IncDecTarget::DE => {
+                self.increment_cycle_counter(2);
                 self.registers
                     .set_de(self.registers.get_de().wrapping_add(1));
-                self.increment_cycle_counter(2);
             }
             IncDecTarget::HL => {
+                self.increment_cycle_counter(2);
                 self.registers
                     .set_hl(self.registers.get_hl().wrapping_add(1));
-                self.increment_cycle_counter(2);
             }
             IncDecTarget::SP => {
-                self.set_sp(self.sp.wrapping_add(1));
                 self.increment_cycle_counter(2);
+                self.set_sp(self.sp.wrapping_add(1));
             }
         }
         self.pc.wrapping_add(1)
@@ -72,35 +72,35 @@ impl RustBoy {
     pub fn handle_dec_instruction(&mut self, target: IncDecTarget) -> u16 {
         match target {
             IncDecTarget::Register(register) => {
+                self.increment_cycle_counter(1);
                 let new_value = self.dec(register.get_register(&self.registers));
                 register.set_register(&mut self.registers, new_value);
-                self.increment_cycle_counter(1);
             }
             IncDecTarget::HLRef => {
+                self.increment_cycle_counter(3);
                 let address = self.registers.get_hl();
                 let value = self.read_byte(address);
                 let new_value = self.dec(value);
                 self.write_byte(address, new_value);
-                self.increment_cycle_counter(3);
             }
             IncDecTarget::BC => {
+                self.increment_cycle_counter(2);
                 self.registers
                     .set_bc(self.registers.get_bc().wrapping_sub(1));
-                self.increment_cycle_counter(2);
             }
             IncDecTarget::DE => {
+                self.increment_cycle_counter(2);
                 self.registers
                     .set_de(self.registers.get_de().wrapping_sub(1));
-                self.increment_cycle_counter(2);
             }
             IncDecTarget::HL => {
+                self.increment_cycle_counter(2);
                 self.registers
                     .set_hl(self.registers.get_hl().wrapping_sub(1));
-                self.increment_cycle_counter(2);
             }
             IncDecTarget::SP => {
-                self.set_sp(self.sp.wrapping_sub(1));
                 self.increment_cycle_counter(2);
+                self.set_sp(self.sp.wrapping_sub(1));
             }
         }
         self.pc.wrapping_add(1)

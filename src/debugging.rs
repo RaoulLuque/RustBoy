@@ -91,7 +91,10 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
         let ppu_mode_as_u8 = rust_boy.gpu.gpu_registers.get_gpu_mode().as_u8();
         data.push_str(&format!(" PPU:{}", ppu_mode_as_u8));
 
-        let current_scanline = rust_boy.gpu.gpu_registers.get_scanline();
+        let current_scanline = rust_boy
+            .gpu
+            .gpu_registers
+            .get_scanline(None, None, None, false);
         data.push_str(&format!(" SCANLINE:{:<3}", current_scanline));
 
         let cycles_in_dots: u32 = rust_boy.gpu.rendering_info.dots_clock;

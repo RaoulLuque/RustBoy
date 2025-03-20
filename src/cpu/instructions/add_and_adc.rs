@@ -22,11 +22,11 @@ impl RustBoy {
     ///
     /// The ADD instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_add_byte_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.add(value, false);
         self.registers.a = new_value;
-
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 
     /// Adds a value to the A register and sets the corresponding flags in the flags register
@@ -75,6 +75,14 @@ impl RustBoy {
         type_of_word_add: (AddWordTarget, AddWordSource),
     ) -> u16 {
         let (target, source) = type_of_word_add;
+        match target {
+            AddWordTarget::HL => {
+                self.increment_cycle_counter(2);
+            }
+            AddWordTarget::SP => {
+                self.increment_cycle_counter(4);
+            }
+        }
         let value = match source {
             AddWordSource::BC => Some(self.registers.get_bc()),
             AddWordSource::DE => Some(self.registers.get_de()),
@@ -89,7 +97,6 @@ impl RustBoy {
                 );
                 let new_value = self.add_word(self.registers.get_hl(), value, false);
                 self.registers.set_hl(new_value);
-                self.increment_cycle_counter(2);
                 self.pc.wrapping_add(1)
             }
             AddWordTarget::SP => {
@@ -101,7 +108,6 @@ impl RustBoy {
                 self.registers.f.zero = false;
 
                 self.sp = new_sp;
-                self.increment_cycle_counter(4);
                 self.pc.wrapping_add(2)
             }
         }
@@ -132,9 +138,10 @@ impl RustBoy {
     ///
     /// The ADC instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_adc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.add(value, self.registers.f.carry);
         self.registers.a = new_value;
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 }

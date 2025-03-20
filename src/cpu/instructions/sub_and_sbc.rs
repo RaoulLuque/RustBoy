@@ -6,10 +6,11 @@ impl RustBoy {
     ///
     /// The SUB instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_sub_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.sub(value, false);
         self.registers.a = new_value;
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 
     /// Subtracts a value from the A register and sets the corresponding flags in the flags register
@@ -37,9 +38,10 @@ impl RustBoy {
     ///
     /// The SBC instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_sbc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.sub(value, self.registers.f.carry);
         self.registers.a = new_value;
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 }

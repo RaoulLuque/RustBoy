@@ -5,8 +5,8 @@ impl RustBoy {
     ///
     /// Disables interrupts. Takes 1 cycle.
     pub fn handle_di_instruction(&mut self) -> u16 {
-        self.di();
         self.increment_cycle_counter(1);
+        self.di();
         self.pc.wrapping_add(1)
     }
 
@@ -19,8 +19,8 @@ impl RustBoy {
     ///
     /// Enables interrupts. Takes 1 cycle.
     pub fn handle_ei_instruction(&mut self) -> u16 {
-        self.ei();
         self.increment_cycle_counter(1);
+        self.ei();
         self.pc.wrapping_add(1)
     }
 

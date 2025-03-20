@@ -18,9 +18,6 @@ impl RustBoy {
     ) -> u16 {
         match res_instruction_type {
             ResAndSetInstructionType::Type(target, bit_to_reset) => {
-                let value = target.get_value(&self);
-                let new_value = self.res(value, bit_to_reset);
-                target.set_value(self, new_value);
                 match target {
                     SixteenBitInstructionTarget::HLRef => {
                         self.increment_cycle_counter(3);
@@ -29,6 +26,9 @@ impl RustBoy {
                         self.increment_cycle_counter(2);
                     }
                 }
+                let value = target.get_value(&self);
+                let new_value = self.res(value, bit_to_reset);
+                target.set_value(self, new_value);
                 self.pc.wrapping_add(2)
             }
         }
@@ -52,9 +52,6 @@ impl RustBoy {
     ) -> u16 {
         match set_instruction_type {
             ResAndSetInstructionType::Type(target, bit_to_set) => {
-                let value = target.get_value(&self);
-                let new_value = self.set(value, bit_to_set);
-                target.set_value(self, new_value);
                 match target {
                     SixteenBitInstructionTarget::HLRef => {
                         self.increment_cycle_counter(3);
@@ -63,6 +60,9 @@ impl RustBoy {
                         self.increment_cycle_counter(2);
                     }
                 }
+                let value = target.get_value(&self);
+                let new_value = self.set(value, bit_to_set);
+                target.set_value(self, new_value);
                 self.pc.wrapping_add(2)
             }
         }

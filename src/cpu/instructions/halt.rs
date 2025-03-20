@@ -5,8 +5,8 @@ impl RustBoy {
     ///
     /// Takes 1 cycle to execute.
     pub fn handle_halt_instruction(&mut self) -> u16 {
-        self.halt();
         self.increment_cycle_counter(1);
+        self.halt();
         self.pc.wrapping_add(1)
     }
 

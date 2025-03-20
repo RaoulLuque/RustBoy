@@ -6,10 +6,11 @@ impl RustBoy {
     ///
     /// The AND instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_and_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.and(value);
         self.registers.a = new_value;
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 
     /// Performs a bitwise AND operation on the A register and the given value and sets the
@@ -27,10 +28,11 @@ impl RustBoy {
     ///
     /// The XOR instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_xor_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.xor(value);
         self.registers.a = new_value;
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 
     /// Performs a bitwise XOR operation on the A register and the given value and sets the
@@ -48,10 +50,11 @@ impl RustBoy {
     ///
     /// The OR instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_or_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         let new_value = self.or(value);
         self.registers.a = new_value;
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 
     /// Performs a bitwise OR operation on the A register and the given value and sets the
@@ -69,8 +72,9 @@ impl RustBoy {
     ///
     /// The CP instruction takes 1 cycle if the source is a register and 2 otherwise.
     pub fn handle_cp_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+        let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
         self.sub(value, false);
-        source.increment_pc_and_cycle(self)
+        new_pc
     }
 }

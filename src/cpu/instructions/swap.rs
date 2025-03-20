@@ -6,13 +6,13 @@ impl RustBoy {
     ///
     /// The SWAP instruction takes 2 cycles if the target is a register and 4 otherwise.
     pub fn handle_swap_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
-        let value = target.get_value(&self);
-        let new_value = self.swap(value);
-        target.set_value(self, new_value);
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
+        let value = target.get_value(&self);
+        let new_value = self.swap(value);
+        target.set_value(self, new_value);
         self.pc.wrapping_add(2)
     }
 

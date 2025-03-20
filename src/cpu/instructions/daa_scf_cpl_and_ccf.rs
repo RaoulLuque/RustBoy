@@ -5,8 +5,8 @@ impl RustBoy {
     ///
     /// The DAA instruction takes 1 cycle.
     pub fn handle_daa_instruction(&mut self) -> u16 {
-        self.registers.a = self.daa();
         self.increment_cycle_counter(1);
+        self.registers.a = self.daa();
         self.pc.wrapping_add(1)
     }
 
@@ -40,8 +40,8 @@ impl RustBoy {
     ///
     /// The SCF instruction takes 1 cycle.
     pub fn handle_scf_instruction(&mut self) -> u16 {
-        self.scf();
         self.increment_cycle_counter(1);
+        self.scf();
         self.pc.wrapping_add(1)
     }
 
@@ -56,8 +56,8 @@ impl RustBoy {
     ///
     /// The CPL instruction takes 1 cycle.
     pub fn handle_cpl_instruction(&mut self) -> u16 {
-        self.cpl();
         self.increment_cycle_counter(1);
+        self.cpl();
         self.pc.wrapping_add(1)
     }
 
@@ -72,8 +72,8 @@ impl RustBoy {
     ///
     /// The CCF instruction takes 1 cycle.
     pub fn handle_ccf_instruction(&mut self) -> u16 {
-        self.ccf();
         self.increment_cycle_counter(1);
+        self.ccf();
         self.pc.wrapping_add(1)
     }
 

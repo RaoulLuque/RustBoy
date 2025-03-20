@@ -15,8 +15,6 @@ impl RustBoy {
     pub fn handle_bit_instruction(&mut self, bit_instruction_type: BitInstructionType) -> u16 {
         match bit_instruction_type {
             BitInstructionType::Bit(target, bit_to_check) => {
-                let value = target.get_value(&self);
-                self.bit(value, bit_to_check);
                 match target {
                     SixteenBitInstructionTarget::HLRef => {
                         self.increment_cycle_counter(3);
@@ -25,6 +23,8 @@ impl RustBoy {
                         self.increment_cycle_counter(2);
                     }
                 }
+                let value = target.get_value(&self);
+                self.bit(value, bit_to_check);
                 self.pc.wrapping_add(2)
             }
         }

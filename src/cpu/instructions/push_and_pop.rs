@@ -48,10 +48,10 @@ impl RustBoy {
     ///
     /// The PUSH instruction takes 4 cycles.
     pub fn handle_push_instruction(&mut self, register_pair_to_push: PushSource) -> u16 {
+        self.increment_cycle_counter(4);
         let value_to_push = register_pair_to_push.get_register_pair(&self.registers);
 
         self.push(value_to_push);
-        self.increment_cycle_counter(4);
         self.pc.wrapping_add(1)
     }
 
@@ -70,9 +70,9 @@ impl RustBoy {
     ///
     /// The POP instruction takes 3 cycles.
     pub fn handle_pop_instruction(&mut self, register_pair_to_pop_to: PopTarget) -> u16 {
+        self.increment_cycle_counter(3);
         let pop_result = self.pop();
         register_pair_to_pop_to.set_register_pair(&mut self.registers, pop_result);
-        self.increment_cycle_counter(3);
         self.pc.wrapping_add(1)
     }
 
