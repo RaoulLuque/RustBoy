@@ -212,6 +212,12 @@ pub fn handle_key_pressed_event(rust_boy: &mut RustBoy, key: &PhysicalKey) {
         PhysicalKey::Code(KeyCode::KeyB) => {
             rust_boy.handle_button_press(Button::B);
         }
+        PhysicalKey::Code(KeyCode::Enter) => {
+            rust_boy.handle_button_press(Button::Start);
+        }
+        PhysicalKey::Code(KeyCode::Space) => {
+            rust_boy.handle_button_press(Button::Select);
+        }
         _ => {}
     }
 }
@@ -236,6 +242,12 @@ pub fn handle_key_released_event(rust_boy: &mut RustBoy, key: &PhysicalKey) {
         }
         PhysicalKey::Code(KeyCode::KeyB) => {
             rust_boy.handle_button_release(Button::B);
+        }
+        PhysicalKey::Code(KeyCode::Enter) => {
+            rust_boy.handle_button_release(Button::Start);
+        }
+        PhysicalKey::Code(KeyCode::Space) => {
+            rust_boy.handle_button_release(Button::Select);
         }
         _ => {}
     }
