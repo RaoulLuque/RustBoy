@@ -10,13 +10,17 @@ struct Args {
     #[arg(long = "HEADLESS", default_value_t = false)]
     headless: bool,
 
-    /// If present, runs in game boy doctor mode
+    /// If present, runs in Game Boy doctor mode
     #[arg(short, long = "DOCTOR", default_value_t = false)]
     game_boy_doctor: bool,
 
     /// If present, sends logs to extensive_logs.log file
     #[arg(short, long = "LOGS", default_value_t = false)]
     file_logs: bool,
+
+    /// If present, runs in binjgb mode, which allows for easier debugging with the binjgb emulator
+    #[arg(short, long = "BINJGB", default_value_t = false)]
+    binjgb_mode: bool,
 
     /// If present, prints serial output to the console
     #[arg(short, long = "SB", default_value_t = false)]
@@ -34,6 +38,7 @@ fn main() {
         args.headless,
         args.game_boy_doctor,
         args.file_logs,
+        args.binjgb_mode,
         args.print_serial_output_to_terminal,
         &args.rom_path,
     ));

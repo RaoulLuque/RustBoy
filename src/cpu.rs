@@ -180,12 +180,14 @@ impl RustBoy {
     /// TODO: Possibly split the copy instruction into 40 individual writes each taking 4 cycles
     /// to simulate the transfer speed of the DMG.
     pub(crate) fn handle_dma(&mut self, address: u8) {
+        if !self.debugging_flags.binjgb_mode {
+            // In the binjgb emulator, the DMA transfer does not seem to increment the cycle counter
+            self.increment_cycle_counter(160);
+        }
         let address = (address as u16) << 8;
         for i in 0..(OAM_END - OAM_START) + 1 {
             let value = self.read_byte(address + i);
             self.write_byte(OAM_START + i, value);
         }
-
-        self.increment_cycle_counter(160);
     }
 }

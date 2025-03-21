@@ -13,6 +13,7 @@ pub const LOG_FILE_NAME: &str = "extensive_logs";
 pub struct DebuggingFlags {
     pub doctor: bool,
     pub file_logs: bool,
+    pub binjgb_mode: bool,
     pub sb_to_terminal: bool,
 }
 
