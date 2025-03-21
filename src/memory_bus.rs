@@ -43,22 +43,25 @@ impl RustBoy {
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
             VRAM_BEGIN..VRAM_END => self.gpu.read_vram(address),
             OAM_START..OAM_END => self.gpu.read_oam(address),
+
+            // Joypad register
+            0xFF00 => self.joypad.read_joypad_register(),
+
+            // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
-                // Read the GPU registers
                 self.gpu.read_registers(
                     address,
                     self.cycles_current_instruction
                         .expect("Cycles for the current instruction should already be set"),
                 )
             }
-            0xFF0F => {
-                // Read the interrupt flag register
-                u8::from(&self.interrupt_flag_register)
-            }
-            0xFFFF => {
-                // Read the interrupt enable register
-                u8::from(&self.interrupt_enable_register)
-            }
+
+            // Interrupt flag register
+            0xFF0F => u8::from(&self.interrupt_flag_register),
+
+            // Interrupt enable register
+            0xFFFF => u8::from(&self.interrupt_enable_register),
+
             _ => self.memory[address as usize],
         }
     }
@@ -68,10 +71,16 @@ impl RustBoy {
         match address {
             VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address, value),
             OAM_START..OAM_END => self.gpu.write_oam(address, value),
+
+            // Joypad register
+            0xFF00 => self.joypad.write_joypad_register(value),
+
+            // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
                 self.gpu
                     .write_registers(address, value, &mut self.interrupt_flag_register);
             }
+
             // DMA transfer register
             0xFF46 => {
                 // If the RustBoy and Memory is being initialized by the BIOS, we do not want to
@@ -82,24 +91,31 @@ impl RustBoy {
                     self.handle_dma(value);
                 }
             }
+
+            // Serial transfer register
             0xFF01 => {
                 if self.debugging_flags.sb_to_terminal {
                     println!("Write to SB: {}", value as char);
                 }
                 self.memory[address as usize] = value;
             }
+
+            // Divider register
             0xFF04 => {
                 // When a write happens to the divider register, it just resets to 0
                 self.memory[address as usize] = 0;
             }
+
+            // Interrupt flag register
             0xFF0F => {
-                // Read the interrupt flag register
                 self.interrupt_flag_register = InterruptFlagRegister::from(value);
             }
+
+            // Interrupt enable register
             0xFFFF => {
-                // Read the interrupt enable register
                 self.interrupt_enable_register = InterruptEnableRegister::from(value);
             }
+
             _ => {
                 self.memory[address as usize] = value;
             }

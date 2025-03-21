@@ -8,7 +8,7 @@
 /// which of the two states is currently selected. Using the [Joypad::read_joypad_register] and
 /// [Joypad::write_joypad_register] methods, one can then read and write to the joypad. This class then
 /// handles the logic of which button state is supposed to be returned.
-struct Joypad {
+pub struct Joypad {
     joypad_register: JoypadRegister,
     action_button_state: ButtonState,
     direction_button_state: ButtonState,

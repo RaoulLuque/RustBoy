@@ -21,15 +21,17 @@ mod timer;
 use wasm_bindgen::prelude::*;
 use wasm_timer::Instant;
 
-#[cfg(debug_assertions)]
-use crate::debugging::setup_debugging_logs_files;
-use crate::gpu::RenderTask;
 use cpu::registers::CPURegisters;
 use debugging::DebuggingFlags;
+#[cfg(debug_assertions)]
+use debugging::setup_debugging_logs_files;
 use frontend::State;
 use gpu::GPU;
+use gpu::RenderTask;
+use input::Joypad;
 use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use timer::TimerInfo;
+
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -105,6 +107,9 @@ pub struct RustBoy {
     interrupt_enable_register: InterruptEnableRegister,
     interrupt_flag_register: InterruptFlagRegister,
 
+    // Joypad
+    joypad: Joypad,
+
     // Debugging Flags
     debugging_flags: DebuggingFlags,
 }
@@ -135,6 +140,7 @@ impl RustBoy {
             timer_info: TimerInfo::new(),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
+            joypad: Joypad::new_blank(),
 
             debugging_flags,
         }
@@ -162,6 +168,7 @@ impl RustBoy {
             timer_info: TimerInfo::new(),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
+            joypad: Joypad::new_blank(),
 
             debugging_flags,
         };
