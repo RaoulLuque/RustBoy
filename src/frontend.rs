@@ -1,6 +1,6 @@
 mod shader;
 
-use log::{debug, trace};
+use log::trace;
 use winit::event::WindowEvent;
 use winit::window::Window;
 
@@ -184,7 +184,7 @@ impl<'a> State<'a> {
     pub fn update(&mut self) {}
 
     /// TODO: Add docstring
-    pub fn render(&mut self, rust_boy_gpu: &mut GPU) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -376,7 +376,7 @@ impl<'a> State<'a> {
         // Update the objects in scanline buffer
         // TODO: Update this only when necessary
         let objects_in_scanline = rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
-        let oam = rust_boy_gpu.oam;
+        // let oam = rust_boy_gpu.oam;
         // if objects_in_scanline[0][0] != 0 {
         //     println!("Current scanline: {}", current_scanline);
         //     println!("Objects in scanline: {:?}", objects_in_scanline);

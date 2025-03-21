@@ -28,7 +28,7 @@ use debugging::setup_debugging_logs_files;
 use frontend::State;
 use gpu::GPU;
 use gpu::RenderTask;
-use input::{Button, Joypad};
+use input::Joypad;
 use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use timer::TimerInfo;
 
@@ -341,7 +341,7 @@ pub async fn run(
                                     current_rendering_task = RenderTask::None;
 
                                     state.update();
-                                    match state.render(&mut rust_boy.gpu) {
+                                    match state.render() {
                                         Ok(_) => {}
                                         // Reconfigure the surface if it's lost or outdated
                                         Err(

@@ -234,6 +234,7 @@ fn tile_pixel_value_row_to_rgba(row: [TilePixelValue; 8]) -> [u8; 32] {
     rgba_row
 }
 
+#[allow(dead_code)]
 pub fn tile_to_string(tile: &Tile) -> String {
     let mut string = String::new();
     for row in tile {

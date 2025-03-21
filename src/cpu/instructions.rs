@@ -298,15 +298,6 @@ impl ArithmeticOrLogicalSource {
         }
     }
 
-    /// Sets the value of the corresponding source
-    fn set_value(&self, registers: &CPURegisters, rust_boy: &RustBoy, pc: u16) -> u8 {
-        match &self {
-            ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
-            ArithmeticOrLogicalSource::D8 => rust_boy.read_byte(pc + 1),
-            ArithmeticOrLogicalSource::HLRef => rust_boy.read_byte(registers.get_hl()),
-        }
-    }
-
     /// Returns the next program counter value and increments the cycle counter according to the source
     fn increment_pc_and_cycle(self, rust_boy: &mut RustBoy) -> u16 {
         match self {
