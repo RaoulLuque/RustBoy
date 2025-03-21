@@ -65,6 +65,12 @@ impl RustBoy {
             self.push(self.pc);
             self.pc = interrupt_location;
             self.increment_cycle_counter(5);
+
+            // Log the interrupt if in debug mode
+            #[cfg(debug_assertions)]
+            if self.debugging_flags.file_logs {
+                instruction_log(&self, LOG_FILE_NAME, None, Some(interrupt_location));
+            }
         } else {
             // No interrupt was requested, so we can continue executing instructions.
             // Except if the cpu is halted, in which case need to check if an interrupt is requested
@@ -109,7 +115,11 @@ impl RustBoy {
                     // Log the instruction byte if in debug mode.
                     #[cfg(debug_assertions)]
                     if self.debugging_flags.file_logs {
-                        instruction_log(&self, LOG_FILE_NAME, instruction);
+                        instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
+                    }
+
+                    if instruction == Instruction::EI {
+                        println!("Test");
                     }
 
                     log::trace!("Executing instruction: {:?} ", instruction);

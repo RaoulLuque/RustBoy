@@ -1,3 +1,5 @@
+/// This module contains the debugging functions for the RustBoy emulator. Therefore, it is a bit
+/// all over the place.
 use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use std::fs;
@@ -138,14 +140,29 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
 pub fn instruction_log(
     rust_boy: &RustBoy,
     log_file: &str,
-    instruction: crate::cpu::instructions::Instruction,
+    instruction: Option<crate::cpu::instructions::Instruction>,
+    interrupt_location: Option<u16>,
 ) {
     use std::fs;
     let file_name = format!("logs/{}.log", log_file);
-    let data = format!(
-        "{:<50}",
-        entire_instruction_to_string(rust_boy, instruction)
-    );
+    let data = if let Some(instruction) = instruction {
+        format!(
+            "{:<50}",
+            entire_instruction_to_string(rust_boy, instruction)
+        )
+    } else if let Some(interrupt_location) = interrupt_location {
+        format!(
+            "{:<50}",
+            format!(
+                "Interrupt: {}",
+                push_match_interrupt_location_to_interrupt_name(interrupt_location)
+                    .expect("Should be valid interrupt that is being called")
+            )
+        )
+    } else {
+        format!("{:<50}", "No instruction")
+    };
+
     let file = fs::OpenOptions::new()
         .write(true)
         .append(true)
@@ -273,4 +290,16 @@ fn push_next_four_immediate_bytes_as_hex_to_string(rust_boy: &RustBoy, string: &
         " {:02X} {:02X} {:02X} {:02X} ",
         first_immediate_byte, second_immediate_byte, third_immediate_byte, fourth_immediate_byte
     ));
+}
+
+#[cfg(debug_assertions)]
+fn push_match_interrupt_location_to_interrupt_name(interrupt_location: u16) -> Option<String> {
+    match interrupt_location {
+        0x0040 => Some("VBLANK".to_string()),
+        0x0048 => Some("LCD STAT".to_string()),
+        0x0050 => Some("TIMER".to_string()),
+        0x0058 => Some("SERIAL".to_string()),
+        0x0060 => Some("JOYPAD".to_string()),
+        _ => None,
+    }
 }
