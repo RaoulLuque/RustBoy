@@ -14,10 +14,17 @@ const TILEMAP_ONE_START: usize = 0x9800;
 const TILEMAP_TWO_START: usize = 0x9C00;
 const TILEMAP_SIZE: usize = 1024;
 
+/// The number of dots (GPU cycles) in the Transfer Mode.
 const DOTS_IN_TRANSFER: u32 = 172;
+/// The number of dots (GPU cycles) in the HBlank plus in the Transfer Mode.
 pub(crate) const DOTS_IN_HBLANK_PLUS_TRANSFER: u32 = 376;
+/// The number of dots (GPU cycles) in the OAM Scan Mode.
 const DOTS_IN_OAM_SCAN: u32 = 80;
+/// The number of dots (GPU cycles) in the VBlank Mode.
 pub(crate) const DOTS_IN_VBLANK: u32 = 4560;
+
+/// The GPU mode the GPU is in when the LCD is turned off.
+pub(crate) const GPU_MODE_WHILE_LCD_TURNED_OFF: RenderingMode = RenderingMode::HBlank0;
 
 /// Represents the GPU of the Rust Boy.
 /// It has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF) containing the tile set with 384 tiles
@@ -99,7 +106,7 @@ impl GPU {
                 self.rendering_info.dots_clock = 0;
                 self.rendering_info.dots_for_transfer = 0;
                 self.gpu_registers
-                    .set_ppu_mode(RenderingMode::VBlank1, interrupt_flags);
+                    .set_ppu_mode(GPU_MODE_WHILE_LCD_TURNED_OFF, interrupt_flags);
                 self.gpu_registers.set_scanline(0, interrupt_flags);
                 self.rendering_info.lcd_was_turned_off = true;
             }
