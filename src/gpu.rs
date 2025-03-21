@@ -89,6 +89,9 @@ impl GPU {
         interrupt_flags: &mut InterruptFlagRegister,
         dots: u32,
     ) -> RenderTask {
+        // Always increment total dots (for debugging purposes)
+        self.rendering_info.total_dots += dots as u128;
+
         if self.gpu_registers.lcd_control.display_on_off == false {
             if self.rendering_info.lcd_was_turned_off == false {
                 // If the LCD is not enabled, there is no rendering task and we can reset the GPU
@@ -117,7 +120,6 @@ impl GPU {
                 self.rendering_info.lcd_was_turned_off = false;
             }
             self.rendering_info.dots_clock += dots;
-            self.rendering_info.total_dots += dots as u128;
             match self.gpu_registers.get_gpu_mode() {
                 RenderingMode::HBlank0 => {
                     if self.rendering_info.first_scanline_after_lcd_was_turned_on {
