@@ -43,6 +43,7 @@ struct JoypadRegister {
 
 /// Enum to represent the buttons on the joypad. The enum is used to identify which button is
 /// pressed.
+#[derive(Debug)]
 pub enum Button {
     A,
     B,
@@ -108,6 +109,7 @@ impl Joypad {
             Button::Left => self.direction_button_state.b_or_left = false,
             Button::Right => self.direction_button_state.a_or_right = false,
         }
+        log::debug!("Button: {:?} pressed", button);
     }
 
     /// Handles the button release event by setting the corresponding button state to true (not pressed).
