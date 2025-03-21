@@ -8,9 +8,11 @@ const BIOS_END: u16 = 0x00FF;
 const ROM_BANK_1_BEGIN: u16 = 0x4000;
 const ROM_BANK_1_END: u16 = 0x8000;
 pub const VRAM_BEGIN: u16 = 0x8000;
-pub const VRAM_END: u16 = 0x9FFF;
+pub const VRAM_END: u16 = 0xA000;
 pub const OAM_START: u16 = 0xFE00;
-pub const OAM_END: u16 = 0xFE9F;
+pub const OAM_END: u16 = 0xFEA0;
+const UNUSABLE_RAM_BEGIN: u16 = 0xFEA0;
+const UNUSABLE_RAM_END: u16 = 0xFF00;
 
 impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
