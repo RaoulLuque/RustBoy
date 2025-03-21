@@ -45,6 +45,10 @@ impl RustBoy {
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
             VRAM_BEGIN..VRAM_END => self.gpu.read_vram(address),
             OAM_START..OAM_END => self.gpu.read_oam(address),
+            UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
+                // When trying to read from unusable RAM, we return 0xFF
+                0xFF
+            }
 
             // Joypad register
             0xFF00 => self.joypad.read_joypad_register(),
@@ -73,6 +77,9 @@ impl RustBoy {
         match address {
             VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address, value),
             OAM_START..OAM_END => self.gpu.write_oam(address, value),
+            UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
+                // When trying to write to unusable RAM, we just do nothing
+            }
 
             // Joypad register
             0xFF00 => self.joypad.write_joypad_register(value),
