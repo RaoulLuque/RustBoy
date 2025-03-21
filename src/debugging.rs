@@ -103,6 +103,16 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
             .get_scanline(None, None, None, false);
         data.push_str(&format!(" SCANLINE:{:<3}", current_scanline));
 
+        data.push_str(&format!(" IME:{}", u8::from(rust_boy.ime)));
+        data.push_str(&format!(
+            " IF:{:02X}",
+            u8::from(&rust_boy.interrupt_flag_register)
+        ));
+        data.push_str(&format!(
+            " IE:{:02X}",
+            u8::from(&rust_boy.interrupt_enable_register)
+        ));
+
         let cycles_in_dots: u32 = rust_boy.gpu.rendering_info.dots_clock;
         data.push_str(&format!(" CY_DOTS:{:<3}", cycles_in_dots));
 
