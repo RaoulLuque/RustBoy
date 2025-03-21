@@ -118,10 +118,6 @@ impl RustBoy {
                         instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
                     }
 
-                    if instruction == Instruction::EI {
-                        println!("Test");
-                    }
-
                     log::trace!("Executing instruction: {:?} ", instruction);
                     self.execute(instruction)
                 } else {
