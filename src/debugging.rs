@@ -89,7 +89,12 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
         ));
 
         let ppu_mode_as_u8 = rust_boy.gpu.gpu_registers.get_gpu_mode().as_u8();
-        data.push_str(&format!(" PPU:{}", ppu_mode_as_u8));
+        let ppu_mode_sign = if rust_boy.gpu.gpu_registers.get_lcd_control() & 0b1000_0000 != 0 {
+            "+"
+        } else {
+            "-"
+        };
+        data.push_str(&format!(" PPU:{}{}", ppu_mode_sign, ppu_mode_as_u8));
 
         let current_scanline = rust_boy
             .gpu
