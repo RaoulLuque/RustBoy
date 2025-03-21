@@ -48,7 +48,7 @@ pub struct GPURegisters {
 /// - Bit 4: Background and window tile data (0 = #0 (0x8800), 1 = #1 (0x8000))
 /// - Bit 5: Window on/off (0 = off, 1 = on) - gets overridden by bit 0 on DMG
 /// - Bit 6: Window tile map (0 = #0 (0x9800), 1 = #1 (0x9C00))
-/// - Bit 7: Display on/off (0 = off, 1 = on)
+/// - Bit 7: Display off/on (0 = off, 1 = on)
 pub struct LCDCRegister {
     pub(super) background_on_off: bool,
     pub(super) sprites_on_off: bool,
@@ -57,7 +57,7 @@ pub struct LCDCRegister {
     pub(super) background_and_window_tile_data: bool,
     pub(super) window_on_off: bool,
     pub(super) window_tile_map: bool,
-    pub(super) display_on_off: bool,
+    pub(super) display_on: bool,
 }
 
 /// Represents the LCD status register of the GPU.
@@ -143,7 +143,7 @@ impl GPURegisters {
                 background_and_window_tile_data: false,
                 window_on_off: false,
                 window_tile_map: false,
-                display_on_off: false,
+                display_on: false,
             },
             lcd_status: LCDStatusRegister {
                 gpu_mode: RenderingMode::HBlank0,
@@ -165,7 +165,7 @@ impl GPURegisters {
     /// Set the LCD Control register to the provided value.
     pub fn set_lcd_control(&mut self, value: u8) {
         self.lcd_control = LCDCRegister::from(value);
-        if self.lcd_control.display_on_off {
+        if self.lcd_control.display_on {
             log::debug!("LCD is turned on");
         } else {
             log::debug!("LCD is turned off");
@@ -290,7 +290,7 @@ impl GPURegisters {
     /// Get the LCD Status register.
     pub fn get_lcd_status(&self) -> u8 {
         let before_lcd_enable = u8::from(&self.lcd_status);
-        if !self.lcd_control.display_on_off {
+        if !self.lcd_control.display_on {
             before_lcd_enable & 0b00
         } else {
             before_lcd_enable
@@ -379,7 +379,7 @@ impl GPURegisters {
 impl From<LCDCRegister> for u8 {
     fn from(register: LCDCRegister) -> Self {
         let mut value = 0;
-        if register.display_on_off {
+        if register.display_on {
             value |= 1 << LCD_ENABLE_BYTE_POSITION;
         }
         if register.window_tile_map {
@@ -410,7 +410,7 @@ impl From<LCDCRegister> for u8 {
 impl From<&LCDCRegister> for u8 {
     fn from(register: &LCDCRegister) -> Self {
         let mut value = 0;
-        if register.display_on_off {
+        if register.display_on {
             value |= 1 << LCD_ENABLE_BYTE_POSITION;
         }
         if register.window_tile_map {
@@ -441,7 +441,7 @@ impl From<&LCDCRegister> for u8 {
 impl From<u8> for LCDCRegister {
     fn from(value: u8) -> Self {
         LCDCRegister {
-            display_on_off: value & (1 << LCD_ENABLE_BYTE_POSITION) != 0,
+            display_on: value & (1 << LCD_ENABLE_BYTE_POSITION) != 0,
             window_tile_map: value & (1 << WINDOW_TILE_MAP_BYTE_POSITION) != 0,
             window_on_off: value & (1 << WINDOW_ENABLE_BYTE_POSITION) != 0,
             background_and_window_tile_data: value & (1 << BG_TILE_DATA_BYTE_POSITION) != 0,
