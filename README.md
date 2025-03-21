@@ -12,6 +12,8 @@ The app also runs in the web using WASM.
 - [Gameboy Doctor](https://github.com/robert/gameboy-doctor)
 - [GameBoy Emulation in JavaScript](https://imrannazar.com/series/gameboy-emulation-in-javascript)
 - [DMG-01: How to Emulate a Game Boy](https://rylev.github.io/DMG-01/public/book/introduction.html)
+- [Binjgb - A Game Boy emulator implemented in C with good trace
+  logging for comparing logs instruction by instruction](https://github.com/binji/binjgb)
 
 ## How to Start
 
