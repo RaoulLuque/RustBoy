@@ -288,10 +288,16 @@ impl GPURegisters {
     }
 
     /// Get the LCD Status register.
+    ///
+    /// If the LCD is turned off, we return VBlank mode (0b01) as the current mode (lower two
+    /// bits of the LCD status register), because the CPU might read this register before the
+    /// GPU has a chance to update it.
     pub fn get_lcd_status(&self) -> u8 {
         let before_lcd_enable = u8::from(&self.lcd_status);
         if !self.lcd_control.display_on {
-            before_lcd_enable & 0b00
+            // If the LCD is turned off, we return VBlank mode (0b01) as the current mode (lower two
+            // bits of the LCD status register)
+            before_lcd_enable & 0b01
         } else {
             before_lcd_enable
         }
