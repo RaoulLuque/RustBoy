@@ -12,6 +12,7 @@ mod cpu;
 mod debugging;
 mod frontend;
 mod gpu;
+mod input;
 mod interrupts;
 mod memory_bus;
 mod timer;
