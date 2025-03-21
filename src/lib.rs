@@ -28,10 +28,11 @@ use debugging::setup_debugging_logs_files;
 use frontend::State;
 use gpu::GPU;
 use gpu::RenderTask;
-use input::Joypad;
+use input::{Button, Joypad};
 use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use timer::TimerInfo;
 
+use crate::input::{handle_key_pressed_event, handle_key_released_event};
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -273,6 +274,24 @@ pub async fn run(
                                 },
                             ..
                         } => control_flow.exit(),
+                        WindowEvent::KeyboardInput {
+                            event:
+                                KeyEvent {
+                                    state: ElementState::Pressed,
+                                    physical_key: key,
+                                    ..
+                                },
+                            ..
+                        } => handle_key_pressed_event(&mut rust_boy, key),
+                        WindowEvent::KeyboardInput {
+                            event:
+                                KeyEvent {
+                                    state: ElementState::Released,
+                                    physical_key: key,
+                                    ..
+                                },
+                            ..
+                        } => handle_key_released_event(&mut rust_boy, key),
                         WindowEvent::Resized(physical_size) => {
                             log::info!("physical_size: {physical_size:?}");
                             surface_configured = true;

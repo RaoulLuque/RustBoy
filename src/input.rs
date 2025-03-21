@@ -1,3 +1,6 @@
+use crate::RustBoy;
+use winit::keyboard::{KeyCode, PhysicalKey};
+
 /// Struct to represent the joypad state. The joypad state is represented by a single register
 /// in the real RustBoy. The register has two flags which can be selected, depending on which
 /// the rest of it represents the state of the action or direction buttons.
@@ -40,7 +43,7 @@ struct JoypadRegister {
 
 /// Enum to represent the buttons on the joypad. The enum is used to identify which button is
 /// pressed.
-enum Button {
+pub enum Button {
     A,
     B,
     Start,
@@ -49,6 +52,18 @@ enum Button {
     Down,
     Left,
     Right,
+}
+
+impl RustBoy {
+    /// Handles a button press event by calling the [Joypad::handle_button_press] method.
+    pub fn handle_button_press(&mut self, button: Button) {
+        self.joypad.handle_button_press(button);
+    }
+
+    /// Handles a button release event by calling the [Joypad::handle_button_release] method.
+    pub fn handle_button_release(&mut self, button: Button) {
+        self.joypad.handle_button_release(button);
+    }
 }
 
 impl Joypad {
@@ -171,5 +186,55 @@ impl JoypadRegister {
             value |= 0b0001_0000;
         }
         value
+    }
+}
+
+/// Handles the key pressed event by calling the [RustBoy::handle_button_press] method.
+pub fn handle_key_pressed_event(rust_boy: &mut RustBoy, key: &PhysicalKey) {
+    match key {
+        PhysicalKey::Code(KeyCode::ArrowLeft) => {
+            rust_boy.handle_button_press(Button::Left);
+        }
+        PhysicalKey::Code(KeyCode::ArrowRight) => {
+            rust_boy.handle_button_press(Button::Right);
+        }
+        PhysicalKey::Code(KeyCode::ArrowUp) => {
+            rust_boy.handle_button_press(Button::Up);
+        }
+        PhysicalKey::Code(KeyCode::ArrowDown) => {
+            rust_boy.handle_button_press(Button::Down);
+        }
+        PhysicalKey::Code(KeyCode::KeyA) => {
+            rust_boy.handle_button_press(Button::A);
+        }
+        PhysicalKey::Code(KeyCode::KeyB) => {
+            rust_boy.handle_button_press(Button::B);
+        }
+        _ => {}
+    }
+}
+
+/// Handles the key released event by calling the [RustBoy::handle_button_release] method.
+pub fn handle_key_released_event(rust_boy: &mut RustBoy, key: &PhysicalKey) {
+    match key {
+        PhysicalKey::Code(KeyCode::ArrowLeft) => {
+            rust_boy.handle_button_release(Button::Left);
+        }
+        PhysicalKey::Code(KeyCode::ArrowRight) => {
+            rust_boy.handle_button_release(Button::Right);
+        }
+        PhysicalKey::Code(KeyCode::ArrowUp) => {
+            rust_boy.handle_button_release(Button::Up);
+        }
+        PhysicalKey::Code(KeyCode::ArrowDown) => {
+            rust_boy.handle_button_release(Button::Down);
+        }
+        PhysicalKey::Code(KeyCode::KeyA) => {
+            rust_boy.handle_button_release(Button::A);
+        }
+        PhysicalKey::Code(KeyCode::KeyB) => {
+            rust_boy.handle_button_release(Button::B);
+        }
+        _ => {}
     }
 }
