@@ -344,7 +344,7 @@ fn run_headless(rust_boy: &mut RustBoy) {
 }
 
 /// Handle the redraw requested event.
-/// 
+///
 /// This function is called whenever the window requests a redraw. That is, [TARGET_FPS] times per
 /// second (if there are no dropped frames). It handles the stepping of the CPU and GPU, therefore
 /// keeping them in sync and providing a "runtime" for the entire emulator.
