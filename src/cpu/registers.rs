@@ -120,7 +120,7 @@ pub struct FlagsRegister {
 
 impl FlagsRegister {
     pub fn get(&self) -> u8 {
-        self.register
+        self.register & 0xF0
     }
 
     pub fn get_zero_flag(&self) -> bool {
