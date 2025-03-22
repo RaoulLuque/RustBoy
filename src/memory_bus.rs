@@ -106,7 +106,7 @@ impl RustBoy {
                 if self.debugging_flags.timing_mode {
                     if value as char == 'P' {
                         println!(
-                            "Run took: {}seconds",
+                            "Run took: {} seconds",
                             self.debugging_flags
                                 .start_time
                                 .expect("Start time should be set")

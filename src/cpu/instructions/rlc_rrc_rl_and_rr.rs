@@ -21,10 +21,10 @@ impl RustBoy {
     pub(crate) fn rlc(&mut self, value: u8) -> u8 {
         let new_value = value.rotate_left(1);
         let carry = value & 0b1000_0000 != 0;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = carry;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(carry);
         new_value
     }
 
@@ -47,10 +47,10 @@ impl RustBoy {
     pub(crate) fn rrc(&mut self, value: u8) -> u8 {
         let new_value = value.rotate_right(1);
         let carry = value & 0b0000_0001 != 0;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = carry;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(carry);
         new_value
     }
 
@@ -70,12 +70,12 @@ impl RustBoy {
 
     /// Rotates the given value left through the carry flag. Sets the zero flag if the result is zero.
     pub(crate) fn rl(&mut self, value: u8) -> u8 {
-        let carry = self.registers.f.carry;
+        let carry = self.registers.f.get_carry_flag();
         let new_value = value << 1 | (carry as u8);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = value & 0b1000_0000 != 0;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(value & 0b1000_0000 != 0);
         new_value
     }
 
@@ -95,12 +95,12 @@ impl RustBoy {
 
     /// Rotates the given value right through the carry flag. Sets the zero flag if the result is zero.
     pub(crate) fn rr(&mut self, value: u8) -> u8 {
-        let carry = self.registers.f.carry;
+        let carry = self.registers.f.get_carry_flag();
         let new_value = (value >> 1) | ((carry as u8) << 7);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = value & 0b0000_0001 != 0;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(value & 0b0000_0001 != 0);
         new_value
     }
 }

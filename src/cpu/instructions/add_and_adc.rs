@@ -37,16 +37,19 @@ impl RustBoy {
             .a
             .wrapping_add(value)
             .wrapping_add(carry_flag as u8);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
         // The carry flag is set if there is an overflow from the 8th bit to the "9"th bit.
         // This is the case if the sum of the A register and the value are greater than 0xFF = 0b 1111 1111 (binary).
-        self.registers.f.carry = self.registers.a as u16 + value as u16 + carry_flag as u16 > 0xFF;
+        self.registers
+            .f
+            .set_carry_flag(self.registers.a as u16 + value as u16 + carry_flag as u16 > 0xFF);
         // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
         // This is the case if the sum of the lower 4 bits of the A register and the value are greater
         // than 0xF = 0b 0000 1111 (binary).
-        self.registers.f.half_carry =
-            ((self.registers.a & 0xF) + (value & 0xF) + carry_flag as u8) > 0xF;
+        self.registers.f.set_half_carry_flag(
+            ((self.registers.a & 0xF) + (value & 0xF) + carry_flag as u8) > 0xF,
+        );
         new_value
     }
 
@@ -54,15 +57,19 @@ impl RustBoy {
     /// [super::registers::FlagsRegister].
     pub(crate) fn add_not_to_a(&mut self, target_value: u8, source_value: u8) -> u8 {
         let new_value = target_value.wrapping_add(source_value);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
         // The carry flag is set if there is an overflow from the 8th bit to the "9"th bit.
         // This is the case if the sum of the A register and the value are greater than 0xFF = 0b 1111 1111 (binary).
-        self.registers.f.carry = target_value as u16 + source_value as u16 > 0xFF;
+        self.registers
+            .f
+            .set_carry_flag(target_value as u16 + source_value as u16 > 0xFF);
         // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
         // This is the case if the sum of the lower 4 bits of the A register and the value are greater
         // than 0xF = 0b 0000 1111 (binary).
-        self.registers.f.half_carry = ((target_value & 0x0F) + (source_value & 0x0F)) > 0xF;
+        self.registers
+            .f
+            .set_half_carry_flag(((target_value & 0x0F) + (source_value & 0x0F)) > 0xF);
         new_value
     }
 
@@ -105,7 +112,7 @@ impl RustBoy {
                 let new_sp = self.sp.wrapping_add_signed(value);
                 // Set flags by calling add Instruction, discarding result and overwriting zero flag
                 self.add_not_to_a(self.sp as u8, value_u8);
-                self.registers.f.zero = false;
+                self.registers.f.set_zero_flag(false);
 
                 self.sp = new_sp;
                 self.pc.wrapping_add(2)
@@ -119,16 +126,20 @@ impl RustBoy {
     /// The zero flag is reset if the target is the stack pointer. Otherwise, it is not changed.
     fn add_word(&mut self, target: u16, value: u16, sp_is_target: bool) -> u16 {
         let new_value = target.wrapping_add(value);
-        self.registers.f.subtract = false;
+        self.registers.f.set_subtract_flag(false);
         // The carry flag is set if there is an overflow from the 15th bit to the "16"th bit.
         // This is the case if the sum of the A register and the value are greater than 0xFFFF = 0b 1111 1111 1111 1111 (binary).
-        self.registers.f.carry = target as u32 + value as u32 > 0xFFFF;
+        self.registers
+            .f
+            .set_carry_flag(target as u32 + value as u32 > 0xFFFF);
         // The half carry flag is set if there is an overflow from the lower 12 bits to the thirteenth bit.
         // This is the case if the sum of the lower 12 bits of the target and the value are greater
         // than 0x0FFF = 0b 0000 1111 1111 1111 (binary).
-        self.registers.f.half_carry = ((target & 0x0FFF) + (value & 0x0FFF)) > 0x0FFF;
+        self.registers
+            .f
+            .set_half_carry_flag(((target & 0x0FFF) + (value & 0x0FFF)) > 0x0FFF);
         if sp_is_target {
-            self.registers.f.zero = false;
+            self.registers.f.set_zero_flag(false);
         }
         new_value
     }
@@ -140,7 +151,7 @@ impl RustBoy {
     pub fn handle_adc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
-        let new_value = self.add(value, self.registers.f.carry);
+        let new_value = self.add(value, self.registers.f.get_carry_flag());
         self.registers.a = new_value;
         new_pc
     }

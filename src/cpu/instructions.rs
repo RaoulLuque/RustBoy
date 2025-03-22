@@ -356,10 +356,10 @@ fn check_instruction_condition(
     flags_register: &FlagsRegister,
 ) -> bool {
     match condition {
-        InstructionCondition::NotZero => !flags_register.zero,
-        InstructionCondition::Zero => flags_register.zero,
-        InstructionCondition::NotCarry => !flags_register.carry,
-        InstructionCondition::Carry => flags_register.carry,
+        InstructionCondition::NotZero => !flags_register.get_zero_flag(),
+        InstructionCondition::Zero => flags_register.get_zero_flag(),
+        InstructionCondition::NotCarry => !flags_register.get_carry_flag(),
+        InstructionCondition::Carry => flags_register.get_carry_flag(),
         InstructionCondition::Always => true,
     }
 }

@@ -10,7 +10,7 @@ impl RustBoy {
         let value = self.registers.a;
         let new_value = self.rlc(value);
         self.registers.a = new_value;
-        self.registers.f.zero = false;
+        self.registers.f.set_zero_flag(false);
         self.pc.wrapping_add(1)
     }
 
@@ -23,7 +23,7 @@ impl RustBoy {
         let value = self.registers.a;
         let new_value = self.rrc(value);
         self.registers.a = new_value;
-        self.registers.f.zero = false;
+        self.registers.f.set_zero_flag(false);
         self.pc.wrapping_add(1)
     }
 
@@ -36,7 +36,7 @@ impl RustBoy {
         let value = self.registers.a;
         let new_value = self.rl(value);
         self.registers.a = new_value;
-        self.registers.f.zero = false;
+        self.registers.f.set_zero_flag(false);
         self.pc.wrapping_add(1)
     }
 
@@ -49,7 +49,7 @@ impl RustBoy {
         let value = self.registers.a;
         let new_value = self.rr(value);
         self.registers.a = new_value;
-        self.registers.f.zero = false;
+        self.registers.f.set_zero_flag(false);
         self.pc.wrapping_add(1)
     }
 }

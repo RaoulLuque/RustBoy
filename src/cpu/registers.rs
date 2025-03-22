@@ -1,3 +1,5 @@
+use super::{clear_bit, is_bit_set, set_bit};
+
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
 const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
 const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
@@ -35,12 +37,7 @@ impl CPURegisters {
             c: 0,
             d: 0,
             e: 0,
-            f: FlagsRegister {
-                zero: false,
-                subtract: false,
-                half_carry: false,
-                carry: false,
-            },
+            f: FlagsRegister { register: 0 },
             h: 0,
             l: 0,
         }
@@ -55,7 +52,7 @@ impl CPURegisters {
             c: 0x13,
             d: 0x00,
             e: 0xD8,
-            f: FlagsRegister::from(0xB0u16),
+            f: FlagsRegister { register: 0xB0 },
             h: 0x01,
             l: 0x4D,
         }
@@ -63,7 +60,7 @@ impl CPURegisters {
 
     /// Returns the value of the AF register pair.
     pub fn get_af(&self) -> u16 {
-        ((self.a as u16) << 8) | (u16::from(&self.f))
+        ((self.a as u16) << 8) | (self.f.register as u16)
     }
 
     /// Returns the value of the BC register pair.
@@ -84,7 +81,9 @@ impl CPURegisters {
     /// Sets the value of the AF register pair.
     pub fn set_af(&mut self, value: u16) {
         self.a = ((value & 0xFF00) >> 8) as u8;
-        self.f = FlagsRegister::from((value & 0x00FF) as u8);
+        self.f = FlagsRegister {
+            register: (value & 0x00FF) as u8,
+        };
     }
 
     /// Sets the value of the BC register pair.
@@ -116,75 +115,59 @@ impl CPURegisters {
 /// - Bit 4: carry (C/CY) - set to true if there was a carry from bit 7 (an overflow)
 #[derive(Debug)]
 pub struct FlagsRegister {
-    pub zero: bool,
-    pub subtract: bool,
-    pub half_carry: bool,
-    pub carry: bool,
+    register: u8,
 }
 
-impl From<FlagsRegister> for u8 {
-    fn from(flags: FlagsRegister) -> Self {
-        let mut value = 0;
-        if flags.zero {
-            value |= 1 << ZERO_FLAG_BYTE_POSITION;
-        }
-        if flags.subtract {
-            value |= 1 << SUBTRACT_FLAG_BYTE_POSITION;
-        }
-        if flags.half_carry {
-            value |= 1 << HALF_CARRY_FLAG_BYTE_POSITION;
-        }
-        if flags.carry {
-            value |= 1 << CARRY_FLAG_BYTE_POSITION;
-        }
-        value
+impl FlagsRegister {
+    pub fn get(&self) -> u8 {
+        self.register
     }
-}
 
-impl From<&FlagsRegister> for u8 {
-    fn from(flags: &FlagsRegister) -> Self {
-        let mut value = 0;
-        if flags.zero {
-            value |= 1 << ZERO_FLAG_BYTE_POSITION;
-        }
-        if flags.subtract {
-            value |= 1 << SUBTRACT_FLAG_BYTE_POSITION;
-        }
-        if flags.half_carry {
-            value |= 1 << HALF_CARRY_FLAG_BYTE_POSITION;
-        }
-        if flags.carry {
-            value |= 1 << CARRY_FLAG_BYTE_POSITION;
-        }
-        value
+    pub fn get_zero_flag(&self) -> bool {
+        is_bit_set(self.register, ZERO_FLAG_BYTE_POSITION)
     }
-}
 
-impl From<FlagsRegister> for u16 {
-    fn from(flags: FlagsRegister) -> Self {
-        u8::from(flags) as u16
+    pub fn get_subtract_flag(&self) -> bool {
+        is_bit_set(self.register, SUBTRACT_FLAG_BYTE_POSITION)
     }
-}
 
-impl From<&FlagsRegister> for u16 {
-    fn from(flags: &FlagsRegister) -> Self {
-        u8::from(flags) as u16
+    pub fn get_half_carry_flag(&self) -> bool {
+        is_bit_set(self.register, HALF_CARRY_FLAG_BYTE_POSITION)
     }
-}
 
-impl From<u8> for FlagsRegister {
-    fn from(value: u8) -> Self {
-        FlagsRegister {
-            zero: value & (1 << ZERO_FLAG_BYTE_POSITION) != 0,
-            subtract: value & (1 << SUBTRACT_FLAG_BYTE_POSITION) != 0,
-            half_carry: value & (1 << HALF_CARRY_FLAG_BYTE_POSITION) != 0,
-            carry: value & (1 << CARRY_FLAG_BYTE_POSITION) != 0,
+    pub fn get_carry_flag(&self) -> bool {
+        is_bit_set(self.register, CARRY_FLAG_BYTE_POSITION)
+    }
+
+    pub fn set_zero_flag(&mut self, value: bool) {
+        if value {
+            self.register = set_bit(self.register, ZERO_FLAG_BYTE_POSITION);
+        } else {
+            self.register = clear_bit(self.register, ZERO_FLAG_BYTE_POSITION);
         }
     }
-}
 
-impl From<u16> for FlagsRegister {
-    fn from(value: u16) -> Self {
-        FlagsRegister::from(value as u8)
+    pub fn set_subtract_flag(&mut self, value: bool) {
+        if value {
+            self.register = set_bit(self.register, SUBTRACT_FLAG_BYTE_POSITION);
+        } else {
+            self.register = clear_bit(self.register, SUBTRACT_FLAG_BYTE_POSITION);
+        }
+    }
+
+    pub fn set_half_carry_flag(&mut self, value: bool) {
+        if value {
+            self.register = set_bit(self.register, HALF_CARRY_FLAG_BYTE_POSITION);
+        } else {
+            self.register = clear_bit(self.register, HALF_CARRY_FLAG_BYTE_POSITION);
+        }
+    }
+
+    pub fn set_carry_flag(&mut self, value: bool) {
+        if value {
+            self.register = set_bit(self.register, CARRY_FLAG_BYTE_POSITION);
+        } else {
+            self.register = clear_bit(self.register, CARRY_FLAG_BYTE_POSITION);
+        }
     }
 }

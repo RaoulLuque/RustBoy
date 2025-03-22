@@ -21,16 +21,20 @@ impl RustBoy {
             .a
             .wrapping_sub(value)
             .wrapping_sub(carry_flag as u8);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = true;
-        self.registers.f.carry = (self.registers.a as u16) < ((value as u16) + (carry_flag as u16));
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(true);
+        self.registers
+            .f
+            .set_carry_flag((self.registers.a as u16) < ((value as u16) + (carry_flag as u16)));
         // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
         // This is the case if the subtraction of the lower 4 bits of the A register and the value is less
         // than 0. That is, if there is a wrap around and the new_value is greater than 0xF.
-        self.registers.f.half_carry = (self.registers.a & 0xF)
-            .wrapping_sub(value & 0xF)
-            .wrapping_sub(carry_flag as u8)
-            > 0xF;
+        self.registers.f.set_half_carry_flag(
+            (self.registers.a & 0xF)
+                .wrapping_sub(value & 0xF)
+                .wrapping_sub(carry_flag as u8)
+                > 0xF,
+        );
         new_value
     }
 
@@ -40,7 +44,7 @@ impl RustBoy {
     pub fn handle_sbc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
         let value = source.get_value(&self.registers, &self, self.pc);
-        let new_value = self.sub(value, self.registers.f.carry);
+        let new_value = self.sub(value, self.registers.f.get_carry_flag());
         self.registers.a = new_value;
         new_pc
     }

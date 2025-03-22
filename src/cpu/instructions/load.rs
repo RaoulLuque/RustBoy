@@ -199,7 +199,7 @@ impl RustBoy {
                 let value = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
                 // Set flags by calling add Instruction, discarding result and overwriting zero flag
                 self.add_not_to_a(self.sp as u8, self.read_byte(self.pc.wrapping_add(1)));
-                self.registers.f.zero = false;
+                self.registers.f.set_zero_flag(false);
                 (self.sp).wrapping_add_signed(value)
             }
         }

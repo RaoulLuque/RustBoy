@@ -17,10 +17,10 @@ impl RustBoy {
     /// corresponding flags in the flags register [super::registers::FlagsRegister].
     fn and(&mut self, value: u8) -> u8 {
         let new_value = self.registers.a & value;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = true;
-        self.registers.f.carry = false;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(true);
+        self.registers.f.set_carry_flag(false);
         new_value
     }
 
@@ -39,10 +39,10 @@ impl RustBoy {
     /// corresponding flags in the flags register [super::registers::FlagsRegister].
     fn xor(&mut self, value: u8) -> u8 {
         let new_value = self.registers.a ^ value;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = false;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(false);
         new_value
     }
 
@@ -61,10 +61,10 @@ impl RustBoy {
     /// corresponding flags in the flags register [super::registers::FlagsRegister].
     fn or(&mut self, value: u8) -> u8 {
         let new_value = self.registers.a | value;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = false;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(false);
         new_value
     }
 

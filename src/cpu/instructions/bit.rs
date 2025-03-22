@@ -36,8 +36,8 @@ impl RustBoy {
         // bit_to_check converts the enum to a u8. This is done by just assigning the different
         // enum variants their indexes in the declaration starting at 0
         let mask = 1 << (bit_to_check as u8);
-        self.registers.f.zero = (value & mask) == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = true;
+        self.registers.f.set_zero_flag((value & mask) == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(true);
     }
 }

@@ -13,26 +13,26 @@ impl RustBoy {
     /// Decimal Adjust for Addition
     fn daa(&mut self) -> u8 {
         let mut a = self.registers.a;
-        if self.registers.f.subtract {
-            if self.registers.f.half_carry {
+        if self.registers.f.get_subtract_flag() {
+            if self.registers.f.get_half_carry_flag() {
                 a = a.wrapping_sub(0x06);
             }
-            if self.registers.f.carry {
+            if self.registers.f.get_carry_flag() {
                 a = a.wrapping_sub(0x60);
             }
         } else {
             let mut adjustment = 0;
-            if self.registers.f.half_carry || (self.registers.a & 0x0F) > 0x09 {
+            if self.registers.f.get_half_carry_flag() || (self.registers.a & 0x0F) > 0x09 {
                 adjustment += 0x06;
             }
-            if self.registers.f.carry || self.registers.a > 0x99 {
+            if self.registers.f.get_carry_flag() || self.registers.a > 0x99 {
                 adjustment += 0x60;
-                self.registers.f.carry = true;
+                self.registers.f.set_carry_flag(true);
             }
             a = a.wrapping_add(adjustment);
         }
-        self.registers.f.zero = a == 0;
-        self.registers.f.half_carry = false;
+        self.registers.f.set_zero_flag(a == 0);
+        self.registers.f.set_half_carry_flag(false);
         a
     }
 
@@ -47,9 +47,9 @@ impl RustBoy {
 
     /// Set Carry Flag. Also clears the half carry and subtract flags.
     fn scf(&mut self) {
-        self.registers.f.carry = true;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
+        self.registers.f.set_carry_flag(true);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
     }
 
     /// Handles the CPL instruction.
@@ -64,8 +64,8 @@ impl RustBoy {
     /// Complement A. Sets the subtract flag and the half carry flag.
     fn cpl(&mut self) {
         self.registers.a = !self.registers.a;
-        self.registers.f.subtract = true;
-        self.registers.f.half_carry = true;
+        self.registers.f.set_subtract_flag(true);
+        self.registers.f.set_half_carry_flag(true);
     }
 
     /// Handles the CCF instruction.
@@ -79,8 +79,10 @@ impl RustBoy {
 
     /// Complement Carry Flag. Sets the subtract flag and clears the half carry flag.
     fn ccf(&mut self) {
-        self.registers.f.carry = !self.registers.f.carry;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
+        self.registers
+            .f
+            .set_carry_flag(!self.registers.f.get_carry_flag());
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
     }
 }

@@ -72,7 +72,7 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
     let mut data = format!(
         "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
         rust_boy.registers.a,
-        u8::from(&rust_boy.registers.f),
+        rust_boy.registers.f.get(),
         rust_boy.registers.b,
         rust_boy.registers.c,
         rust_boy.registers.d,

@@ -57,12 +57,14 @@ impl RustBoy {
     /// Adds 1 to a value and sets the corresponding flags in the flags register
     fn inc(&mut self, value: u8) -> u8 {
         let new_value = value.wrapping_add(1);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
         // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
         // This is the case if the addition of the lower 4 bits of the A register and the value is greater
         // than 0xF. That is, if the lower 4 bits of the A register are greater than 0xF.
-        self.registers.f.half_carry = (value & 0xF).wrapping_add(1) > 0xF;
+        self.registers
+            .f
+            .set_half_carry_flag((value & 0xF).wrapping_add(1) > 0xF);
         new_value
     }
 
@@ -109,12 +111,14 @@ impl RustBoy {
     /// Subtracts 1 from a value and sets the corresponding flags in the flags register
     fn dec(&mut self, value: u8) -> u8 {
         let new_value = value.wrapping_sub(1);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = true;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(true);
         // The half carry flag is set if there is an overflow from the lower 4 bits to the fifth bit.
         // This is the case if the subtraction of 1 from the lower 4 bits of the value is less
         // than 0. That is, if there is a wrap around and the new_value is greater than 0xF.
-        self.registers.f.half_carry = (value & 0xF).wrapping_sub(1) > 0xF;
+        self.registers
+            .f
+            .set_half_carry_flag((value & 0xF).wrapping_sub(1) > 0xF);
         new_value
     }
 }

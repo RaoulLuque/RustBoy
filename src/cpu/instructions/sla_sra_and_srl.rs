@@ -21,10 +21,10 @@ impl RustBoy {
     fn sla(&mut self, value: u8) -> u8 {
         let new_value = value << 1;
         let carry = value & 0b1000_0000 != 0;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = carry;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(carry);
         new_value
     }
 
@@ -47,10 +47,10 @@ impl RustBoy {
     fn sra(&mut self, value: u8) -> u8 {
         let new_value = (value as i8) >> 1;
         let carry = value & 0b0000_0001 != 0;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = carry;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(carry);
         new_value as u8
     }
 
@@ -73,10 +73,10 @@ impl RustBoy {
     fn srl(&mut self, value: u8) -> u8 {
         let new_value = value >> 1;
         let carry = value & 0b0000_0001 != 0;
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
-        self.registers.f.half_carry = false;
-        self.registers.f.carry = carry;
+        self.registers.f.set_zero_flag(new_value == 0);
+        self.registers.f.set_subtract_flag(false);
+        self.registers.f.set_half_carry_flag(false);
+        self.registers.f.set_carry_flag(carry);
         new_value
     }
 }
