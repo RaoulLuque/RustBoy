@@ -33,6 +33,7 @@ use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use timer::TimerInfo;
 
 use crate::input::{handle_key_pressed_event, handle_key_released_event};
+use winit::event_loop::EventLoopWindowTarget;
 use winit::{
     dpi::PhysicalSize,
     event::*,
@@ -258,7 +259,7 @@ pub async fn run(
 
     // Variables to estimate FPS
     let mut running_frame_counter = 0;
-    let mut first_frame_time = Instant::now();
+    let mut time_of_last_fps_calculation = Instant::now();
 
     // Variable to track if emulator is paused
     let mut paused = false;
@@ -271,125 +272,27 @@ pub async fn run(
             } if window_id == state.window.id() => {
                 if !state.input(event) {
                     match event {
-                        WindowEvent::CloseRequested
-                        | WindowEvent::KeyboardInput {
-                            event:
-                                KeyEvent {
-                                    state: ElementState::Pressed,
-                                    physical_key: PhysicalKey::Code(KeyCode::Escape),
-                                    ..
-                                },
-                            ..
-                        } => control_flow.exit(),
-                        WindowEvent::KeyboardInput {
-                            event:
-                                KeyEvent {
-                                    state: ElementState::Pressed,
-                                    physical_key: key,
-                                    ..
-                                },
-                            ..
-                        } => handle_key_pressed_event(&mut rust_boy, key, &mut paused),
-                        WindowEvent::KeyboardInput {
-                            event:
-                                KeyEvent {
-                                    state: ElementState::Released,
-                                    physical_key: key,
-                                    ..
-                                },
-                            ..
-                        } => handle_key_released_event(&mut rust_boy, key),
+                        WindowEvent::CloseRequested => handle_close_event(control_flow),
+                        WindowEvent::KeyboardInput { .. } => {
+                            handle_keyboard_input(event, control_flow, &mut rust_boy, &mut paused)
+                        }
                         WindowEvent::Resized(physical_size) => {
                             log::info!("physical_size: {physical_size:?}");
                             surface_configured = true;
                             state.resize(*physical_size);
                         }
                         WindowEvent::RedrawRequested => {
-                            // This tells winit that we want another frame after this one
-                            state.window().request_redraw();
-
-                            if !surface_configured {
-                                log::warn!("Surface not configured");
-                                return;
-                            }
-
-                            // If the emulator is paused, we don't want to run any cycles
-                            if paused {
-                                return;
-                            }
-
-                            // Make multiple steps per redraw request until something has to be rendered
-                            while current_rendering_task != RenderTask::RenderFrame {
-                                current_rendering_task = handle_no_rendering_task(&mut rust_boy);
-
-                                // We draw a new line to the framebuffer whenever the gpu requests a new line or when it requests a
-                                // new frame, since in the latter case, the last line is still missing
-                                if current_rendering_task != RenderTask::None {
-                                    state.update();
-
-                                    if let RenderTask::WriteLineToBuffer(current_scanline) =
-                                        current_rendering_task
-                                    {
-                                        // If the current rendering task was to render a line, we need to reset it to none,
-                                        // since we have just written a line to the framebuffer. If it was to render a frame,
-                                        // it has to stay as is, since we still need to render the frame
-                                        current_rendering_task = RenderTask::None;
-                                        state.render_compute(&mut rust_boy.gpu, current_scanline);
-                                    } else {
-                                        // Otherwise, the current rendering task was to render a frame, and we still need to
-                                        // write the last line to the framebuffer
-                                        state.render_compute(&mut rust_boy.gpu, 143);
-                                    }
-                                }
-                            }
-
-                            if current_rendering_task == RenderTask::RenderFrame {
-                                // Calculate the time since the last frame and check if a new frame
-                                // should be drawn or we still wait
-                                let now = Instant::now();
-                                let elapsed = now.duration_since(last_frame_time);
-                                if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
-                                    last_frame_time = Instant::now();
-                                    current_rendering_task = RenderTask::None;
-
-                                    // Estimate FPS
-                                    running_frame_counter += 1;
-
-                                    if running_frame_counter == 600 {
-                                        let elapsed_time = first_frame_time.elapsed();
-                                        let fps = running_frame_counter as f64
-                                            / elapsed_time.as_secs_f64();
-                                        log::debug!("FPS: {}", fps);
-                                        running_frame_counter = 0;
-                                        first_frame_time = now;
-                                    }
-
-                                    state.update();
-                                    match state.render() {
-                                        Ok(_) => {}
-                                        // Reconfigure the surface if it's lost or outdated
-                                        Err(
-                                            wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated,
-                                        ) => {
-                                            log::warn!("Surface is Lost or Outdated");
-                                            state.resize(state.size)
-                                        }
-                                        // The system is out of memory, we should probably quit
-                                        Err(
-                                            wgpu::SurfaceError::OutOfMemory
-                                            | wgpu::SurfaceError::Other,
-                                        ) => {
-                                            log::error!("OutOfMemory");
-                                            control_flow.exit();
-                                        }
-
-                                        // This happens when a frame takes too long to present
-                                        Err(wgpu::SurfaceError::Timeout) => {
-                                            log::warn!("Surface timeout")
-                                        }
-                                    }
-                                }
-                            }
+                            handle_redraw_requested_event(
+                                &mut state,
+                                control_flow,
+                                &mut rust_boy,
+                                &mut current_rendering_task,
+                                &mut last_frame_time,
+                                &mut time_of_last_fps_calculation,
+                                &mut running_frame_counter,
+                                surface_configured,
+                                paused,
+                            );
                         }
                         _ => {}
                     }
@@ -440,6 +343,101 @@ fn run_headless(rust_boy: &mut RustBoy) {
     }
 }
 
+/// Handle the redraw requested event.
+/// 
+/// This function is called whenever the window requests a redraw. That is, [TARGET_FPS] times per
+/// second (if there are no dropped frames). It handles the stepping of the CPU and GPU, therefore
+/// keeping them in sync and providing a "runtime" for the entire emulator.
+fn handle_redraw_requested_event(
+    state: &mut State,
+    control_flow: &EventLoopWindowTarget<()>,
+    rust_boy: &mut RustBoy,
+    current_rendering_task: &mut RenderTask,
+    last_frame_time: &mut Instant,
+    time_of_last_fps_calculation: &mut Instant,
+    running_frame_counter: &mut u32,
+    surface_configured: bool,
+    paused: bool,
+) {
+    // This tells winit that we want another frame after this one
+    state.window().request_redraw();
+
+    if !surface_configured {
+        log::warn!("Surface not configured");
+        return;
+    }
+
+    // If the emulator is paused, we don't want to run any cycles
+    if paused {
+        return;
+    }
+
+    // Make multiple steps per redraw request until something has to be rendered
+    while *current_rendering_task != RenderTask::RenderFrame {
+        *current_rendering_task = handle_no_rendering_task(rust_boy);
+
+        // We draw a new line to the framebuffer whenever the gpu requests a new line or when it requests a
+        // new frame, since in the latter case, the last line is still missing
+        if *current_rendering_task != RenderTask::None {
+            state.update();
+
+            if let RenderTask::WriteLineToBuffer(current_scanline) = *current_rendering_task {
+                // If the current rendering task was to render a line, we need to reset it to none,
+                // since we have just written a line to the framebuffer. If it was to render a frame,
+                // it has to stay as is, since we still need to render the frame
+                *current_rendering_task = RenderTask::None;
+                state.render_compute(&mut rust_boy.gpu, current_scanline);
+            } else {
+                // Otherwise, the current rendering task was to render a frame, and we still need to
+                // write the last line to the framebuffer
+                state.render_compute(&mut rust_boy.gpu, 143);
+            }
+        }
+    }
+
+    if *current_rendering_task == RenderTask::RenderFrame {
+        // Calculate the time since the last frame and check if a new frame
+        // should be drawn or we still wait
+        let now = Instant::now();
+        let elapsed = now.duration_since(*last_frame_time);
+        if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
+            *last_frame_time = Instant::now();
+            *current_rendering_task = RenderTask::None;
+
+            // Estimate FPS
+            *running_frame_counter += 1;
+
+            if *running_frame_counter == 600 {
+                let elapsed_time = time_of_last_fps_calculation.elapsed();
+                let fps = *running_frame_counter as f64 / elapsed_time.as_secs_f64();
+                log::debug!("FPS: {}", fps);
+                *running_frame_counter = 0;
+                *time_of_last_fps_calculation = now;
+            }
+
+            state.update();
+            match state.render() {
+                Ok(_) => {}
+                // Reconfigure the surface if it's lost or outdated
+                Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                    log::warn!("Surface is Lost or Outdated");
+                    state.resize(state.size)
+                }
+                // The system is out of memory, we should probably quit
+                Err(wgpu::SurfaceError::OutOfMemory | wgpu::SurfaceError::Other) => {
+                    log::error!("OutOfMemory");
+                    control_flow.exit();
+                }
+
+                // This happens when a frame takes too long to present
+                Err(wgpu::SurfaceError::Timeout) => {
+                    log::warn!("Surface timeout")
+                }
+            }
+        }
+    }
+}
+
 /// Handle the case in the game boy loop, where we are not requesting a redraw.
 fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
     // Fetch and execute next instruction with cpu_step().
@@ -465,4 +463,51 @@ fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
 
     // Return the new total number of cpu cycles and possible rendering tasks
     new_rendering_task
+}
+
+/// Handles the close event of the window by exiting the event loop.
+fn handle_close_event(control_flow: &EventLoopWindowTarget<()>) {
+    control_flow.exit();
+}
+
+/// Handles the keyboard input events.
+///
+/// That is, control flow inputs like ESCAPE to exit the emulator, or P to pause the emulator but
+/// also inputs for the emulator itself.
+fn handle_keyboard_input(
+    event: &WindowEvent,
+    control_flow: &EventLoopWindowTarget<()>,
+    rust_boy: &mut RustBoy,
+    paused: &mut bool,
+) {
+    match event {
+        WindowEvent::KeyboardInput {
+            event:
+                KeyEvent {
+                    state: ElementState::Pressed,
+                    physical_key: PhysicalKey::Code(KeyCode::Escape),
+                    ..
+                },
+            ..
+        } => control_flow.exit(),
+        WindowEvent::KeyboardInput {
+            event:
+                KeyEvent {
+                    state: ElementState::Pressed,
+                    physical_key: key,
+                    ..
+                },
+            ..
+        } => handle_key_pressed_event(rust_boy, key, paused),
+        WindowEvent::KeyboardInput {
+            event:
+                KeyEvent {
+                    state: ElementState::Released,
+                    physical_key: key,
+                    ..
+                },
+            ..
+        } => handle_key_released_event(rust_boy, key),
+        _ => {}
+    }
 }
