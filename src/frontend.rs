@@ -51,7 +51,7 @@ pub struct State<'a> {
     // Storage texture (160x144) to act as a framebuffer for the compute shader
     framebuffer_texture: wgpu::Texture,
     // Buffer to hold the current line to be rendered for the compute shader
-    rendering_line_buffer: wgpu::Buffer,
+    rendering_line_and_obj_size_buffer: wgpu::Buffer,
 
     // Storage texture (128 x 128 rgba) to hold the tiles used for objects/sprites
     object_tile_atlas_texture: wgpu::Texture,
@@ -129,7 +129,7 @@ impl<'a> State<'a> {
             tilemap_buffer,
             background_viewport_buffer,
             framebuffer_texture,
-            rendering_line_buffer,
+            rendering_line_and_obj_size_buffer,
             object_tile_atlas_texture,
             objects_in_scanline_buffer,
         ) = setup_compute_shader_pipeline(&device);
@@ -154,7 +154,7 @@ impl<'a> State<'a> {
             tilemap_buffer,
             background_viewport_buffer,
             framebuffer_texture,
-            rendering_line_buffer,
+            rendering_line_and_obj_size_buffer,
             object_tile_atlas_texture,
             objects_in_scanline_buffer,
         }
@@ -344,10 +344,15 @@ impl<'a> State<'a> {
 
         // Update the current scanline uniform buffer
         let updated_current_scanline = RenderingLinePosition {
-            pos: [current_scanline as u32, 0, 0, 0],
+            pos: [
+                current_scanline as u32,
+                rust_boy_gpu.gpu_registers.get_obj_size() as u32,
+                0,
+                0,
+            ],
         };
         self.queue.write_buffer(
-            &self.rendering_line_buffer,
+            &self.rendering_line_and_obj_size_buffer,
             0,
             bytemuck::cast_slice(&[updated_current_scanline]),
         );

@@ -383,6 +383,11 @@ impl GPURegisters {
     pub fn get_gpu_mode(&self) -> RenderingMode {
         self.lcd_status.gpu_mode
     }
+
+    /// Get the state of the obj size flag (sprite size)
+    pub fn get_obj_size(&self) -> bool {
+        self.lcd_control.sprite_size
+    }
 }
 
 impl From<LCDCRegister> for u8 {

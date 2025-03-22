@@ -309,10 +309,10 @@ pub fn setup_compute_shader_pipeline(
         view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
     });
 
-    // Sets the position from where the background is drawn. Used for scrolling. Is given as pixel
-    // shift-values in the tilemap.
+    // Buffer to hold the current line to be rendered and whether the objects
+    // are in size 8x8 or 8x16 mode for the compute shader
     let initial_rendering_line = RenderingLinePosition { pos: [0, 0, 0, 0] };
-    let rendering_line_buffer: Buffer =
+    let rendering_line_and_obj_size_buffer: Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Rendering Line Buffer"),
             contents: bytemuck::cast_slice(&[initial_rendering_line]),
@@ -445,7 +445,7 @@ pub fn setup_compute_shader_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: rendering_line_buffer.as_entire_binding(),
+                resource: rendering_line_and_obj_size_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
@@ -501,7 +501,7 @@ pub fn setup_compute_shader_pipeline(
         tilemap_buffer,
         background_viewport_buffer,
         framebuffer_texture,
-        rendering_line_buffer,
+        rendering_line_and_obj_size_buffer,
         object_tile_atlas_texture,
         objects_in_scanline_buffer,
     )
