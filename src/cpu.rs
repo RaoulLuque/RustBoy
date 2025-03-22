@@ -54,9 +54,6 @@ impl RustBoy {
         // If an interrupt is requested, the corresponding bit in the interrupt flag register
         // and the IME (Interrupt Master Enable) flag are set to 0.
         if let Some(interrupt_location) = self.check_if_interrupt_is_requested() {
-            // Log the interrupt location
-            log::trace!("Interrupt requested at: 0x{:04X}", interrupt_location);
-
             // The flag register and IME (Interrupt Master Enable) flag are already set to 0 by
             // the check_if_interrupt_is_requested function, so we don't need to do it again here.
 
@@ -118,7 +115,6 @@ impl RustBoy {
                         instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
                     }
 
-                    log::trace!("Executing instruction: {:?} ", instruction);
                     self.execute(instruction)
                 } else {
                     let panic_description = format!(
@@ -135,7 +131,7 @@ impl RustBoy {
         }
     }
 
-    /// Initializes the hardware registers to their default values.
+    /// Initializes the hardware registers to their default values after the boot rom ran.
     /// See [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
     pub(crate) fn initialize_hardware_registers(&mut self) {
         self.write_byte(0xFF00, 0xCF);
