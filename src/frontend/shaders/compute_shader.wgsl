@@ -14,8 +14,9 @@ struct ObjectsInScanline {
 // Each tile is 8x8 pixels, with a total of 16 tiles per row/column, so the atlas is 128 x 128 pixels in total.
 // It is encoded in Rgba8UnormSrgb format.
 @group(0) @binding(0) var background_tile_atlas: texture_2d<f32>;
-// We use only the first entry to store the current rendering line
-@group(0) @binding(1) var<uniform> current_line: vec4<u32>;
+// We use only the first entry to store the current rendering line, the second entry is used to pass the object size
+// flag (FF40 bit 2)
+@group(0) @binding(1) var<uniform> current_line_and_obj_size: vec4<u32>;
 // Tilemap
 // Tilemap is a 32x32 array of u32s, the same size as the grid of tiles that is loaded in the Rust Boy.
 // Each u32 is a tile index, which is used to look up the tile in the tile atlas. The tilemap is in row major,
@@ -49,8 +50,8 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
     // Retrieve the "position" of "the current pixel". That is, per workgroup, the y coordinate is fixed to the current
     // (rendering) line. The x coordinate on the other hand, is the local invocation id, which is an index iterating
     // between 0 and 159 Thus, each workgroup will render a line/row of 160 pixels.
-    let x = local_id.x;
-    let y = current_line.x;
+    let x: u32 = local_id.x;
+    let y: u32 = current_line_and_obj_size.x;
 
     var pixel_in_object = false;
     var object = vec4<u32>(0, 0, 0, 0);
@@ -63,26 +64,26 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
             // objects_in_scanline.objects[i].x is the y coordinate of the object and if it is 0, it means that there are
             // no more objects in the current scanline. Because, no object with a y coordinate of 0 would be added to the
             // objects_in_scanline.
-
             break;
         }
-//        textureStore(framebuffer, vec2<i32>(i32(x), i32(y)), vec4<f32>(1.0, 0.0, 0.0, 1.0));
-//        return;
         if (objects_in_scanline.objects[i].y <= adjusted_x && objects_in_scanline.objects[i].y + 8 > adjusted_x) {
             // objects_in_scanline.objects[i].y is the x coordinate of the object. With this, we check if the current pixel
             // lies within the object. For the y coordinate this is already guaranteed by objects_in_scanline
-
             // TODO: Handle, if the object actually covers the background (Byte 3 Priority)
             pixel_in_object = true;
             object = objects_in_scanline.objects[i];
-
         }
     }
 
     var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
     if (pixel_in_object) {
-        color = compute_color_from_object();
+        color = compute_color_from_object(object, vec2<u32>(x, y));
+        if (color.x == 1.0 && color.y == 1.0 && color.z == 1.0) {
+            // If the color is white, it means that the pixel is transparent and we should use the background color(?)
+            // TODO: Check if this is correct
+            color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
+        }
     } else {
         color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
     }
@@ -117,14 +118,96 @@ fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: ve
     // Convert pixel position to normalized UV (0.0 - 1.0) within the current 8x8 tile
     let tile_pixel_uv = vec2<f32>(pixel_index) / vec2<f32>(8.0, 8.0);
 
-    // Calculate position in tile atlas (16x16 grid of tiles)
+    return retrieve_color_from_atlas_texture(tile_index_in_atlas, tile_pixel_uv);
+}
+
+fn compute_color_from_object(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
+    let object_size_flag = (current_line_and_obj_size.y & 0x1) != 0;
+
+    // These are the x and y coordinates of the top left corner of the object
+    let object_coordinates = vec2<u32>(object.y - 8, object.x - 16);
+
+    // These are the x and y coordinate of the pixel within the object
+    var within_object_pixel_coordinates: vec2<u32> = pixel_coords - object_coordinates;
+
+    // Check for x or y flip
+    if (object.z & 0x20) != 0 {
+        // x flip
+        within_object_pixel_coordinates.x = 7 - within_object_pixel_coordinates.x;
+    }
+    if (object.z & 0x40) != 0 {
+        // y flip
+        if object_size_flag {
+            // Object_size_flag is set, therefore objects are 16 pixels high
+            within_object_pixel_coordinates.y = 15 - within_object_pixel_coordinates.y;
+        } else {
+            // Object_size_flag is not set, therefore objects are 8 pixels high
+            within_object_pixel_coordinates.y = 7 - within_object_pixel_coordinates.y;
+        }
+    }
+
+    // Convert pixel position to normalized UV (0.0 - 1.0) within the current tile
+    var tile_pixel_uv: vec2<f32>;
+    if object_size_flag {
+        // Object_size_flag is set, therefore objects are 16 pixels high and we have to normalize y coordinate by
+        // dividing by 16
+        tile_pixel_uv = vec2<f32>(within_object_pixel_coordinates) / vec2<f32>(8.0, 16.0);
+    } else {
+        // Object_size_flag is not set, therefore objects are 8 pixels high and we have to normalize y coordinate by
+        // dividing by 8
+        tile_pixel_uv = vec2<f32>(within_object_pixel_coordinates) / vec2<f32>(8.0, 8.0);
+    }
+
+    // The tile index is given as the third entry in the object vector
+    let tile_index_in_atlas = object.z;
+
+    return retrieve_color_from_atlas_texture(tile_index_in_atlas, tile_pixel_uv);
+}
+
+fn compute_color_from_object_size_8(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
+    // These are the x and y coordinates of the top left corner of the object
+    let object_coordinates = vec2<u32>(object.y - 8, object.x - 16);
+
+    // These are the x and y coordinate of the pixel within the object
+    var within_object_pixel_coordinates: vec2<u32> = pixel_coords - object_coordinates;
+
+    // Check for x or y flip
+    if (object.z & 0x20) != 0 {
+        // x flip
+        within_object_pixel_coordinates.x = 7 - within_object_pixel_coordinates.x;
+    }
+    if (object.z & 0x40) != 0 {
+        // y flip
+        within_object_pixel_coordinates.y = 7 - within_object_pixel_coordinates.y;
+    }
+
+    // Convert pixel position to normalized UV (0.0 - 1.0) within the current tile
+    let tile_pixel_uv = vec2<f32>(within_object_pixel_coordinates) / vec2<f32>(8.0, 8.0);
+
+    // The tile index is given as the third entry in the object vector
+    let tile_index_in_atlas = object.z;
+
+    return retrieve_color_from_atlas_texture(tile_index_in_atlas, tile_pixel_uv);
+}
+
+fn compute_color_from_object_size_16(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
+    // These are the x and y coordinates of the top left corner of the object
+    let object_x_coordinate = object.y - 8;
+    let object_y_coordinate = object.x - 16;
+
+    // TODO: Implement this function
+    return vec4<f32>(1.0, 0.0, 0.0, 1.0);
+}
+
+fn retrieve_color_from_atlas_texture(tile_index_in_atlas: u32, within_tile_pixel_uv_coords: vec2<f32>) -> vec4<f32> {
+    // Calculate position in tile atlas (flattened 16x16 grid of tiles)
     let atlas_tile_x = f32(tile_index_in_atlas % 16);
     let atlas_tile_y = f32(u32(tile_index_in_atlas / 16));
 
     // Calculate final UV coordinates in the atlas texture
     let atlas_uv = vec2<f32>(
-        (atlas_tile_x + tile_pixel_uv.x) / 16,
-        (atlas_tile_y + tile_pixel_uv.y) / 16
+        (atlas_tile_x + within_tile_pixel_uv_coords.x) / 16,
+        (atlas_tile_y + within_tile_pixel_uv_coords.y) / 16
     );
 
     // Get the atlas texture dimensions
@@ -137,9 +220,4 @@ fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: ve
     let color = textureLoad(background_tile_atlas, atlas_texel_coord, 0);
 
     return color;
-}
-
-fn compute_color_from_object() -> vec4<f32>{
-    // TODO: Implement this function
-    return vec4<f32>(1.0, 0.0, 0.0, 1.0);
 }
