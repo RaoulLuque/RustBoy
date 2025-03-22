@@ -194,14 +194,17 @@ impl RustBoy {
     }
 }
 
+/// Checks if the bit at the given position is set in the given value.
 pub fn is_bit_set(value: u8, bit_position: u8) -> bool {
     (value & (1 << bit_position)) != 0
 }
 
+/// Sets the bit at the given position in the given value.
 pub fn set_bit(value: u8, bit_position: u8) -> u8 {
     value | (1 << bit_position)
 }
 
+/// Clears the bit at the given position in the given value.
 pub fn clear_bit(value: u8, bit_position: u8) -> u8 {
     value & !(1 << bit_position)
 }

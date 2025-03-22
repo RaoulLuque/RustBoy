@@ -119,26 +119,32 @@ pub struct FlagsRegister {
 }
 
 impl FlagsRegister {
+    /// Returns the value of the flags register.
     pub fn get(&self) -> u8 {
         self.register & 0xF0
     }
 
+    /// Returns the value of the zero flag as a bool.
     pub fn get_zero_flag(&self) -> bool {
         is_bit_set(self.register, ZERO_FLAG_BYTE_POSITION)
     }
 
+    /// Returns the value of the subtract flag as a bool.
     pub fn get_subtract_flag(&self) -> bool {
         is_bit_set(self.register, SUBTRACT_FLAG_BYTE_POSITION)
     }
 
+    /// Returns the value of the half carry flag as a bool.
     pub fn get_half_carry_flag(&self) -> bool {
         is_bit_set(self.register, HALF_CARRY_FLAG_BYTE_POSITION)
     }
 
+    /// Returns the value of the carry flag as a bool.
     pub fn get_carry_flag(&self) -> bool {
         is_bit_set(self.register, CARRY_FLAG_BYTE_POSITION)
     }
 
+    /// Sets the value of the zero flag.
     pub fn set_zero_flag(&mut self, value: bool) {
         if value {
             self.register = set_bit(self.register, ZERO_FLAG_BYTE_POSITION);
@@ -147,6 +153,7 @@ impl FlagsRegister {
         }
     }
 
+    /// Sets the value of the subtract flag.
     pub fn set_subtract_flag(&mut self, value: bool) {
         if value {
             self.register = set_bit(self.register, SUBTRACT_FLAG_BYTE_POSITION);
@@ -155,6 +162,7 @@ impl FlagsRegister {
         }
     }
 
+    /// Sets the value of the half carry flag.
     pub fn set_half_carry_flag(&mut self, value: bool) {
         if value {
             self.register = set_bit(self.register, HALF_CARRY_FLAG_BYTE_POSITION);
@@ -163,6 +171,7 @@ impl FlagsRegister {
         }
     }
 
+    /// Sets the value of the carry flag.
     pub fn set_carry_flag(&mut self, value: bool) {
         if value {
             self.register = set_bit(self.register, CARRY_FLAG_BYTE_POSITION);
