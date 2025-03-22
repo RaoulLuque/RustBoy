@@ -256,6 +256,10 @@ pub async fn run(
     let mut last_frame_time = Instant::now();
     log::info!("Starting event loop");
 
+    // Variables to estimate FPS
+    let mut running_frame_counter = 0;
+    let mut first_frame_time = Instant::now();
+
     event_loop
         .run(move |event, control_flow| match event {
             Event::WindowEvent {
@@ -339,6 +343,18 @@ pub async fn run(
                                 if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
                                     last_frame_time = Instant::now();
                                     current_rendering_task = RenderTask::None;
+
+                                    // Estimate FPS
+                                    running_frame_counter += 1;
+
+                                    if running_frame_counter == 600 {
+                                        let elapsed_time = first_frame_time.elapsed();
+                                        let fps = running_frame_counter as f64
+                                            / elapsed_time.as_secs_f64();
+                                        log::debug!("FPS: {}", fps);
+                                        running_frame_counter = 0;
+                                        first_frame_time = now;
+                                    }
 
                                     state.update();
                                     match state.render() {
