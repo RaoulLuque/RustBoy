@@ -22,6 +22,11 @@ struct Args {
     #[arg(short, long = "BINJGB", default_value_t = false)]
     binjgb_mode: bool,
 
+    /// If present, exits when 'P' (capital letter) is written to the serial output. Used to measure
+    /// the execution time of test ROMs.
+    #[arg(short, long = "TIMING", default_value_t = false)]
+    timing_mode: bool,
+
     /// If present, prints serial output to the console
     #[arg(short, long = "SB", default_value_t = false)]
     print_serial_output_to_terminal: bool,
@@ -39,6 +44,7 @@ fn main() {
         args.game_boy_doctor,
         args.file_logs,
         args.binjgb_mode,
+        args.timing_mode,
         args.print_serial_output_to_terminal,
         &args.rom_path,
     ));

@@ -1,5 +1,7 @@
 /// This module contains the debugging functions for the RustBoy emulator. Therefore, it is a bit
 /// all over the place.
+use wasm_timer::Instant;
+
 use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use std::fs;
@@ -8,7 +10,14 @@ pub const LOG_FILE_NAME: &str = "extensive_logs";
 
 /// Struct to represent the debugging flags.
 /// The flags are:
-/// - 'doctor': If true, the emulator runs in game boy doctor compatible mode,
+/// - `doctor`: If true, the emulator runs in game boy doctor compatible mode.
+/// - `file_logs`: If true, the emulator writes logs to a file.
+/// - `binjgb_mode`: If true, the emulator runs in binjgb mode, that is, it runs in a mode where
+/// the logs of this and the binjgb emulator are compatible.
+/// - `timing_mode`: If true, the emulator runs in timing mode, that is, it exits when the serial
+/// output is 'P' (capital letter).
+/// - `start_time`: The time when the emulator started running. Used in combination with timing mode.
+/// - `sb_to_terminal`: If true, the emulator prints the serial output to the terminal.
 /// see https://github.com/robert/gameboy-doctor
 
 #[derive(Copy, Clone, Debug)]
@@ -16,6 +25,8 @@ pub struct DebuggingFlags {
     pub doctor: bool,
     pub file_logs: bool,
     pub binjgb_mode: bool,
+    pub timing_mode: bool,
+    pub start_time: Option<Instant>,
     pub sb_to_terminal: bool,
 }
 

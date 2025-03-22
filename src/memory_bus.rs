@@ -103,6 +103,19 @@ impl RustBoy {
 
             // Serial transfer register
             0xFF01 => {
+                if self.debugging_flags.timing_mode {
+                    if value as char == 'P' {
+                        println!(
+                            "Run took: {}seconds",
+                            self.debugging_flags
+                                .start_time
+                                .expect("Start time should be set")
+                                .elapsed()
+                                .as_micros() as f32
+                                / 1_000_000f32
+                        );
+                    }
+                }
                 if self.debugging_flags.sb_to_terminal {
                     println!("Write to SB: {}", value as char);
                 }

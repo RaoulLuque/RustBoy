@@ -29,10 +29,10 @@ use frontend::State;
 use gpu::GPU;
 use gpu::RenderTask;
 use input::Joypad;
+use input::{handle_key_pressed_event, handle_key_released_event};
 use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use timer::TimerInfo;
 
-use crate::input::{handle_key_pressed_event, handle_key_released_event};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::{
     dpi::PhysicalSize,
@@ -183,19 +183,18 @@ impl RustBoy {
 
 /// Run the emulator.
 /// This function is the entry point for the emulator. The parameters are as follows:
-/// * `headless`: If true, the emulator runs in headless mode. That is, without opening a window
+/// - `headless`: If true, the emulator runs in headless mode. That is, without opening a window
 /// and therefore not showing the graphics
-/// * `game_boy_doctor_mode`: If true, the emulator runs in a mode which is compatible with
-/// debugging using [gameboy doctor](https://github.com/robert/gameboy-doctor).
-/// * `print_serial_output_to_terminal`: If true, the emulator prints the serial output to the
-/// terminal.
-/// * `rom_path`: The path to the ROM file to be loaded.
+/// - `game_boy_doctor_mode`, `file_logs`, `binjgb_mode`, `timing_mode`, `print_serial_output_to_terminal`:
+/// See [debugging::DebuggingFlags] for more information.
+/// - `rom_path`: The path to the ROM file to be loaded.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub async fn run(
     headless: bool,
     game_boy_doctor_mode: bool,
     file_logs: bool,
     binjgb_mode: bool,
+    timing_mode: bool,
     print_serial_output_to_terminal: bool,
     rom_path: &str,
 ) {
@@ -210,10 +209,16 @@ pub async fn run(
     }
     log::info!("Logger initialized");
 
-    let debugging_flags = DebuggingFlags {
+    let mut debugging_flags = DebuggingFlags {
         doctor: game_boy_doctor_mode,
         file_logs,
         binjgb_mode,
+        timing_mode,
+        start_time: if timing_mode {
+            Some(Instant::now())
+        } else {
+            None
+        },
         sb_to_terminal: print_serial_output_to_terminal,
     };
 
@@ -254,7 +259,7 @@ pub async fn run(
     // Variable to keep track of the current [gpu::RenderTask] to be executed
     let mut current_rendering_task: RenderTask = RenderTask::None;
 
-    let mut last_frame_time = Instant::now();
+    let mut last_frame_time: Instant = Instant::now();
     log::info!("Starting event loop");
 
     // Variables to estimate FPS
