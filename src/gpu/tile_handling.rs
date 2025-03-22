@@ -187,7 +187,8 @@ pub fn empty_tile() -> Tile {
 /// The RGBA array is in the format [R, G, B, A, R, G, B, A, ...].
 /// The RGBA array is in row major order.
 ///
-/// TODO: Write tests or smth for this, this is a bit tricky
+/// TODO: Optimize this because it seems to take a long time. Possibly move this to the GPU
+/// to handle.
 pub fn tile_array_to_rgba_array(tiles: &[Tile; 256]) -> [u8; 65536] {
     let mut rgba_array = [0u8; 65536];
     // Loop over the 16 rows of tiles
