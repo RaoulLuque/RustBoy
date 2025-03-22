@@ -260,6 +260,9 @@ pub async fn run(
     let mut running_frame_counter = 0;
     let mut first_frame_time = Instant::now();
 
+    // Variable to track if emulator is paused
+    let mut paused = false;
+
     event_loop
         .run(move |event, control_flow| match event {
             Event::WindowEvent {
@@ -286,7 +289,7 @@ pub async fn run(
                                     ..
                                 },
                             ..
-                        } => handle_key_pressed_event(&mut rust_boy, key),
+                        } => handle_key_pressed_event(&mut rust_boy, key, &mut paused),
                         WindowEvent::KeyboardInput {
                             event:
                                 KeyEvent {
@@ -307,6 +310,11 @@ pub async fn run(
 
                             if !surface_configured {
                                 log::warn!("Surface not configured");
+                                return;
+                            }
+
+                            // If the emulator is paused, we don't want to run any cycles
+                            if paused {
                                 return;
                             }
 

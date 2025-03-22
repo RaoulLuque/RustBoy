@@ -192,7 +192,7 @@ impl JoypadRegister {
 }
 
 /// Handles the key pressed event by calling the [RustBoy::handle_button_press] method.
-pub fn handle_key_pressed_event(rust_boy: &mut RustBoy, key: &PhysicalKey) {
+pub fn handle_key_pressed_event(rust_boy: &mut RustBoy, key: &PhysicalKey, paused: &mut bool) {
     match key {
         PhysicalKey::Code(KeyCode::ArrowLeft) => {
             rust_boy.handle_button_press(Button::Left);
@@ -217,6 +217,9 @@ pub fn handle_key_pressed_event(rust_boy: &mut RustBoy, key: &PhysicalKey) {
         }
         PhysicalKey::Code(KeyCode::Space) => {
             rust_boy.handle_button_press(Button::Select);
+        }
+        PhysicalKey::Code(KeyCode::KeyP) => {
+            *paused = !*paused;
         }
         _ => {}
     }
