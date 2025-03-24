@@ -30,6 +30,10 @@ pub struct State<'a> {
     // The vertex buffer is used to store the vertex data for the render pipeline (two triangles
     // that make up a rectangle).
     vertex_buffer: wgpu::Buffer,
+    // The screensize buffer is used to store the size of the screen (Width x Height in pixels).
+    screensize_buffer: wgpu::Buffer,
+    // Variable to keep track of whether the screen size has changed or not
+    screensize_changed: bool,
     // The number of vertices in the vertex buffer (4).
     num_vertices: u32,
     // The bind group corresponding to the render pipeline
@@ -134,7 +138,7 @@ impl<'a> State<'a> {
             objects_in_scanline_buffer,
         ) = setup_compute_shader_pipeline(&device);
 
-        let (render_pipeline, vertex_buffer, num_vertices, render_bind_group) =
+        let (render_pipeline, vertex_buffer, screensize_buffer, num_vertices, render_bind_group) =
             setup_render_shader_pipeline(&device, &config, &framebuffer_texture);
 
         Self {
@@ -146,6 +150,8 @@ impl<'a> State<'a> {
             window,
             render_pipeline,
             vertex_buffer,
+            screensize_buffer,
+            screensize_changed: false,
             num_vertices,
             render_bind_group,
             compute_pipeline,
@@ -171,6 +177,7 @@ impl<'a> State<'a> {
             self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
+            self.screensize_changed = true;
             self.surface.configure(&self.device, &self.config);
         }
     }
@@ -224,6 +231,18 @@ impl<'a> State<'a> {
             render_pass.set_bind_group(0, &self.render_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.draw(0..self.num_vertices, 0..1);
+        }
+
+        // Update the screensize for the fragment shader, if the size has changed
+        if self.screensize_changed {
+            // Update the screensize buffer with the new size
+            let screensize = [self.size.width, self.size.height, 0, 0];
+            self.queue.write_buffer(
+                &self.screensize_buffer,
+                0,
+                bytemuck::cast_slice(&screensize),
+            );
+            self.screensize_changed = false;
         }
 
         // Submit the rendering commands to the GPU

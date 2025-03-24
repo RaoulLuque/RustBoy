@@ -1,3 +1,4 @@
+use crate::{INITIAL_SCREEN_HEIGHT, INITIAL_SCREEN_WIDTH};
 use wgpu::util::DeviceExt;
 use wgpu::{Buffer, Device, SurfaceConfiguration};
 
@@ -110,6 +111,15 @@ pub struct RenderingLinePosition {
     pub pos: [u32; 4],
 }
 
+/// Represents the current screensize of the window of the emulator. Is a list of 4 elements just for
+/// alignment purposes. We only use the first two entries for the width and height of the screen in
+/// pixels.
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct CurrentScreensize {
+    pub size: [u32; 4],
+}
+
 /// Sets up the render shader pipeline.
 /// This pipeline is used to render the framebuffer texture to the screen. It is called in the
 /// VBlank period of the RustBoy.
@@ -124,7 +134,7 @@ pub fn setup_render_shader_pipeline(
     device: &Device,
     config: &SurfaceConfiguration,
     framebuffer_texture: &wgpu::Texture,
-) -> (wgpu::RenderPipeline, Buffer, u32, wgpu::BindGroup) {
+) -> (wgpu::RenderPipeline, Buffer, Buffer, u32, wgpu::BindGroup) {
     // Configuration for the sampler
     let framebuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("Framebuffer Sampler"),
@@ -133,6 +143,17 @@ pub fn setup_render_shader_pipeline(
         mag_filter: wgpu::FilterMode::Nearest, // Critical for crisp pixels
         min_filter: wgpu::FilterMode::Nearest,
         ..Default::default()
+    });
+
+    // Sets the screensize for the rendering shader. Is a list of 4 elements for alignment purposes,
+    // the first and two entries represent the width and height of the emulator window.
+    let initial_screensize = CurrentScreensize {
+        size: [INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT, 0, 0],
+    };
+    let screensize_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Screensize Buffer"),
+        contents: bytemuck::cast_slice(&[initial_screensize]),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
     // Create bind group layout for the framebuffer
@@ -157,6 +178,17 @@ pub fn setup_render_shader_pipeline(
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
             },
+            // Screensize Buffer (binding 2)
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
         ],
     });
 
@@ -177,6 +209,10 @@ pub fn setup_render_shader_pipeline(
             wgpu::BindGroupEntry {
                 binding: 1,
                 resource: wgpu::BindingResource::Sampler(&framebuffer_sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: screensize_buffer.as_entire_binding(),
             },
         ],
     });
@@ -238,7 +274,13 @@ pub fn setup_render_shader_pipeline(
 
     let num_vertices = VERTICES.len() as u32;
 
-    (render_pipeline, vertex_buffer, num_vertices, bind_group)
+    (
+        render_pipeline,
+        vertex_buffer,
+        screensize_buffer,
+        num_vertices,
+        bind_group,
+    )
 }
 
 /// TODO: Add docstring

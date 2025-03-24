@@ -44,8 +44,8 @@ use winit::{
 
 const TARGET_FPS: u32 = 60;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
-const SCREEN_WIDTH: u32 = 160;
-const SCREEN_HEIGHT: u32 = 144;
+pub(crate) const INITIAL_SCREEN_WIDTH: u32 = 160;
+pub(crate) const INITIAL_SCREEN_HEIGHT: u32 = 144;
 const M_CYCLES_PER_SECOND: u32 = 1_048_576;
 
 /// Struct to represent the Rust Boy.
@@ -251,7 +251,10 @@ pub async fn run(
             .expect("Failed to append canvas");
     }
     // Force a resize event to trigger initial configuration
-    let _ = window.request_inner_size(PhysicalSize::new(crate::SCREEN_WIDTH, crate::SCREEN_HEIGHT));
+    let _ = window.request_inner_size(PhysicalSize::new(
+        crate::INITIAL_SCREEN_WIDTH,
+        crate::INITIAL_SCREEN_HEIGHT,
+    ));
 
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
