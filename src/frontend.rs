@@ -8,10 +8,10 @@ use crate::frontend::shader::{
     ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, RenderingLinePosition, TILE_SIZE,
     TilemapUniform, setup_compute_shader_pipeline, setup_render_shader_pipeline,
 };
-use crate::gpu::GPU;
 use crate::gpu::tile_handling::{
     Tile, tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string,
 };
+use crate::gpu::{ChangesToPropagateToShader, GPU};
 
 /// TODO: Add docstring
 pub struct State<'a> {
@@ -276,7 +276,11 @@ impl<'a> State<'a> {
             compute_pass.dispatch_workgroups(1, 1, 1);
         }
 
-        if rust_boy_gpu.tile_map_changed() {
+        // Update the tile map if the tile map currently in use changed or if we switched
+        // the tile map we are using since the last scanline
+        if rust_boy_gpu.current_background_tile_map_changed()
+            | rust_boy_gpu.memory_changed.background_tile_map_flag_changed
+        {
             trace!("Updating tilemap");
             trace!(
                 "Current Scrolling: x: {} y: {}",
@@ -287,6 +291,7 @@ impl<'a> State<'a> {
                 "New Tilemap (in use) \n {} \n \n",
                 tile_map_to_string(rust_boy_gpu.get_background_tile_map())
             );
+
             // Update tilemap and tile atlas (e.g., VRAM changes)
             let new_tilemap_data = rust_boy_gpu.get_background_tile_map();
             let tilemap = TilemapUniform::from_array(new_tilemap_data);
@@ -294,21 +299,11 @@ impl<'a> State<'a> {
                 .write_buffer(&self.tilemap_buffer, 0, bytemuck::cast_slice(&[tilemap]));
         }
 
-        let tile = [
-            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
-            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
-            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
-            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
-            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
-            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
-            [crate::gpu::tile_handling::TilePixelValue::Three; 8],
-            [crate::gpu::tile_handling::TilePixelValue::Zero; 8],
-        ];
-
-        let mut empty_tiles = [[[crate::gpu::tile_handling::TilePixelValue::Zero; 8]; 8]; 256];
-        empty_tiles[0] = tile;
-
-        if rust_boy_gpu.tile_data_changed() {
+        // Update the tile data if the tile data currently in use changed or if we switched
+        // the tile map we are using since the last scanline
+        if rust_boy_gpu.current_tile_data_changed()
+            | rust_boy_gpu.memory_changed.tile_data_flag_changed
+        {
             trace!("Updating tile data");
             let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
             trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
@@ -345,21 +340,25 @@ impl<'a> State<'a> {
             );
         }
 
-        // TODO: Update this once per frame only (or whenever it is supposed to be updated)
-        // Update the background viewport position
-        let updated_background_viewport_position = BackgroundViewportPosition {
-            pos: [
-                rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
-                rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
+        // Update the background viewport position if it changed since the last scanline
+        if rust_boy_gpu
+            .memory_changed
+            .background_viewport_position_changed
+        {
+            let updated_background_viewport_position = BackgroundViewportPosition {
+                pos: [
+                    rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
+                    rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
+                    0,
+                    0,
+                ],
+            };
+            self.queue.write_buffer(
+                &self.background_viewport_buffer,
                 0,
-                0,
-            ],
-        };
-        self.queue.write_buffer(
-            &self.background_viewport_buffer,
-            0,
-            bytemuck::cast_slice(&[updated_background_viewport_position]),
-        );
+                bytemuck::cast_slice(&[updated_background_viewport_position]),
+            );
+        }
 
         // Update the current scanline uniform buffer
         let updated_current_scanline = RenderingLinePosition {
@@ -376,29 +375,29 @@ impl<'a> State<'a> {
             bytemuck::cast_slice(&[updated_current_scanline]),
         );
 
-        // Update the object tile atlas
-        // TODO: Update this only when necessary
-        let new_object_tile_data = tile_array_to_rgba_array(
-            <&[Tile; 256]>::try_from(&rust_boy_gpu.get_object_tile_data()).unwrap(),
-        );
-        self.queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &self.object_tile_atlas_texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &new_object_tile_data,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * TILE_SIZE * ATLAS_COLS),
-                rows_per_image: None,
-            },
-            self.object_tile_atlas_texture.size(),
-        );
+        // Update the object tile atlas if it changed since the last scanline
+        if rust_boy_gpu.memory_changed.tile_data_block_0_1_changed {
+            let new_object_tile_data = tile_array_to_rgba_array(
+                <&[Tile; 256]>::try_from(&rust_boy_gpu.get_object_tile_data()).unwrap(),
+            );
+            self.queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &self.object_tile_atlas_texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &new_object_tile_data,
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(4 * TILE_SIZE * ATLAS_COLS),
+                    rows_per_image: None,
+                },
+                self.object_tile_atlas_texture.size(),
+            );
+        }
 
         // Update the objects in scanline buffer
-        // TODO: Update this only when necessary
         let objects_in_scanline = rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
         // let oam = rust_boy_gpu.oam;
         // if objects_in_scanline[0][0] != 0 {
@@ -414,6 +413,10 @@ impl<'a> State<'a> {
             0,
             bytemuck::cast_slice(&[new_objects_in_scanline]),
         );
+
+        // Reset the changed flags so on the next scanline only buffers are updated which need to be
+        rust_boy_gpu.memory_changed = ChangesToPropagateToShader::new();
+
         // Submit the compute commands to the GPU
         // Submit will accept anything that implements IntoIter
         self.queue.submit(std::iter::once(encoder.finish()));

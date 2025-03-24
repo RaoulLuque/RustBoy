@@ -1,6 +1,6 @@
 use super::{
-    DOTS_IN_HBLANK_PLUS_TRANSFER, DOTS_IN_VBLANK, GPU, GPU_MODE_WHILE_LCD_TURNED_OFF,
-    RenderingInfo, RenderingMode,
+    ChangesToPropagateToShader, DOTS_IN_HBLANK_PLUS_TRANSFER, DOTS_IN_VBLANK, GPU,
+    GPU_MODE_WHILE_LCD_TURNED_OFF, RenderingInfo, RenderingMode,
 };
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
@@ -9,7 +9,7 @@ use crate::interrupts::InterruptFlagRegister;
 
 const LCD_ENABLE_BIT_POSITION: usize = 7;
 const WINDOW_TILE_MAP_BIT_POSITION: usize = 6;
-const BG_TILE_DATA_BIT_POSITION: usize = 4;
+const BG_AND_WINDOW_TILE_DATA_BIT_POSITION: usize = 4;
 const BG_TILE_MAP_BIT_POSITION: usize = 3;
 const OBJ_SIZE_BIT_POSITION: usize = 2;
 
@@ -52,14 +52,6 @@ pub struct GPURegisters {
 /// - Bit 7: Display off/on (0 = off, 1 = on)
 pub struct LCDCRegister {
     register: u8,
-    // pub(super) background_on_off: bool,
-    // pub(super) sprites_on_off: bool,
-    // pub(super) sprite_size: bool,
-    // pub(super) background_tile_map: bool,
-    // pub(super) background_and_window_tile_data: bool,
-    // pub(super) window_on_off: bool,
-    // pub(super) window_tile_map: bool,
-    // pub(super) display_on: bool,
 }
 
 /// Represents the LCD status register of the GPU.
@@ -74,12 +66,6 @@ pub struct LCDCRegister {
 /// - Bit 7: None (Zero)
 pub struct LCDStatusRegister {
     register: u8,
-    // pub(super) gpu_mode: RenderingMode,
-    // lyc_ly_coincidence_flag: bool,
-    // mode_0_int_select: bool,
-    // mode_1_int_select: bool,
-    // mode_2_int_select: bool,
-    // lyc_int_select: bool,
 }
 
 impl GPU {
@@ -116,12 +102,18 @@ impl GPU {
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
         match address {
-            0xFF40 => self.gpu_registers.set_lcd_control(value),
+            0xFF40 => self
+                .gpu_registers
+                .set_lcd_control(value, &mut self.memory_changed),
             0xFF41 => self
                 .gpu_registers
                 .set_lcd_status(value, interrupt_flag_register),
-            0xFF42 => self.gpu_registers.set_scroll_y(value),
-            0xFF43 => self.gpu_registers.set_scroll_x(value),
+            0xFF42 => self
+                .gpu_registers
+                .set_scroll_y(value, &mut self.memory_changed),
+            0xFF43 => self
+                .gpu_registers
+                .set_scroll_x(value, &mut self.memory_changed),
             // If the rom tries writing to the scanline register, it gets reset to 0
             0xFF44 => self.gpu_registers.set_scanline(0, interrupt_flag_register),
             0xFF45 => self
@@ -150,12 +142,31 @@ impl GPURegisters {
     }
 
     /// Set the LCD Control register to the provided value.
-    pub fn set_lcd_control(&mut self, value: u8) {
+    ///
+    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn set_lcd_control(&mut self, value: u8, memory_changed: &mut ChangesToPropagateToShader) {
+        let old_value = self.lcd_control.register;
         self.lcd_control.register = value;
         if self.lcd_control.get_display_on_flag() {
             log::debug!("LCD is turned on");
         } else {
             log::debug!("LCD is turned off");
+        }
+
+        // We need to check if the tile data area or background our window tile map area changed
+        // and set flags accordingly to make sure the GPU/Shader receives these changes in the
+        // rendering step
+        let distinct_bits = old_value ^ value;
+        if is_bit_set(distinct_bits, WINDOW_TILE_MAP_BIT_POSITION as u8) {
+            memory_changed.window_tile_map_flag_changed = true;
+        }
+        if is_bit_set(distinct_bits, BG_AND_WINDOW_TILE_DATA_BIT_POSITION as u8) {
+            memory_changed.tile_data_flag_changed = true;
+        }
+        if is_bit_set(distinct_bits, BG_TILE_MAP_BIT_POSITION as u8) {
+            memory_changed.background_tile_map_flag_changed = true;
         }
     }
 
@@ -176,13 +187,23 @@ impl GPURegisters {
     }
 
     /// Set the scroll y register to the provided value.
-    pub fn set_scroll_y(&mut self, value: u8) {
+    ///
+    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn set_scroll_y(&mut self, value: u8, memory_changed: &mut ChangesToPropagateToShader) {
         self.scroll_y = value;
+        memory_changed.background_viewport_position_changed = true;
     }
 
     /// Set the scroll x register to the provided value.
-    pub fn set_scroll_x(&mut self, value: u8) {
+    ///
+    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn set_scroll_x(&mut self, value: u8, memory_changed: &mut ChangesToPropagateToShader) {
         self.scroll_x = value;
+        memory_changed.background_viewport_position_changed = true;
     }
 
     /// Set the current scanline register to the provided value.
@@ -387,7 +408,7 @@ impl LCDCRegister {
 
     /// Returns the state of the background and window tile data flag.
     pub fn get_background_and_window_tile_data_flag(&self) -> bool {
-        is_bit_set(self.register, BG_TILE_DATA_BIT_POSITION as u8)
+        is_bit_set(self.register, BG_AND_WINDOW_TILE_DATA_BIT_POSITION as u8)
     }
 
     /// Returns the state of the window tile map flag.

@@ -42,11 +42,11 @@ pub struct GPU {
     pub tile_set: [Tile; 384],
     pub(crate) rendering_info: RenderingInfo,
     pub gpu_registers: GPURegisters,
-    tile_data_changed: bool,
-    tile_map_changed: bool,
     background_viewport_changed: bool,
 
     pub(crate) oam: [Object; 40],
+
+    pub memory_changed: ChangesToPropagateToShader,
 
     debugging_flags: DebuggingFlags,
 }
@@ -81,6 +81,38 @@ pub enum RenderTask {
     None,
     WriteLineToBuffer(u8),
     RenderFrame,
+}
+
+/// Struct to keep track of changes/writes to tile data, tile map, viewport position, and OAM.
+///
+/// We reset this struct after rendering each scanline. Therefore, it tracks the resources that
+/// changed since the last scanline which the render step can use to only (re)send the data that
+/// actually changed to the Shader/GPU.
+pub struct ChangesToPropagateToShader {
+    pub(crate) tile_data_flag_changed: bool,
+    pub(crate) tile_data_block_0_1_changed: bool,
+    pub(crate) tile_data_block_2_1_changed: bool,
+    pub(crate) background_tile_map_flag_changed: bool,
+    pub(crate) window_tile_map_flag_changed: bool,
+    pub(crate) tile_map_0_changed: bool,
+    pub(crate) tile_map_1_changed: bool,
+    pub(crate) background_viewport_position_changed: bool,
+}
+
+impl ChangesToPropagateToShader {
+    /// Returns a new instance of MemoryChanged with only false values
+    pub(crate) fn new() -> Self {
+        Self {
+            tile_data_flag_changed: false,
+            tile_data_block_0_1_changed: false,
+            tile_data_block_2_1_changed: false,
+            background_tile_map_flag_changed: false,
+            window_tile_map_flag_changed: false,
+            tile_map_0_changed: false,
+            tile_map_1_changed: false,
+            background_viewport_position_changed: false,
+        }
+    }
 }
 
 impl GPU {
@@ -219,18 +251,29 @@ impl GPU {
     /// Since the address is the absolute address in the grand scheme of the total Rust Boy's
     /// memory, we have to convert it to the relative address in terms of the VRAM. That is the
     /// absolute address 0x8000 would be the relative address 0x0000.
+    ///
+    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
     pub fn write_vram(&mut self, address: u16, value: u8) {
-        let address = address - VRAM_BEGIN;
-        self.vram[address as usize] = value;
+        let normalized_address = address - VRAM_BEGIN;
+        self.vram[normalized_address as usize] = value;
 
         // If our index is greater than or equal to 0x1800, we are not writing to the tile set storage
         // so we can simply return
-        if address >= 0x1800 {
-            // TODO Set tile_map_changed flag only if the currently used tile map has actually changed and not the other one
-            self.tile_map_changed = true;
+        if normalized_address >= 0x1800 {
+            if address < 0x9C00 {
+                // We are writing to tile map 0. Therefore, we set the changed flag to make sure
+                // the GPU receives the new tile map later in rendering.
+                self.memory_changed.tile_map_0_changed = true;
+            } else {
+                // We are writing to tile map 1. Therefore, we set the changed flag to make sure
+                // the GPU receives the new tile map later in rendering.
+                self.memory_changed.tile_map_1_changed = true;
+            }
             return;
         } else {
-            self.handle_tile_data_change(address);
+            self.handle_tile_data_change(normalized_address);
         }
     }
 
@@ -261,10 +304,19 @@ impl GPU {
                 first_scanline_after_lcd_was_turned_on: false,
             },
             gpu_registers: GPURegisters::new(debugging_flags),
-            tile_data_changed: true,
-            tile_map_changed: true,
             background_viewport_changed: true,
             oam: [Object::default(); 40],
+
+            memory_changed: ChangesToPropagateToShader {
+                tile_data_flag_changed: true,
+                tile_data_block_0_1_changed: true,
+                tile_data_block_2_1_changed: true,
+                background_tile_map_flag_changed: true,
+                window_tile_map_flag_changed: true,
+                tile_map_0_changed: true,
+                tile_map_1_changed: true,
+                background_viewport_position_changed: true,
+            },
 
             debugging_flags,
         }

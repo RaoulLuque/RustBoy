@@ -20,7 +20,7 @@ pub struct Object {
 }
 
 impl Default for Object {
-    /// Creates a new object with all zero values.
+    /// Creates a new instance of object with all zero values.
     fn default() -> Self {
         Object {
             y_position: 0,
@@ -43,6 +43,7 @@ impl Object {
 }
 
 impl GPU {
+    /// TODO: Write docstring
     pub(crate) fn handle_oam_read(&self, address: u16) -> u8 {
         let index = (address - OAM_START) as usize;
         if index >= self.oam.len() * 4 {
@@ -59,6 +60,7 @@ impl GPU {
         }
     }
 
+    /// TODO: Write docstring
     pub(crate) fn handle_oam_write(&mut self, address: u16, value: u8) {
         let index = (address - OAM_START) as usize;
         if index >= self.oam.len() * 4 {
@@ -73,13 +75,9 @@ impl GPU {
             3 => self.oam[object_index].attributes = value,
             _ => unreachable!(),
         }
-        // if value != 0 {
-        //     println!("Oam write: {}", address);
-        //     println!("Wrote the following value: {}, to object_index: {}, which is the following object: {:?}", value, object_index, self.oam[object_index]);
-        //     println!("OAM: Looks like:, {:?} \n \n", self.oam);
-        // }
     }
 
+    /// TODO: Write docstring
     pub fn get_objects_for_current_scanline(&self, scanline: u8) -> [[u32; 4]; 10] {
         let mut objects: [[u32; 4]; 10] = Default::default();
         let mut count = 0;

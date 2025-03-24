@@ -34,19 +34,23 @@ impl TilePixelValue {
 
 impl GPU {
     /// Handles a change in the tile data. The change is simply applied to the tile set.
+    ///
+    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
     pub(crate) fn handle_tile_data_change(&mut self, address: u16) {
         // Tiles rows are encoded in two bytes with the first byte always
         // on an even address. Bitwise ANDing the address with 0xffe
         // gives us the address of the first byte.
         // For example: `12 & 0xFFFE == 12` and `13 & 0xFFFE == 12`
-        let normalized_address = address & 0xFFFE;
+        let address_first_byte = address & 0xFFFE;
 
         // First we need to get the two bytes that encode the tile row.
-        let byte1 = self.vram[normalized_address as usize];
-        let byte2 = self.vram[normalized_address as usize + 1];
+        let byte1 = self.vram[address_first_byte as usize];
+        let byte2 = self.vram[address_first_byte as usize + 1];
 
         // Then we need to get the tile index from the address.
-        let tile_index = (normalized_address / 16) as usize;
+        let tile_index = (address_first_byte / 16) as usize;
 
         // Address % 16 gives us the row index in the tile. However, two consecutive bytes encode
         // a row so we need to divide by 2.
@@ -78,21 +82,56 @@ impl GPU {
 
             self.tile_set[tile_index][row_index][pixel_index] = value;
         }
-        self.tile_data_changed = true;
+        // We set the memory changed flags to make sure the GPU receives the new tile map later
+        // in rendering.
+        let original_address = address + VRAM_BEGIN;
+        if original_address < 0x8800 {
+            // The address lies in block 0
+            self.memory_changed.tile_data_block_0_1_changed = true;
+        } else if original_address < 0x9000 {
+            // The address lies in block 1
+            self.memory_changed.tile_data_block_0_1_changed = true;
+            self.memory_changed.tile_data_block_2_1_changed = true;
+        } else {
+            // The address lies only in block 2
+            self.memory_changed.tile_data_block_2_1_changed = true;
+        }
     }
 
-    /// Returns true if the tile data has changed since the last time it was checked.
-    pub fn tile_data_changed(&mut self) -> bool {
-        let res = self.tile_data_changed;
-        self.tile_data_changed = false;
-        res
+    /// Returns true if the tile data currently used for the background and window has changed since
+    /// the last time it was checked (usually the last scanline).
+    ///
+    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn current_tile_data_changed(&mut self) -> bool {
+        if self
+            .gpu_registers
+            .lcd_control
+            .get_background_and_window_tile_data_flag()
+        {
+            self.memory_changed.tile_data_block_0_1_changed
+        } else {
+            self.memory_changed.tile_data_block_2_1_changed
+        }
     }
 
-    /// Returns true if the tile map has changed since the last time it was checked.
-    pub fn tile_map_changed(&mut self) -> bool {
-        let res = self.tile_map_changed;
-        self.tile_map_changed = false;
-        res
+    /// Returns true if the tile map currently used for the background has changed since the last
+    /// time it was checked (usually the last scanline).
+    ///
+    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn current_background_tile_map_changed(&mut self) -> bool {
+        if self
+            .gpu_registers
+            .lcd_control
+            .get_background_tile_map_flag()
+        {
+            self.memory_changed.tile_map_1_changed
+        } else {
+            self.memory_changed.tile_map_0_changed
+        }
     }
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
@@ -154,22 +193,22 @@ impl GPU {
             .lcd_control
             .get_background_tile_map_flag()
         {
-            self.get_background_tile_map_one()
+            self.get_background_tile_map_zero()
         } else {
-            self.get_background_tile_map_two()
+            self.get_background_tile_map_one()
         }
     }
 
-    /// Returns the first tile map (0x9800 - 0x9BFF).
-    pub fn get_background_tile_map_one(&self) -> &[u8; 1024] {
+    /// Returns the zeroth tile map (0x9800 - 0x9BFF).
+    pub fn get_background_tile_map_zero(&self) -> &[u8; 1024] {
         self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
             ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
             .try_into()
             .expect("Slice should be of correct length, work with me here compiler")
     }
 
-    /// Returns the second tile map (0x9C00 - 0x9FFF).
-    pub fn get_background_tile_map_two(&self) -> &[u8; 1024] {
+    /// Returns the first tile map (0x9C00 - 0x9FFF).
+    pub fn get_background_tile_map_one(&self) -> &[u8; 1024] {
         self.vram[TILEMAP_TWO_START - VRAM_BEGIN as usize
             ..TILEMAP_TWO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
             .try_into()
