@@ -47,6 +47,7 @@ const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS as f64;
 pub(crate) const INITIAL_SCREEN_WIDTH: u32 = 160;
 pub(crate) const INITIAL_SCREEN_HEIGHT: u32 = 144;
 const M_CYCLES_PER_SECOND: u32 = 1_048_576;
+const MEMORY_SIZE: usize = 65536;
 
 /// Struct to represent the Rust Boy.
 /// It is split into 3 main parts: The CPU, the memory bus, and the GPU.
@@ -95,7 +96,7 @@ pub struct RustBoy {
     starting_up: bool,
 
     // Memory
-    memory: [u8; 65536],
+    memory: [u8; MEMORY_SIZE],
     bios: [u8; 0x0100],
     being_initialized: bool,
 
