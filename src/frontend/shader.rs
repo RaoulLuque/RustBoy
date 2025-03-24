@@ -348,7 +348,7 @@ pub fn setup_compute_shader_pipeline(
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Rgba8Unorm,
         usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[wgpu::TextureFormat::Rgba8UnormSrgb],
+        view_formats: &[],
     });
 
     // Buffer to hold the current line to be rendered and whether the objects
