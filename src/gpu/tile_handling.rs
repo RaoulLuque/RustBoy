@@ -98,7 +98,7 @@ impl GPU {
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically according to LCDC bit 6 (window_tile_map).
     pub fn get_window_tile_map(&self) -> &[u8; 1024] {
-        if self.gpu_registers.lcd_control.window_tile_map {
+        if self.gpu_registers.lcd_control.get_window_tile_map_flag() {
             self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
                 ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
                 .try_into()
@@ -117,7 +117,7 @@ impl GPU {
         if self
             .gpu_registers
             .lcd_control
-            .background_and_window_tile_data
+            .get_background_and_window_tile_data_flag()
         {
             self.get_background_and_window_tile_data_block_0_and_1()
         } else {
@@ -149,7 +149,11 @@ impl GPU {
     /// Returns the current tile map for the background. Switches the addressing mode
     /// automatically according to LCDC bit 3 (background_tile_map).
     pub fn get_background_tile_map(&self) -> &[u8; 1024] {
-        if !self.gpu_registers.lcd_control.background_tile_map {
+        if !self
+            .gpu_registers
+            .lcd_control
+            .get_background_tile_map_flag()
+        {
             self.get_background_tile_map_one()
         } else {
             self.get_background_tile_map_two()

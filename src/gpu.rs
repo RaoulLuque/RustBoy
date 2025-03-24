@@ -99,7 +99,7 @@ impl GPU {
         // Always increment total dots (for debugging purposes)
         self.rendering_info.total_dots += dots as u128;
 
-        if self.gpu_registers.lcd_control.display_on == false {
+        if self.gpu_registers.lcd_control.get_display_on_flag() == false {
             if self.rendering_info.lcd_was_turned_off == false {
                 // If the LCD is not enabled, there is no rendering task and we can reset the GPU
                 // to its initial state. We only do this once when the LCD is turned off.
@@ -283,6 +283,21 @@ impl RenderingMode {
             RenderingMode::VBlank1 => 1,
             RenderingMode::OAMScan2 => 2,
             RenderingMode::Transfer3 => 3,
+        }
+    }
+
+    /// Converts a u8 to a [RenderingMode]. The conversions are as follows
+    /// - 0: HBlank
+    /// - 1: VBlank
+    /// - 2: OAMScan
+    /// - 3: Transfer
+    pub fn from_u8(value: u8) -> Self {
+        match value {
+            0 => RenderingMode::HBlank0,
+            1 => RenderingMode::VBlank1,
+            2 => RenderingMode::OAMScan2,
+            3 => RenderingMode::Transfer3,
+            _ => panic!("Invalid GPU mode: {}", value),
         }
     }
 }

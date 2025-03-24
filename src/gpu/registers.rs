@@ -2,24 +2,22 @@ use super::{
     DOTS_IN_HBLANK_PLUS_TRANSFER, DOTS_IN_VBLANK, GPU, GPU_MODE_WHILE_LCD_TURNED_OFF,
     RenderingInfo, RenderingMode,
 };
+use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
 use crate::debugging::DebuggingFlags;
 use crate::interrupts::InterruptFlagRegister;
 
-const LCD_ENABLE_BYTE_POSITION: usize = 7;
-const WINDOW_TILE_MAP_BYTE_POSITION: usize = 6;
-const WINDOW_ENABLE_BYTE_POSITION: usize = 5;
-const BG_TILE_DATA_BYTE_POSITION: usize = 4;
-const BG_TILE_MAP_BYTE_POSITION: usize = 3;
-const OBJ_SIZE_BYTE_POSITION: usize = 2;
-const OBJ_ENABLE_BYTE_POSITION: usize = 1;
-const BG_ENABLE_BYTE_POSITION: usize = 0;
+const LCD_ENABLE_BIT_POSITION: usize = 7;
+const WINDOW_TILE_MAP_BIT_POSITION: usize = 6;
+const BG_TILE_DATA_BIT_POSITION: usize = 4;
+const BG_TILE_MAP_BIT_POSITION: usize = 3;
+const OBJ_SIZE_BIT_POSITION: usize = 2;
 
-const LYC_LY_COINCIDENCE_FLAG_BYTE_POSITION: usize = 2;
-const MODE_0_INT_SELECT_BYTE_POSITION: usize = 3;
-const MODE_1_INT_SELECT_BYTE_POSITION: usize = 4;
-const MODE_2_INT_SELECT_BYTE_POSITION: usize = 5;
-const LYC_INT_SELECT_BYTE_POSITION: usize = 6;
+const LYC_LY_COINCIDENCE_FLAG_BIT_POSITION: usize = 2;
+const MODE_0_INT_SELECT_BIT_POSITION: usize = 3;
+const MODE_1_INT_SELECT_BIT_POSITION: usize = 4;
+const MODE_2_INT_SELECT_BIT_POSITION: usize = 5;
+const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 
 /// Represents the registers that control the GPU.
 /// The registers have the following address and function:
@@ -53,14 +51,15 @@ pub struct GPURegisters {
 /// - Bit 6: Window tile map (0 = #0 (0x9800), 1 = #1 (0x9C00))
 /// - Bit 7: Display off/on (0 = off, 1 = on)
 pub struct LCDCRegister {
-    pub(super) background_on_off: bool,
-    pub(super) sprites_on_off: bool,
-    pub(super) sprite_size: bool,
-    pub(super) background_tile_map: bool,
-    pub(super) background_and_window_tile_data: bool,
-    pub(super) window_on_off: bool,
-    pub(super) window_tile_map: bool,
-    pub(super) display_on: bool,
+    register: u8,
+    // pub(super) background_on_off: bool,
+    // pub(super) sprites_on_off: bool,
+    // pub(super) sprite_size: bool,
+    // pub(super) background_tile_map: bool,
+    // pub(super) background_and_window_tile_data: bool,
+    // pub(super) window_on_off: bool,
+    // pub(super) window_tile_map: bool,
+    // pub(super) display_on: bool,
 }
 
 /// Represents the LCD status register of the GPU.
@@ -74,12 +73,13 @@ pub struct LCDCRegister {
 /// - Bit 6: LYC int select
 /// - Bit 7: None (Zero)
 pub struct LCDStatusRegister {
-    pub(super) gpu_mode: RenderingMode,
-    lyc_ly_coincidence_flag: bool,
-    mode_0_int_select: bool,
-    mode_1_int_select: bool,
-    mode_2_int_select: bool,
-    lyc_int_select: bool,
+    register: u8,
+    // pub(super) gpu_mode: RenderingMode,
+    // lyc_ly_coincidence_flag: bool,
+    // mode_0_int_select: bool,
+    // mode_1_int_select: bool,
+    // mode_2_int_select: bool,
+    // lyc_int_select: bool,
 }
 
 impl GPU {
@@ -91,7 +91,7 @@ impl GPU {
             0xFF43 => self.gpu_registers.get_scroll_x(),
             0xFF44 => self.gpu_registers.get_scanline(
                 Some(&self.rendering_info),
-                Some(self.gpu_registers.lcd_status.gpu_mode),
+                Some(self.gpu_registers.lcd_status.get_gpu_mode()),
                 Some(cycles_current_instruction),
                 true,
             ),
@@ -138,24 +138,8 @@ impl GPURegisters {
     /// startup values.
     pub fn new(debugging_flags: DebuggingFlags) -> Self {
         Self {
-            lcd_control: LCDCRegister {
-                background_on_off: false,
-                sprites_on_off: false,
-                sprite_size: false,
-                background_tile_map: false,
-                background_and_window_tile_data: false,
-                window_on_off: false,
-                window_tile_map: false,
-                display_on: false,
-            },
-            lcd_status: LCDStatusRegister {
-                gpu_mode: RenderingMode::HBlank0,
-                lyc_ly_coincidence_flag: false,
-                mode_0_int_select: false,
-                mode_1_int_select: false,
-                mode_2_int_select: false,
-                lyc_int_select: false,
-            },
+            lcd_control: LCDCRegister { register: 0 },
+            lcd_status: LCDStatusRegister { register: 0 },
             scroll_x: 0,
             scroll_y: 0,
             current_scanline: 0,
@@ -167,8 +151,8 @@ impl GPURegisters {
 
     /// Set the LCD Control register to the provided value.
     pub fn set_lcd_control(&mut self, value: u8) {
-        self.lcd_control = LCDCRegister::from(value);
-        if self.lcd_control.display_on {
+        self.lcd_control.register = value;
+        if self.lcd_control.get_display_on_flag() {
             log::debug!("LCD is turned on");
         } else {
             log::debug!("LCD is turned off");
@@ -242,9 +226,9 @@ impl GPURegisters {
         value: bool,
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
-        self.lcd_status.lyc_ly_coincidence_flag = value;
+        self.lcd_status.set_lyc_ly_coincidence_flag(value);
         if value {
-            if self.lcd_status.lyc_int_select {
+            if self.lcd_status.get_lyc_int_select() {
                 interrupt_flag_register.lcd_stat = true;
             }
         }
@@ -259,20 +243,20 @@ impl GPURegisters {
         mode: RenderingMode,
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
-        self.lcd_status.gpu_mode = mode;
+        self.lcd_status.set_gpu_mode(mode);
         match mode {
             RenderingMode::HBlank0 => {
-                if self.lcd_status.mode_0_int_select {
+                if self.lcd_status.get_mode_0_int_select() {
                     interrupt_flag_register.lcd_stat = true;
                 }
             }
             RenderingMode::VBlank1 => {
-                if self.lcd_status.mode_1_int_select {
+                if self.lcd_status.get_mode_1_int_select() {
                     interrupt_flag_register.lcd_stat = true;
                 }
             }
             RenderingMode::OAMScan2 => {
-                if self.lcd_status.mode_2_int_select {
+                if self.lcd_status.get_mode_2_int_select() {
                     interrupt_flag_register.lcd_stat = true;
                 }
             }
@@ -287,7 +271,7 @@ impl GPURegisters {
 
     /// Get the LCD Control register.
     pub fn get_lcd_control(&self) -> u8 {
-        u8::from(&self.lcd_control)
+        self.lcd_control.register
     }
 
     /// Get the LCD Status register.
@@ -296,8 +280,8 @@ impl GPURegisters {
     /// bits of the LCD status register), because the CPU might read this register before the
     /// GPU has a chance to update it.
     pub fn get_lcd_status(&self) -> u8 {
-        let before_lcd_enable = u8::from(&self.lcd_status);
-        if !self.lcd_control.display_on {
+        let before_lcd_enable = self.lcd_status.register;
+        if self.lcd_control.get_display_on_flag() {
             // If the LCD is turned off, we return VBlank mode (0b01) as the current mode (lower two
             // bits of the LCD status register)
             before_lcd_enable & GPU_MODE_WHILE_LCD_TURNED_OFF.as_u8()
@@ -381,167 +365,92 @@ impl GPURegisters {
 
     /// Get the GPU Mode
     pub fn get_gpu_mode(&self) -> RenderingMode {
-        self.lcd_status.gpu_mode
+        self.lcd_status.get_gpu_mode()
     }
 
-    /// Get the state of the obj size flag (sprite size)
-    pub fn get_obj_size(&self) -> bool {
-        self.lcd_control.sprite_size
-    }
-}
-
-impl From<LCDCRegister> for u8 {
-    fn from(register: LCDCRegister) -> Self {
-        let mut value = 0;
-        if register.display_on {
-            value |= 1 << LCD_ENABLE_BYTE_POSITION;
-        }
-        if register.window_tile_map {
-            value |= 1 << WINDOW_TILE_MAP_BYTE_POSITION;
-        }
-        if register.window_on_off {
-            value |= 1 << WINDOW_ENABLE_BYTE_POSITION;
-        }
-        if register.background_and_window_tile_data {
-            value |= 1 << BG_TILE_DATA_BYTE_POSITION;
-        }
-        if register.background_tile_map {
-            value |= 1 << BG_TILE_MAP_BYTE_POSITION;
-        }
-        if register.sprite_size {
-            value |= 1 << OBJ_SIZE_BYTE_POSITION;
-        }
-        if register.sprites_on_off {
-            value |= 1 << OBJ_ENABLE_BYTE_POSITION;
-        }
-        if register.background_on_off {
-            value |= 1 << BG_ENABLE_BYTE_POSITION;
-        }
-        value
+    /// Get the state of the sprite/object size flag (sprite size)
+    pub fn get_sprite_size_flag(&self) -> bool {
+        self.lcd_control.get_sprite_size_flag()
     }
 }
 
-impl From<&LCDCRegister> for u8 {
-    fn from(register: &LCDCRegister) -> Self {
-        let mut value = 0;
-        if register.display_on {
-            value |= 1 << LCD_ENABLE_BYTE_POSITION;
-        }
-        if register.window_tile_map {
-            value |= 1 << WINDOW_TILE_MAP_BYTE_POSITION;
-        }
-        if register.window_on_off {
-            value |= 1 << WINDOW_ENABLE_BYTE_POSITION;
-        }
-        if register.background_and_window_tile_data {
-            value |= 1 << BG_TILE_DATA_BYTE_POSITION;
-        }
-        if register.background_tile_map {
-            value |= 1 << BG_TILE_MAP_BYTE_POSITION;
-        }
-        if register.sprite_size {
-            value |= 1 << OBJ_SIZE_BYTE_POSITION;
-        }
-        if register.sprites_on_off {
-            value |= 1 << OBJ_ENABLE_BYTE_POSITION;
-        }
-        if register.background_on_off {
-            value |= 1 << BG_ENABLE_BYTE_POSITION;
-        }
-        value
+impl LCDCRegister {
+    /// Returns the state of the sprite size flag.
+    pub fn get_sprite_size_flag(&self) -> bool {
+        is_bit_set(self.register, OBJ_SIZE_BIT_POSITION as u8)
     }
-}
 
-impl From<u8> for LCDCRegister {
-    fn from(value: u8) -> Self {
-        LCDCRegister {
-            display_on: value & (1 << LCD_ENABLE_BYTE_POSITION) != 0,
-            window_tile_map: value & (1 << WINDOW_TILE_MAP_BYTE_POSITION) != 0,
-            window_on_off: value & (1 << WINDOW_ENABLE_BYTE_POSITION) != 0,
-            background_and_window_tile_data: value & (1 << BG_TILE_DATA_BYTE_POSITION) != 0,
-            background_tile_map: value & (1 << BG_TILE_MAP_BYTE_POSITION) != 0,
-            sprite_size: value & (1 << OBJ_SIZE_BYTE_POSITION) != 0,
-            sprites_on_off: value & (1 << OBJ_ENABLE_BYTE_POSITION) != 0,
-            background_on_off: value & (1 << BG_ENABLE_BYTE_POSITION) != 0,
-        }
+    /// Returns the state of the background tile map flag.
+    pub fn get_background_tile_map_flag(&self) -> bool {
+        is_bit_set(self.register, BG_TILE_MAP_BIT_POSITION as u8)
     }
-}
 
-impl From<LCDStatusRegister> for u8 {
-    fn from(register: LCDStatusRegister) -> Self {
-        let mut value = 0;
-        match register.gpu_mode {
-            rendering_mode => match rendering_mode {
-                RenderingMode::HBlank0 => value |= 0b00,
-                RenderingMode::VBlank1 => value |= 0b01,
-                RenderingMode::OAMScan2 => value |= 0b10,
-                RenderingMode::Transfer3 => value |= 0b11,
-            },
-        }
-        if register.lyc_ly_coincidence_flag {
-            value |= 1 << LYC_LY_COINCIDENCE_FLAG_BYTE_POSITION;
-        }
-        if register.mode_0_int_select {
-            value |= 1 << MODE_0_INT_SELECT_BYTE_POSITION;
-        }
-        if register.mode_1_int_select {
-            value |= 1 << MODE_1_INT_SELECT_BYTE_POSITION;
-        }
-        if register.mode_2_int_select {
-            value |= 1 << MODE_2_INT_SELECT_BYTE_POSITION;
-        }
-        if register.lyc_int_select {
-            value |= 1 << LYC_INT_SELECT_BYTE_POSITION;
-        }
-
-        value
+    /// Returns the state of the background and window tile data flag.
+    pub fn get_background_and_window_tile_data_flag(&self) -> bool {
+        is_bit_set(self.register, BG_TILE_DATA_BIT_POSITION as u8)
     }
-}
 
-impl From<&LCDStatusRegister> for u8 {
-    fn from(register: &LCDStatusRegister) -> Self {
-        let mut value = 0;
-        match &register.gpu_mode {
-            rendering_mode => match rendering_mode {
-                RenderingMode::HBlank0 => value |= 0b00,
-                RenderingMode::VBlank1 => value |= 0b01,
-                RenderingMode::OAMScan2 => value |= 0b10,
-                RenderingMode::Transfer3 => value |= 0b11,
-            },
-        }
-        if register.lyc_ly_coincidence_flag {
-            value |= 1 << LYC_LY_COINCIDENCE_FLAG_BYTE_POSITION;
-        }
-        if register.mode_0_int_select {
-            value |= 1 << MODE_0_INT_SELECT_BYTE_POSITION;
-        }
-        if register.mode_1_int_select {
-            value |= 1 << MODE_1_INT_SELECT_BYTE_POSITION;
-        }
-        if register.mode_2_int_select {
-            value |= 1 << MODE_2_INT_SELECT_BYTE_POSITION;
-        }
-        if register.lyc_int_select {
-            value |= 1 << LYC_INT_SELECT_BYTE_POSITION;
-        }
+    /// Returns the state of the window tile map flag.
+    pub fn get_window_tile_map_flag(&self) -> bool {
+        is_bit_set(self.register, WINDOW_TILE_MAP_BIT_POSITION as u8)
+    }
 
-        value
+    /// Returns the state of the lcd/display enable flag.
+    pub fn get_display_on_flag(&self) -> bool {
+        is_bit_set(self.register, LCD_ENABLE_BIT_POSITION as u8)
     }
 }
 
 impl LCDStatusRegister {
+    /// Returns the GPU mode as a [super::RenderingMode] enum.
+    fn get_gpu_mode(&self) -> RenderingMode {
+        RenderingMode::from_u8(self.register & 0b0000_0011)
+    }
+
+    /// Returns the state of the mode 0 interrupt select flag.
+    fn get_mode_0_int_select(&self) -> bool {
+        is_bit_set(self.register, MODE_0_INT_SELECT_BIT_POSITION as u8)
+    }
+
+    /// Returns the state of the mode 1 interrupt select flag.
+    fn get_mode_1_int_select(&self) -> bool {
+        is_bit_set(self.register, MODE_1_INT_SELECT_BIT_POSITION as u8)
+    }
+
+    /// Returns the state of the mode 2 interrupt select flag.
+    fn get_mode_2_int_select(&self) -> bool {
+        is_bit_set(self.register, MODE_2_INT_SELECT_BIT_POSITION as u8)
+    }
+
+    /// Returns the state of the LYC interrupt select flag.
+    fn get_lyc_int_select(&self) -> bool {
+        is_bit_set(self.register, LYC_INT_SELECT_BIT_POSITION as u8)
+    }
+
+    /// Sets the gpu/ppu mode to the provided value.
+    fn set_gpu_mode(&mut self, mode: RenderingMode) {
+        self.register = (self.register & 0b1111_1100) | mode.as_u8();
+    }
+
+    /// Sets the LYC = LY Coincidence Flag to the provided value.
+    fn set_lyc_ly_coincidence_flag(&mut self, value: bool) {
+        self.register = if value {
+            set_bit(self.register, LYC_LY_COINCIDENCE_FLAG_BIT_POSITION as u8)
+        } else {
+            clear_bit(self.register, LYC_LY_COINCIDENCE_FLAG_BIT_POSITION as u8)
+        };
+    }
+
     /// Returns a new instance of the LCDStatusRegister struct with the fields set according to
-    /// the provided value except for PPU Mode and LYC=LY Coincidence Flag.
+    /// the provided value except for PPU Mode and LYC=LY Coincidence Flag. So only the bits
+    /// 3 to 6 are set according to the provided value.
     /// Needs a reference to the GPURegisters to get the value of the LYC=LY Coincidence Flag.
     fn with_self_from_u8(&self, gpu_registers: &GPURegisters, value: u8) -> Self {
-        LCDStatusRegister {
-            gpu_mode: self.gpu_mode,
-            lyc_ly_coincidence_flag: gpu_registers.scanline_compare
-                == gpu_registers.current_scanline,
-            mode_0_int_select: value & (1 << MODE_0_INT_SELECT_BYTE_POSITION) != 0,
-            mode_1_int_select: value & (1 << MODE_1_INT_SELECT_BYTE_POSITION) != 0,
-            mode_2_int_select: value & (1 << MODE_2_INT_SELECT_BYTE_POSITION) != 0,
-            lyc_int_select: value & (1 << LYC_INT_SELECT_BYTE_POSITION) != 0,
+        let mut register = value & 0b0111_1000;
+        if gpu_registers.scanline_compare == gpu_registers.current_scanline {
+            register |= 1 << LYC_LY_COINCIDENCE_FLAG_BIT_POSITION;
         }
+        register |= self.register & 0b11;
+        LCDStatusRegister { register }
     }
 }

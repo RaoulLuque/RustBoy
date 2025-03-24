@@ -346,7 +346,7 @@ impl<'a> State<'a> {
         let updated_current_scanline = RenderingLinePosition {
             pos: [
                 current_scanline as u32,
-                rust_boy_gpu.gpu_registers.get_obj_size() as u32,
+                rust_boy_gpu.gpu_registers.get_sprite_size_flag() as u32,
                 0,
                 0,
             ],

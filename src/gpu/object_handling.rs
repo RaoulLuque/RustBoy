@@ -88,7 +88,7 @@ impl GPU {
         for i in 0..self.oam.len() {
             let object = self.oam[i];
             // Set object height according to the flag in the LCD control register
-            let object_height = if self.gpu_registers.lcd_control.sprite_size {
+            let object_height = if self.gpu_registers.lcd_control.get_sprite_size_flag() {
                 16
             } else {
                 8

@@ -209,7 +209,7 @@ pub async fn run(
     }
     log::info!("Logger initialized");
 
-    let mut debugging_flags = DebuggingFlags {
+    let debugging_flags = DebuggingFlags {
         doctor: game_boy_doctor_mode,
         file_logs,
         binjgb_mode,
