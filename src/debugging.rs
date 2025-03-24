@@ -31,7 +31,7 @@ pub struct DebuggingFlags {
 }
 
 #[cfg(debug_assertions)]
-pub fn setup_debugging_logs_files(_: DebuggingFlags, rom_path: &str) {
+pub fn setup_debugging_logs_files(_: DebuggingFlags) {
     // Create the log directory if it doesn't exist
     fs::create_dir_all("logs").unwrap();
 
@@ -43,22 +43,6 @@ pub fn setup_debugging_logs_files(_: DebuggingFlags, rom_path: &str) {
             .create(true)
             .open(path)
             .unwrap();
-    }
-
-    let mut data = rom_path.to_string();
-    data.push_str("\n");
-
-    let file = fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(&format!("logs/{LOG_FILE_NAME}.log"));
-    if let Ok(mut file) = file {
-        use std::io::Write;
-        file.write_all(data.as_bytes())
-            .expect("Unable to write data");
-    } else {
-        panic!("Unable to open file: {:?}", file);
     }
 }
 

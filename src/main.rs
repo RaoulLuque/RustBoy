@@ -39,6 +39,10 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
+    // Read in the ROM file
+    let rom = std::fs::read(&args.rom_path)
+        .expect(&format!("Should be able to read file: {}", &args.rom_path));
+
     pollster::block_on(run(
         args.headless,
         args.game_boy_doctor,
@@ -46,6 +50,6 @@ fn main() {
         args.binjgb_mode,
         args.timing_mode,
         args.print_serial_output_to_terminal,
-        &args.rom_path,
+        rom.as_slice(),
     ));
 }

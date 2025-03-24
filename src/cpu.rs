@@ -15,10 +15,8 @@ use instructions::Instruction;
 
 impl RustBoy {
     /// Loads a program into the memory bus at address 0x0000.
-    pub fn load_program(&mut self, program_directory: &str) {
-        let program = std::fs::read(program_directory)
-            .expect(&format!("Should be able to read file {program_directory}"));
-        self.load(0x0000, &program);
+    pub fn load_program(&mut self, rom_data: &[u8]) {
+        self.load(0x0000, &rom_data);
     }
 
     /// Sets the stackpointer (SP) to the provided value.

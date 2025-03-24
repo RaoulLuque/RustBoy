@@ -188,7 +188,7 @@ impl RustBoy {
 /// and therefore not showing the graphics
 /// - `game_boy_doctor_mode`, `file_logs`, `binjgb_mode`, `timing_mode`, `print_serial_output_to_terminal`:
 /// See [debugging::DebuggingFlags] for more information.
-/// - `rom_path`: The path to the ROM file to be loaded.
+/// - `rom_data`: The ROM data to be loaded into the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub async fn run(
     headless: bool,
@@ -197,7 +197,7 @@ pub async fn run(
     binjgb_mode: bool,
     timing_mode: bool,
     print_serial_output_to_terminal: bool,
-    rom_path: &str,
+    rom_data: &[u8],
 ) {
     // Initialize logger according to the target architecture
     cfg_if::cfg_if! {
@@ -223,7 +223,7 @@ pub async fn run(
         sb_to_terminal: print_serial_output_to_terminal,
     };
 
-    let mut rust_boy = setup_rust_boy(debugging_flags, rom_path);
+    let mut rust_boy = setup_rust_boy(debugging_flags, rom_data);
 
     #[cfg(debug_assertions)]
     if headless {
@@ -314,15 +314,15 @@ pub async fn run(
 
 /// Set up the Rust Boy by initializing it with the given debugging flags and
 /// loading the specified ROM file.
-fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_path: &str) -> RustBoy {
+fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_data: &[u8]) -> RustBoy {
     // Initialize the logging for debug if compiling in debug mode
     #[cfg(debug_assertions)]
-    setup_debugging_logs_files(debugging_flags, rom_path);
+    setup_debugging_logs_files(debugging_flags);
 
     // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
 
-    rust_boy.load_program(rom_path);
+    rust_boy.load_program(rom_data);
 
     rust_boy
 }

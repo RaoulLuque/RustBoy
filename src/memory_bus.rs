@@ -160,7 +160,7 @@ impl RustBoy {
     }
 
     /// Writes data to the memory at the given address.
-    pub(super) fn load(&mut self, address: u16, data: &Vec<u8>) {
+    pub(super) fn load(&mut self, address: u16, data: &[u8]) {
         for (i, &byte) in data.iter().enumerate() {
             self.write_byte(address + i as u16, byte);
         }
