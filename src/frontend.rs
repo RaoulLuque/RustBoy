@@ -46,7 +46,7 @@ pub struct State<'a> {
     // The bind group corresponding to the compute pipeline
     compute_bind_group: wgpu::BindGroup,
     // Tile atlas texture (128 x 128 rgba) to hold the (currently used) background tile data TODO: Update
-    tile_data_buffer: wgpu::Buffer,
+    bg_and_wd_tile_data_buffer: wgpu::Buffer,
     // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data
     background_tile_map_buffer: wgpu::Buffer,
     // Buffer to hold the background viewport position (is a u32 array of 4 elements) where
@@ -156,7 +156,7 @@ impl<'a> State<'a> {
             render_bind_group,
             compute_pipeline,
             compute_bind_group,
-            tile_data_buffer,
+            bg_and_wd_tile_data_buffer: tile_data_buffer,
             background_tile_map_buffer: background_tilemap_buffer,
             background_viewport_buffer,
             framebuffer_texture,
@@ -307,24 +307,28 @@ impl<'a> State<'a> {
         if rust_boy_gpu.current_tile_data_changed()
             | rust_boy_gpu.memory_changed.tile_data_flag_changed
         {
-            // trace!("Updating tile data");
-            // let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
-            // trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
-            // trace!(
-            //     "Tile data Block 0 and 1: \n {}",
-            //     tile_data_to_string(
-            //         &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1()
-            //     )
-            // );
-            // trace!(
-            //     "Tile data Block 2 and 1: \n {}",
-            //     tile_data_to_string(
-            //         &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1()
-            //     )
-            // );
+            #[cfg(debug_assertions)]
+            {
+                // For debug
+                trace!("Updating tile data");
+                let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data_debug();
+                trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
+                trace!(
+                    "Tile data Block 0 and 1: \n {}",
+                    tile_data_to_string(
+                        &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1_debug()
+                    )
+                );
+                trace!(
+                    "Tile data Block 2 and 1: \n {}",
+                    tile_data_to_string(
+                        &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1_debug()
+                    )
+                );
+            }
             let new_background_tile_data_plain = rust_boy_gpu.get_background_and_window_tile_data();
             self.queue.write_buffer(
-                &self.tile_data_buffer,
+                &self.bg_and_wd_tile_data_buffer,
                 0,
                 bytemuck::cast_slice(&[TileData::from_array(new_background_tile_data_plain)]),
             );
@@ -369,7 +373,7 @@ impl<'a> State<'a> {
         if rust_boy_gpu.memory_changed.tile_data_block_0_1_changed {
             let new_object_tile_data = rust_boy_gpu.get_object_tile_data();
             self.queue.write_buffer(
-                &self.tile_data_buffer,
+                &self.object_tile_data_buffer,
                 0,
                 bytemuck::cast_slice(&[TileData::from_array(new_object_tile_data)]),
             );
@@ -385,6 +389,16 @@ impl<'a> State<'a> {
             0,
             bytemuck::cast_slice(&[new_objects_in_scanline]),
         );
+        // DEBUG
+        #[cfg(debug_assertions)]
+        {
+            let objects_tile_data = rust_boy_gpu.get_object_tile_data();
+            let objects_tile_data = TileData::from_array(objects_tile_data);
+            trace!(
+                "{:?}",
+                objects_tile_data.tiles[objects_in_scanline[0][3] as usize]
+            );
+        }
 
         // Reset the changed flags so on the next scanline only buffers are updated which need to be
         rust_boy_gpu.memory_changed = ChangesToPropagateToShader::new();

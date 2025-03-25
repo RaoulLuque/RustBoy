@@ -24,6 +24,12 @@ TLDR:
 RUST_BACKTRACE=1 RUST_LOG=info cargo run -- --SB --ROM "roms/[ROM_NAME].gb"
 ```
 
+Benchmark
+
+```
+cargo run --release -- --TIMING --ROM "roms/test_roms/blarggs/cpu_instrs/09-op r,r.gb"
+```
+
 ## Implemented Instructions
 
 For a more interactive view,

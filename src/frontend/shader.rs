@@ -64,9 +64,10 @@ impl Vertex {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub(super) struct TileData {
-    // Each tile consists of 16 bytes = 128 bits, that is, 2 bits for each pixel and 8 x 8 = 64
-    // pixels in one tile. Furthermore, we have a total of 32 x 32 = 256 tiles.
-    pub tiles: [[u8; 16]; 256],
+    // Each tile consists of 8 x 8 pixels. Each pixel is represented by 2 bits, therefore each tile
+    // consists of 8 x 8 * 2 = 128 bits = 16 bytes = 4 u32s. Furthermore, there are 16 x 16 = 256
+    // tiles in the tilemap. Therefore, the size of the tiles array is 256 * 4 * 4 = 4096 bytes.
+    pub tiles: [[u32; 4]; 256],
 }
 
 #[repr(C)]
@@ -92,7 +93,7 @@ impl TileData {
     /// [bytemuck::cast].
     pub fn from_array(input: [u8; 4096]) -> Self {
         // This usage of cast is safe because we know that the size of the input array is 4096 bytes
-        // and the size of the tile(s) array is 256 * 16 = 4096 bytes.
+        // and the size of the tile(s) array is 256 * 4 u32s = 4096 bytes.
         let tiles = cast(input);
         TileData { tiles }
     }

@@ -1,5 +1,10 @@
+// Struct to hold tile data in a packed format. This just converts the Game Boys encoding of an array of u8s into an
+// array of u32s with the same total size.
+// Each tile consists of 8 x 8 pixels. Each pixel is represented by 2 bits, therefore each tile
+// consists of 8 x 8 * 2 = 128 bits = 16 bytes = 4 u32s. Furthermore, there are 16 x 16 = 256
+// tiles in the tilemap. Therefore, the size of the tiles array is 256 * 4 * 4 = 4096 bytes.
 struct TileDataPacked {
-    tiles: array<array<u32, 16>, 256>,
+    tiles: array<array<u32, 4>, 256>,
 }
 
 // Struct to hold the tilemap. Ensures alignment that is multiple of 16 bytes.
@@ -87,6 +92,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
             // If the color is white, it means that the pixel is transparent and we should use the background color(?)
             // TODO: Check if this is correct
             color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
+//            color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
         }
     } else {
         color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
@@ -119,10 +125,7 @@ fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: ve
     // Calculate the coordinates of the pixel within the tile
     let pixel_index = vec2<i32>(pixel_coords) % tile_size;
 
-    // Convert pixel position to normalized UV (0.0 - 1.0) within the current 8x8 tile
-    let tile_pixel_uv = vec2<f32>(pixel_index) / vec2<f32>(8.0, 8.0);
-
-    return retrieve_color_from_atlas_texture(tile_index_in_atlas, tile_pixel_uv);
+    return retrieve_color_from_tile_data_buffers(tile_index_in_atlas, vec2<u32>(pixel_index), 0);
 }
 
 fn compute_color_from_object(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
@@ -150,80 +153,53 @@ fn compute_color_from_object(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4
         }
     }
 
-    // Convert pixel position to normalized UV (0.0 - 1.0) within the current tile
-    var tile_pixel_uv: vec2<f32>;
+    // The tile index is given as the third entry in the object vector
+    var tile_index_in_atlas = object.z;
+
+    // If the object is 16 pixels high, we need to adjust the tile_index_in_atlas and the pixel coordinates
+    // such that we are compatible with retrieve_color_from_tile_data_buffers
     if object_size_flag {
-        // Object_size_flag is set, therefore objects are 16 pixels high and we have to normalize y coordinate by
-        // dividing by 16
-        tile_pixel_uv = vec2<f32>(within_object_pixel_coordinates) / vec2<f32>(8.0, 16.0);
+        if within_object_pixel_coordinates.y > 7 {
+            // The pixel lies within the bottom part of the object, therefore we need to adjust the tile index
+            // and the pixel coordinates
+            tile_index_in_atlas = tile_index_in_atlas + 1;
+            within_object_pixel_coordinates.y = within_object_pixel_coordinates.y - 8;
+        }
+    }
+
+    return retrieve_color_from_tile_data_buffers(tile_index_in_atlas, within_object_pixel_coordinates, 1);
+}
+
+/// Given the tile_index_in_buffer, the pixel coordinates within the tile, computes the color a pixel should have.
+/// To distinguish between the background and window tile data buffer and the object tile data buffer, the tile_data_flag
+/// can be set to = 0 for background and window tile data buffer and = 1 (and else) for object tile data buffer.
+fn retrieve_color_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_pixel_coords: vec2<u32>, tile_data_flag: u32) -> vec4<f32> {
+    // Get the correct tile based on whether we are using the background or object tile data
+    var tile_containing_pixel: array<u32, 4>;
+    if tile_data_flag == 0 {
+        tile_containing_pixel = bg_and_window_tile_data.tiles[tile_index_in_buffer];
     } else {
-        // Object_size_flag is not set, therefore objects are 8 pixels high and we have to normalize y coordinate by
-        // dividing by 8
-        tile_pixel_uv = vec2<f32>(within_object_pixel_coordinates) / vec2<f32>(8.0, 8.0);
+        tile_containing_pixel = object_tile_data.tiles[tile_index_in_buffer];
     }
 
-    // The tile index is given as the third entry in the object vector
-    let tile_index_in_atlas = object.z;
+    // Find the encoded color value of the pixel in the tile. This is quite obscure due to the Game Boys' tile data
+    // encoding scheme, see: https://gbdev.io/pandocs/Tile_Data.html#data-format
+    let bytes_containing_color_code: u32 = tile_containing_pixel[within_tile_pixel_coords.y / 2];
+    let mask_lower_bit: u32 = 1u << (15u - within_tile_pixel_coords.x + ((within_tile_pixel_coords.y % 2) * 16u) - 8u);
+    let mask_upper_bit: u32 = 1u << (15u - within_tile_pixel_coords.x + ((within_tile_pixel_coords.y % 2) * 16u));
+    let color_code = u32((bytes_containing_color_code & mask_lower_bit) != 0) | (u32((bytes_containing_color_code & mask_upper_bit) != 0) << 1u);
+    let color = convert_color_code_to_rgba8_color(color_code);
 
-    return retrieve_color_from_atlas_texture(tile_index_in_atlas, tile_pixel_uv);
+    return color;
 }
 
-fn compute_color_from_object_size_8(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
-    // These are the x and y coordinates of the top left corner of the object
-    let object_coordinates = vec2<u32>(object.y - 8, object.x - 16);
-
-    // These are the x and y coordinate of the pixel within the object
-    var within_object_pixel_coordinates: vec2<u32> = pixel_coords - object_coordinates;
-
-    // Check for x or y flip
-    if (object.z & 0x20) != 0 {
-        // x flip
-        within_object_pixel_coordinates.x = 7 - within_object_pixel_coordinates.x;
+fn convert_color_code_to_rgba8_color(color_code: u32) -> vec4<f32> {
+    // The color code is a 2-bit value, where each bit represents a color
+    // 0 = white, 1 = light gray, 2 = dark gray, 3 = black
+    switch (color_code) {
+        case 0u: { return vec4<f32>(1.0, 1.0, 1.0, 1.0); } // white
+        case 1u: { return vec4<f32>(0.75, 0.75, 0.75, 1.0); } // light gray
+        case 2u: { return vec4<f32>(0.5, 0.5, 0.5, 1.0); } // dark gray
+        default: { return vec4<f32>(0.0, 0.0, 0.0, 1.0); } // black
     }
-    if (object.z & 0x40) != 0 {
-        // y flip
-        within_object_pixel_coordinates.y = 7 - within_object_pixel_coordinates.y;
-    }
-
-    // Convert pixel position to normalized UV (0.0 - 1.0) within the current tile
-    let tile_pixel_uv = vec2<f32>(within_object_pixel_coordinates) / vec2<f32>(8.0, 8.0);
-
-    // The tile index is given as the third entry in the object vector
-    let tile_index_in_atlas = object.z;
-
-    return retrieve_color_from_atlas_texture(tile_index_in_atlas, tile_pixel_uv);
-}
-
-fn compute_color_from_object_size_16(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
-    // These are the x and y coordinates of the top left corner of the object
-    let object_x_coordinate = object.y - 8;
-    let object_y_coordinate = object.x - 16;
-
-    // TODO: Implement this function
-    return vec4<f32>(1.0, 0.0, 0.0, 1.0);
-}
-
-fn retrieve_color_from_atlas_texture(tile_index_in_atlas: u32, within_tile_pixel_uv_coords: vec2<f32>) -> vec4<f32> {
-    // Calculate position in tile atlas (flattened 16x16 grid of tiles)
-    let atlas_tile_x = f32(tile_index_in_atlas % 16);
-    let atlas_tile_y = f32(u32(tile_index_in_atlas / 16));
-
-    // Calculate final UV coordinates in the atlas texture
-    let atlas_uv = vec2<f32>(
-        (atlas_tile_x + within_tile_pixel_uv_coords.x) / 16,
-        (atlas_tile_y + within_tile_pixel_uv_coords.y) / 16
-    );
-
-    return vec4<f32>(1.0, 0.0, 0.0, 1.0); // TODO: Replace with actual texture lookup
-
-//    // Get the atlas texture dimensions
-//    let atlasSize = textureDimensions(bg_and_window_tile_data);
-//
-//    // Convert the normalized UV to integer texel coordinates
-//    let atlas_texel_coord = vec2<i32>(atlas_uv * vec2<f32>(atlasSize));
-//
-//    // Load the color from the tile atlas at mip level 0
-//    let color = textureLoad(bg_and_window_tile_data, atlas_texel_coord, 0);
-//
-//    return color;
 }
