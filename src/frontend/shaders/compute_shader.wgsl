@@ -4,7 +4,7 @@
 // consists of 8 x 8 * 2 = 128 bits = 16 bytes = 4 u32s. Furthermore, there are 16 x 16 = 256
 // tiles in the tilemap. Therefore, the size of the tiles array is 256 * 4 * 4 = 4096 bytes.
 struct TileDataPacked {
-    tiles: array<array<u32, 4>, 256>,
+    tiles: array<vec4<u32>, 256>,
 }
 
 // Struct to hold the tilemap. Ensures alignment that is multiple of 16 bytes.
@@ -22,7 +22,7 @@ struct ObjectsInScanline {
 // The tiles here can be considered the building blocks used by the tilemap.
 // Each tile is 8x8 pixels, with a total of 16 tiles per row/column, so the atlas is 128 x 128 pixels in total.
 // It is encoded in Rgba8UnormSrgb format.
-@group(0) @binding(0) var<storage, read> bg_and_window_tile_data: TileDataPacked;
+@group(0) @binding(0) var<uniform> bg_and_window_tile_data: TileDataPacked;
 // We use only the first entry to store the current rendering line, the second entry is used to pass the object size
 // flag (FF40 bit 2)
 @group(0) @binding(1) var<uniform> current_line_and_obj_size: vec4<u32>;
@@ -40,7 +40,7 @@ struct ObjectsInScanline {
 @group(0) @binding(4) var framebuffer: texture_storage_2d<rgba8unorm, write>;
 
 // The sprite tile atlas is a 2D texture containing all the tiles used for the objects/sprites.
-@group(0) @binding(5) var<storage, read> object_tile_data: TileDataPacked;
+@group(0) @binding(5) var<uniform> object_tile_data: TileDataPacked;
 // The objects in the current scnaline are the objects that are visible in the current line of the screen.
 // The objects are stored in an array of 10 elements, each element is a vec4<u32>.
 // If there are less than 10 objects, the rest of the array is filled with 0s.
@@ -175,7 +175,7 @@ fn compute_color_from_object(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4
 /// can be set to = 0 for background and window tile data buffer and = 1 (and else) for object tile data buffer.
 fn retrieve_color_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_pixel_coords: vec2<u32>, tile_data_flag: u32) -> vec4<f32> {
     // Get the correct tile based on whether we are using the background or object tile data
-    var tile_containing_pixel: array<u32, 4>;
+    var tile_containing_pixel: vec4<u32>;
     if tile_data_flag == 0 {
         tile_containing_pixel = bg_and_window_tile_data.tiles[tile_index_in_buffer];
     } else {
@@ -184,7 +184,14 @@ fn retrieve_color_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_
 
     // Find the encoded color value of the pixel in the tile. This is quite obscure due to the Game Boys' tile data
     // encoding scheme, see: https://gbdev.io/pandocs/Tile_Data.html#data-format
-    let bytes_containing_color_code: u32 = tile_containing_pixel[within_tile_pixel_coords.y / 2];
+    var bytes_containing_color_code: u32;
+    let in_tile_index = within_tile_pixel_coords.y / 2;
+    switch (in_tile_index) {
+            case 0u: { bytes_containing_color_code = tile_containing_pixel.x; break; }
+            case 1u: { bytes_containing_color_code = tile_containing_pixel.y; break; }
+            case 2u: { bytes_containing_color_code = tile_containing_pixel.z; break; }
+            default: { bytes_containing_color_code = tile_containing_pixel.w; break; }
+    }
     let mask_lower_bit: u32 = 1u << (15u - within_tile_pixel_coords.x + ((within_tile_pixel_coords.y % 2) * 16u) - 8u);
     let mask_upper_bit: u32 = 1u << (15u - within_tile_pixel_coords.x + ((within_tile_pixel_coords.y % 2) * 16u));
     let color_code = u32((bytes_containing_color_code & mask_lower_bit) != 0) | (u32((bytes_containing_color_code & mask_upper_bit) != 0) << 1u);

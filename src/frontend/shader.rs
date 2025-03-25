@@ -333,7 +333,7 @@ pub fn setup_compute_shader_pipeline(
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Tile Data Buffer"),
             contents: bytemuck::cast_slice(&[initial_tile_data_buffer]),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
     // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
@@ -391,7 +391,7 @@ pub fn setup_compute_shader_pipeline(
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Object Tile Data Buffer"),
             contents: bytemuck::cast_slice(&[initial_object_tile_data_buffer]),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
     // Represents the objects that
@@ -414,7 +414,7 @@ pub fn setup_compute_shader_pipeline(
                 binding: 0,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: None,
                 },
@@ -469,7 +469,7 @@ pub fn setup_compute_shader_pipeline(
                 binding: 5,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: None,
                 },
