@@ -195,11 +195,11 @@ fn retrieve_color_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_
 
 fn convert_color_code_to_rgba8_color(color_code: u32) -> vec4<f32> {
     // The color code is a 2-bit value, where each bit represents a color
-    // 0 = white, 1 = light gray, 2 = dark gray, 3 = black
+    // 0 = white, 1 = light green, 2 = dark green, 3 = very dark green/black
     switch (color_code) {
-        case 0u: { return vec4<f32>(0.836, 0.956, 0.726, 1.0); } // White (sRGB 255)
-        case 1u: { return vec4<f32>(0.270, 0.527, 0.170, 1.0); } // Light Gray (sRGB 192 → linear ~0.528)
-        case 2u: { return vec4<f32>(0.0, 0.118, 0.0, 1.0); } // Dark Gray (sRGB 96 → linear ~0.118)
-        default: { return vec4<f32>(0.040, 0.118, 0.060, 1.0); } // Black (sRGB 0)
+        case 0u: { return vec4<f32>(0.836, 0.956, 0.726, 1.0); }
+        case 1u: { return vec4<f32>(0.270, 0.527, 0.170, 1.0); }
+        case 2u: { return vec4<f32>(0.0, 0.118, 0.0, 1.0); }
+        default: { return vec4<f32>(0.040, 0.118, 0.060, 1.0); }
     }
 }
