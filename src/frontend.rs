@@ -389,12 +389,12 @@ impl<'a> State<'a> {
         // DEBUG
         #[cfg(debug_assertions)]
         {
-            let objects_tile_data = rust_boy_gpu.get_object_tile_data();
-            let objects_tile_data = TileData::from_array(objects_tile_data);
-            trace!(
-                "{:?}",
-                objects_tile_data.tiles[objects_in_scanline[0][3] as usize]
-            );
+            // let objects_tile_data = rust_boy_gpu.get_object_tile_data();
+            // let objects_tile_data = TileData::from_array(objects_tile_data);
+            // trace!(
+            //     "{:?}",
+            //     objects_tile_data.tiles[objects_in_scanline[0][3] as usize]
+            // );
         }
 
         // Reset the changed flags so on the next scanline only buffers are updated which need to be
