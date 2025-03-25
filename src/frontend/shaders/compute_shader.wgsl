@@ -69,6 +69,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
 
     var pixel_in_object = false;
     var object = vec4<u32>(0, 0, 0, 0);
+    var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
     // We have to adjust for x_position = 0 being 8 pixels to the left of the left border of the screen
     let adjusted_x = x + 8;
 
@@ -83,23 +84,20 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
         if (objects_in_scanline.objects[i].y <= adjusted_x && objects_in_scanline.objects[i].y + 8 > adjusted_x) {
             // objects_in_scanline.objects[i].y is the x coordinate of the object. With this, we check if the current pixel
             // lies within the object. For the y coordinate this is already guaranteed by objects_in_scanline
-            // TODO: Handle, if the object actually covers the background (Byte 3 Priority)
-            pixel_in_object = true;
             object = objects_in_scanline.objects[i];
+            color = compute_color_from_object(object, vec2<u32>(x, y));
+            if (color.x == color_zero.x && color.y == color_zero.y && color.z == color_zero.z) {
+                // If the color is transparent we can search the rest of the objects if they cover this pixel
+                continue;
+            } else {
+                // If the color is not transparent, we have found the object that covers the pixel
+                pixel_in_object = true;
+                break;
+            }
         }
     }
 
-    var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-
-    if (pixel_in_object) {
-        color = compute_color_from_object(object, vec2<u32>(x, y));
-        if (color.x == color_zero.x && color.y == color_zero.y && color.z == color_zero.z) || ((object.w & 0x80u) != 0u) {
-            // Either: If the color of the sprite pixel is white (color zero), it means that the sprite is transparent at this pixel
-            // and we should use the background color instead.
-            // Or: The priority bit is set in the attributes of the sprite in which case we should use the background/window color instead.
-            color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
-        }
-    } else {
+    if (!pixel_in_object) || ((object.w & 0x80u) != 0u) {
         color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
     }
 
