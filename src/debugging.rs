@@ -9,7 +9,7 @@ use std::io::Write;
 
 pub const LOG_FILE_NAME: &str = "extensive_logs";
 
-/// Struct to represent the debugging flags.
+/// Struct to represent the debugging information/flags.
 /// The flags are:
 /// - `doctor`: If true, the emulator runs in game boy doctor compatible mode.
 /// - `file_logs`: If true, the emulator writes logs to a file.
@@ -22,9 +22,11 @@ pub const LOG_FILE_NAME: &str = "extensive_logs";
 /// see https://github.com/robert/gameboy-doctor
 
 #[derive(Debug)]
-pub struct DebuggingFlags {
+pub struct DebugInfo {
     pub file_handle_doctor_logs: Option<std::fs::File>,
     pub file_handle_extensive_logs: Option<std::fs::File>,
+    pub log_file_index: u8,
+    pub current_number_of_lines_in_log_file: u32,
     pub doctor: bool,
     pub file_logs: bool,
     pub binjgb_mode: bool,
@@ -44,7 +46,7 @@ pub struct DebuggingFlagsWithoutFileHandles {
 }
 
 impl DebuggingFlagsWithoutFileHandles {
-    pub fn from_debugging_flags(debugging_flags: &DebuggingFlags) -> Self {
+    pub fn from_debugging_flags(debugging_flags: &DebugInfo) -> Self {
         Self {
             doctor: debugging_flags.doctor,
             file_logs: debugging_flags.file_logs,
@@ -57,20 +59,25 @@ impl DebuggingFlagsWithoutFileHandles {
 }
 
 #[cfg(debug_assertions)]
-pub fn setup_debugging_logs_files(debugging_flags: &mut DebuggingFlags) {
+pub fn setup_debugging_logs_files(debugging_flags: &mut DebugInfo) {
+    let log_file_index = debugging_flags.log_file_index;
+
     // Create the log directory if it doesn't exist
     fs::create_dir_all("logs").unwrap();
 
-    let log_file_paths = ["logs/doctor.log", &format!("logs/{LOG_FILE_NAME}.log")];
+    let log_file_paths = [
+        format!("logs/doctor_{log_file_index}.log"),
+        format!("logs/{LOG_FILE_NAME}_{log_file_index}.log"),
+    ];
     for path in log_file_paths {
-        if path == "logs/doctor.log" {
+        if path == format!("logs/doctor_{log_file_index}.log") {
             debugging_flags.file_handle_doctor_logs = Some(
                 fs::OpenOptions::new()
                     .write(true)
                     .truncate(true)
                     .create(true)
-                    .open(path)
-                    .expect(&format!("{} File should be openable", path)),
+                    .open(&path)
+                    .expect(&format!("{} File should be openable", &path)),
             );
         } else {
             debugging_flags.file_handle_extensive_logs = Some(
@@ -78,8 +85,8 @@ pub fn setup_debugging_logs_files(debugging_flags: &mut DebuggingFlags) {
                     .write(true)
                     .truncate(true)
                     .create(true)
-                    .open(path)
-                    .expect(&format!("{} File should be openable", path)),
+                    .open(&path)
+                    .expect(&format!("{} File should be openable", &path)),
             );
         }
     }
@@ -90,8 +97,6 @@ pub fn setup_debugging_logs_files(debugging_flags: &mut DebuggingFlags) {
 /// compilation feature.
 #[cfg(debug_assertions)]
 pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
-    use std::fs;
-    let file_name = format!("logs/{}.log", log_file);
     let mut data = format!(
         "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
         rust_boy.registers.a,
@@ -164,6 +169,12 @@ pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
             .write_all(data.as_bytes())
             .expect("Should be able to write data to doctor log file");
     } else {
+        rust_boy.debugging_flags.current_number_of_lines_in_log_file += 1;
+        if rust_boy.debugging_flags.current_number_of_lines_in_log_file == 1_000_000 {
+            rust_boy.debugging_flags.current_number_of_lines_in_log_file = 0;
+            rust_boy.debugging_flags.log_file_index += 1;
+            setup_debugging_logs_files(&mut rust_boy.debugging_flags);
+        }
         rust_boy
             .debugging_flags
             .file_handle_extensive_logs
@@ -182,8 +193,6 @@ pub fn instruction_log(
     instruction: Option<crate::cpu::instructions::Instruction>,
     interrupt_location: Option<u16>,
 ) {
-    use std::fs;
-    let file_name = format!("logs/{}.log", log_file);
     let data = if let Some(instruction) = instruction {
         format!(
             "{:<50}",

@@ -22,7 +22,7 @@ use wasm_bindgen::prelude::*;
 use wasm_timer::Instant;
 
 use cpu::registers::CPURegisters;
-use debugging::DebuggingFlags;
+use debugging::DebugInfo;
 #[cfg(debug_assertions)]
 use debugging::setup_debugging_logs_files;
 use frontend::State;
@@ -114,7 +114,7 @@ pub struct RustBoy {
     joypad: Joypad,
 
     // Debugging Flags
-    debugging_flags: DebuggingFlags,
+    debugging_flags: DebugInfo,
 }
 
 impl RustBoy {
@@ -125,7 +125,7 @@ impl RustBoy {
     /// the stack pointer (SP) is set to 0xFFFE, and the cycle counter is set to 0.
     /// The memory bus is also initialized.
     /// The GPU is initialized to an empty state.
-    pub fn new_before_boot(debugging_flags: DebuggingFlags) -> RustBoy {
+    pub fn new_before_boot(debugging_flags: DebugInfo) -> RustBoy {
         RustBoy {
             registers: CPURegisters::new_zero(),
             pc: 0x0000,
@@ -153,7 +153,7 @@ impl RustBoy {
     /// The registers and pointers are all set to their values which they would have after the
     /// boot rom has been executed. For reference, see in the
     /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
-    pub fn new_after_boot(debugging_flags: DebuggingFlags) -> RustBoy {
+    pub fn new_after_boot(debugging_flags: DebugInfo) -> RustBoy {
         let mut rust_boy = RustBoy {
             registers: CPURegisters::new_after_boot(),
             pc: 0x0100,
@@ -187,7 +187,7 @@ impl RustBoy {
 /// - `headless`: If true, the emulator runs in headless mode. That is, without opening a window
 /// and therefore not showing the graphics
 /// - `game_boy_doctor_mode`, `file_logs`, `binjgb_mode`, `timing_mode`, `print_serial_output_to_terminal`:
-/// See [debugging::DebuggingFlags] for more information.
+/// See [debugging::DebugInfo] for more information.
 /// - `rom_data`: The ROM data to be loaded into the emulator.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub async fn run(
@@ -210,9 +210,11 @@ pub async fn run(
     }
     log::info!("Logger initialized");
 
-    let debugging_flags = DebuggingFlags {
+    let debugging_flags = DebugInfo {
         file_handle_doctor_logs: None,
         file_handle_extensive_logs: None,
+        log_file_index: 0,
+        current_number_of_lines_in_log_file: 0,
         doctor: game_boy_doctor_mode,
         file_logs,
         binjgb_mode,
@@ -316,7 +318,7 @@ pub async fn run(
 
 /// Set up the Rust Boy by initializing it with the given debugging flags and
 /// loading the specified ROM file.
-fn setup_rust_boy(mut debugging_flags: DebuggingFlags, rom_data: &[u8]) -> RustBoy {
+fn setup_rust_boy(mut debugging_flags: DebugInfo, rom_data: &[u8]) -> RustBoy {
     // Initialize the logging for debug if compiling in debug mode
     #[cfg(debug_assertions)]
     setup_debugging_logs_files(&mut debugging_flags);

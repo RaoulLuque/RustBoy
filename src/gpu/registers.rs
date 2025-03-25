@@ -4,7 +4,7 @@ use super::{
 };
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
-use crate::debugging::{DebuggingFlags, DebuggingFlagsWithoutFileHandles};
+use crate::debugging::DebuggingFlagsWithoutFileHandles;
 use crate::interrupts::InterruptFlagRegister;
 
 const LCD_ENABLE_BIT_POSITION: usize = 7;
