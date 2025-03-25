@@ -141,11 +141,11 @@ fn compute_color_from_object(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4
     var within_object_pixel_coordinates: vec2<u32> = pixel_coords - object_coordinates;
 
     // Check for x or y flip
-    if (object.z & 0x20) != 0 {
+    if (object.w & 0x20) != 0 {
         // x flip
         within_object_pixel_coordinates.x = 7 - within_object_pixel_coordinates.x;
     }
-    if (object.z & 0x40) != 0 {
+    if (object.w & 0x40) != 0 {
         // y flip
         if object_size_flag {
             // Object_size_flag is set, therefore objects are 16 pixels high
