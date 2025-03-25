@@ -40,11 +40,11 @@ impl RustBoy {
         // builds, which is why we use the cfg conditional compilation feature.
         #[cfg(debug_assertions)]
         if self.debugging_flags.doctor {
-            doctor_log(&self, "doctor");
+            doctor_log(self, "doctor");
         }
         #[cfg(debug_assertions)]
         if self.debugging_flags.file_logs {
-            doctor_log(&self, LOG_FILE_NAME)
+            doctor_log(self, LOG_FILE_NAME)
         }
 
         // Check if an interrupt needs to be handled. If so, Some(u16) is returned with the

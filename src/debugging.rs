@@ -5,6 +5,7 @@ use wasm_timer::Instant;
 use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use std::fs;
+use std::io::Write;
 
 pub const LOG_FILE_NAME: &str = "extensive_logs";
 
@@ -20,8 +21,10 @@ pub const LOG_FILE_NAME: &str = "extensive_logs";
 /// - `sb_to_terminal`: If true, the emulator prints the serial output to the terminal.
 /// see https://github.com/robert/gameboy-doctor
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub struct DebuggingFlags {
+    pub file_handle_doctor_logs: Option<std::fs::File>,
+    pub file_handle_extensive_logs: Option<std::fs::File>,
     pub doctor: bool,
     pub file_logs: bool,
     pub binjgb_mode: bool,
@@ -30,19 +33,55 @@ pub struct DebuggingFlags {
     pub sb_to_terminal: bool,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct DebuggingFlagsWithoutFileHandles {
+    pub doctor: bool,
+    pub file_logs: bool,
+    pub binjgb_mode: bool,
+    pub timing_mode: bool,
+    pub start_time: Option<Instant>,
+    pub sb_to_terminal: bool,
+}
+
+impl DebuggingFlagsWithoutFileHandles {
+    pub fn from_debugging_flags(debugging_flags: &DebuggingFlags) -> Self {
+        Self {
+            doctor: debugging_flags.doctor,
+            file_logs: debugging_flags.file_logs,
+            binjgb_mode: debugging_flags.binjgb_mode,
+            timing_mode: debugging_flags.timing_mode,
+            start_time: debugging_flags.start_time,
+            sb_to_terminal: debugging_flags.sb_to_terminal,
+        }
+    }
+}
+
 #[cfg(debug_assertions)]
-pub fn setup_debugging_logs_files(_: DebuggingFlags) {
+pub fn setup_debugging_logs_files(debugging_flags: &mut DebuggingFlags) {
     // Create the log directory if it doesn't exist
     fs::create_dir_all("logs").unwrap();
 
     let log_file_paths = ["logs/doctor.log", &format!("logs/{LOG_FILE_NAME}.log")];
     for path in log_file_paths {
-        fs::OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(path)
-            .unwrap();
+        if path == "logs/doctor.log" {
+            debugging_flags.file_handle_doctor_logs = Some(
+                fs::OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .create(true)
+                    .open(path)
+                    .expect(&format!("{} File should be openable", path)),
+            );
+        } else {
+            debugging_flags.file_handle_extensive_logs = Some(
+                fs::OpenOptions::new()
+                    .write(true)
+                    .truncate(true)
+                    .create(true)
+                    .open(path)
+                    .expect(&format!("{} File should be openable", path)),
+            );
+        }
     }
 }
 
@@ -50,7 +89,7 @@ pub fn setup_debugging_logs_files(_: DebuggingFlags) {
 /// Don't want all this in release builds, which is why we use the cfg conditional
 /// compilation feature.
 #[cfg(debug_assertions)]
-pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
+pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
     use std::fs;
     let file_name = format!("logs/{}.log", log_file);
     let mut data = format!(
@@ -116,17 +155,22 @@ pub fn doctor_log(rust_boy: &RustBoy, log_file: &str) {
         let total_cycles: u128 = rust_boy.gpu.rendering_info.total_dots;
         data.push_str(&format!(" TOTAL_CY_DOTS:{:<10}\n", total_cycles));
     }
-    let file = fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(file_name);
-    if let Ok(mut file) = file {
-        use std::io::Write;
-        file.write_all(data.as_bytes())
-            .expect("Unable to write data");
+    if log_file == "doctor" {
+        rust_boy
+            .debugging_flags
+            .file_handle_doctor_logs
+            .as_ref()
+            .expect("Doctor log file handle should be created")
+            .write_all(data.as_bytes())
+            .expect("Should be able to write data to doctor log file");
     } else {
-        panic!("Unable to open file: {:?}", file);
+        rust_boy
+            .debugging_flags
+            .file_handle_extensive_logs
+            .as_ref()
+            .expect("Doctor log file handle should be created")
+            .write_all(data.as_bytes())
+            .expect("Should be able to write data to doctor log file");
     }
 }
 
@@ -158,17 +202,22 @@ pub fn instruction_log(
         format!("{:<50}", "No instruction")
     };
 
-    let file = fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(file_name);
-    if let Ok(mut file) = file {
-        use std::io::Write;
-        file.write_all(data.as_bytes())
-            .expect("Unable to write data");
+    if log_file == "doctor" {
+        rust_boy
+            .debugging_flags
+            .file_handle_doctor_logs
+            .as_ref()
+            .expect("Doctor log file handle should be created")
+            .write_all(data.as_bytes())
+            .expect("Should be able to write data to doctor log file");
     } else {
-        panic!("Unable to open file: {:?}", file);
+        rust_boy
+            .debugging_flags
+            .file_handle_extensive_logs
+            .as_ref()
+            .expect("Doctor log file handle should be created")
+            .write_all(data.as_bytes())
+            .expect("Should be able to write data to doctor log file");
     }
 }
 

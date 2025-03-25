@@ -139,7 +139,7 @@ impl RustBoy {
             ime: false,
             ime_to_be_set: false,
             halted: false,
-            gpu: GPU::new_empty(debugging_flags),
+            gpu: GPU::new_empty(&debugging_flags),
             timer_info: TimerInfo::new(),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
@@ -167,7 +167,7 @@ impl RustBoy {
             ime: false,
             ime_to_be_set: false,
             halted: false,
-            gpu: GPU::new_empty(debugging_flags),
+            gpu: GPU::new_empty(&debugging_flags),
             timer_info: TimerInfo::new(),
             interrupt_enable_register: InterruptEnableRegister::new(),
             interrupt_flag_register: InterruptFlagRegister::new(),
@@ -211,6 +211,8 @@ pub async fn run(
     log::info!("Logger initialized");
 
     let debugging_flags = DebuggingFlags {
+        file_handle_doctor_logs: None,
+        file_handle_extensive_logs: None,
         doctor: game_boy_doctor_mode,
         file_logs,
         binjgb_mode,
@@ -314,10 +316,10 @@ pub async fn run(
 
 /// Set up the Rust Boy by initializing it with the given debugging flags and
 /// loading the specified ROM file.
-fn setup_rust_boy(debugging_flags: DebuggingFlags, rom_data: &[u8]) -> RustBoy {
+fn setup_rust_boy(mut debugging_flags: DebuggingFlags, rom_data: &[u8]) -> RustBoy {
     // Initialize the logging for debug if compiling in debug mode
     #[cfg(debug_assertions)]
-    setup_debugging_logs_files(debugging_flags);
+    setup_debugging_logs_files(&mut debugging_flags);
 
     // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
@@ -416,7 +418,7 @@ fn handle_redraw_requested_event(
             // Estimate FPS
             *running_frame_counter += 1;
 
-            if *running_frame_counter == 600 {
+            if *running_frame_counter == 300 {
                 let elapsed_time = time_of_last_fps_calculation.elapsed();
                 let fps = *running_frame_counter as f64 / elapsed_time.as_secs_f64();
                 log::debug!("FPS: {}", fps);

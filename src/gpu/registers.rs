@@ -4,7 +4,7 @@ use super::{
 };
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
-use crate::debugging::DebuggingFlags;
+use crate::debugging::{DebuggingFlags, DebuggingFlagsWithoutFileHandles};
 use crate::interrupts::InterruptFlagRegister;
 
 const LCD_ENABLE_BIT_POSITION: usize = 7;
@@ -36,7 +36,7 @@ pub struct GPURegisters {
     current_scanline: u8,
     scanline_compare: u8,
     background_palette: u8,
-    pub(super) debugging_flags: DebuggingFlags,
+    pub(super) debugging_flags: DebuggingFlagsWithoutFileHandles,
 }
 
 /// Represents the LCDC register of the GPU.
@@ -128,7 +128,7 @@ impl GPU {
 impl GPURegisters {
     /// Creates a new instance of the GPURegisters struct with all registers set to their default
     /// startup values.
-    pub fn new(debugging_flags: DebuggingFlags) -> Self {
+    pub fn new(debugging_flags: DebuggingFlagsWithoutFileHandles) -> Self {
         Self {
             lcd_control: LCDCRegister { register: 0 },
             lcd_status: LCDStatusRegister { register: 0 },

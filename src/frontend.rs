@@ -281,16 +281,16 @@ impl<'a> State<'a> {
         if rust_boy_gpu.current_background_tile_map_changed()
             | rust_boy_gpu.memory_changed.background_tile_map_flag_changed
         {
-            trace!("Updating tilemap");
-            trace!(
-                "Current Scrolling: x: {} y: {}",
-                rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
-                rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
-            );
-            trace!(
-                "New Tilemap (in use) \n {} \n \n",
-                tile_map_to_string(rust_boy_gpu.get_background_tile_map())
-            );
+            // trace!("Updating tilemap");
+            // trace!(
+            //     "Current Scrolling: x: {} y: {}",
+            //     rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
+            //     rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
+            // );
+            // trace!(
+            //     "New Tilemap (in use) \n {} \n \n",
+            //     tile_map_to_string(rust_boy_gpu.get_background_tile_map())
+            // );
 
             // Update tilemap and tile atlas (e.g., VRAM changes)
             let new_tilemap_data = rust_boy_gpu.get_background_tile_map();
@@ -310,21 +310,21 @@ impl<'a> State<'a> {
             #[cfg(debug_assertions)]
             {
                 // For debug
-                trace!("Updating tile data");
-                let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data_debug();
-                trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
-                trace!(
-                    "Tile data Block 0 and 1: \n {}",
-                    tile_data_to_string(
-                        &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1_debug()
-                    )
-                );
-                trace!(
-                    "Tile data Block 2 and 1: \n {}",
-                    tile_data_to_string(
-                        &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1_debug()
-                    )
-                );
+                // trace!("Updating tile data");
+                // let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data_debug();
+                // trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
+                // trace!(
+                //     "Tile data Block 0 and 1: \n {}",
+                //     tile_data_to_string(
+                //         &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1_debug()
+                //     )
+                // );
+                // trace!(
+                //     "Tile data Block 2 and 1: \n {}",
+                //     tile_data_to_string(
+                //         &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1_debug()
+                //     )
+                // );
             }
             let new_background_tile_data_plain = rust_boy_gpu.get_background_and_window_tile_data();
             self.queue.write_buffer(

@@ -4,7 +4,7 @@ pub(crate) mod tile_handling;
 
 use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
 
-use crate::debugging::DebuggingFlags;
+use crate::debugging::{DebuggingFlags, DebuggingFlagsWithoutFileHandles};
 use crate::interrupts::InterruptFlagRegister;
 use object_handling::Object;
 use registers::GPURegisters;
@@ -52,7 +52,7 @@ pub struct GPU {
 
     pub memory_changed: ChangesToPropagateToShader,
 
-    debugging_flags: DebuggingFlags,
+    debugging_flags: DebuggingFlagsWithoutFileHandles,
 }
 
 /// Struct to collect the information about the current rendering state of the GPU.
@@ -296,7 +296,9 @@ impl GPU {
     /// The lcd_was_turned_off flag is set to
     /// true, so the GPU starts off in HBlank mode instead of OAMScan, which is the supposed
     /// behavior after the LCD was turned on (for the first time or after being turned off).
-    pub fn new_empty(debugging_flags: DebuggingFlags) -> Self {
+    pub fn new_empty(debugging_flags: &DebuggingFlags) -> Self {
+        let debugging_flags =
+            DebuggingFlagsWithoutFileHandles::from_debugging_flags(debugging_flags);
         Self {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
             tile_set: [tile_handling::empty_tile(); 384],

@@ -220,6 +220,11 @@ pub fn handle_key_pressed_event(rust_boy: &mut RustBoy, key: &PhysicalKey, pause
         }
         PhysicalKey::Code(KeyCode::KeyP) => {
             *paused = !*paused;
+            if *paused {
+                log::info!("Paused");
+            } else {
+                log::info!("Unpaused");
+            }
         }
         _ => {}
     }
