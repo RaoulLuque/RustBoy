@@ -8,6 +8,7 @@ use crate::frontend::shader::{
     ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, RenderingLinePosition, TILE_SIZE,
     TileData, TilemapUniform, setup_compute_shader_pipeline, setup_render_shader_pipeline,
 };
+use crate::gpu::object_handling::custom_ordering;
 use crate::gpu::{ChangesToPropagateToShader, GPU};
 
 /// TODO: Add docstring
@@ -377,7 +378,10 @@ impl<'a> State<'a> {
         }
 
         // Update the objects in scanline buffer
-        let objects_in_scanline = rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
+        let mut objects_in_scanline =
+            rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
+        // Sort objects in scanline by their x coordinate, see https://gbdev.io/pandocs/OAM.html#drawing-priority
+        objects_in_scanline.sort_by(|v, w| custom_ordering(v[1], w[1]));
         let new_objects_in_scanline = ObjectsInScanline {
             objects: objects_in_scanline,
         };

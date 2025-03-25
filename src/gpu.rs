@@ -1,4 +1,4 @@
-mod object_handling;
+pub(crate) mod object_handling;
 mod registers;
 pub(crate) mod tile_handling;
 

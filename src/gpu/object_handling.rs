@@ -106,3 +106,15 @@ impl GPU {
         objects
     }
 }
+
+pub fn custom_ordering(a: u32, b: u32) -> std::cmp::Ordering {
+    if a == b {
+        std::cmp::Ordering::Equal
+    } else if a == 0 {
+        std::cmp::Ordering::Greater
+    } else if b == 0 {
+        std::cmp::Ordering::Less
+    } else {
+        a.cmp(&b)
+    }
+}
