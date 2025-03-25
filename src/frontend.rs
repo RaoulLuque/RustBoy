@@ -8,9 +8,6 @@ use crate::frontend::shader::{
     ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, RenderingLinePosition, TILE_SIZE,
     TileData, TilemapUniform, setup_compute_shader_pipeline, setup_render_shader_pipeline,
 };
-use crate::gpu::tile_handling::{
-    Tile, tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string,
-};
 use crate::gpu::{ChangesToPropagateToShader, GPU};
 
 /// TODO: Add docstring
