@@ -197,9 +197,9 @@ fn convert_color_code_to_rgba8_color(color_code: u32) -> vec4<f32> {
     // The color code is a 2-bit value, where each bit represents a color
     // 0 = white, 1 = light gray, 2 = dark gray, 3 = black
     switch (color_code) {
-        case 0u: { return vec4<f32>(1.0, 1.0, 1.0, 1.0); } // white
-        case 1u: { return vec4<f32>(0.75, 0.75, 0.75, 1.0); } // light gray
-        case 2u: { return vec4<f32>(0.5, 0.5, 0.5, 1.0); } // dark gray
-        default: { return vec4<f32>(0.0, 0.0, 0.0, 1.0); } // black
+        case 0u: { return vec4<f32>(0.836, 0.956, 0.726, 1.0); } // White (sRGB 255)
+        case 1u: { return vec4<f32>(0.270, 0.527, 0.170, 1.0); } // Light Gray (sRGB 192 → linear ~0.528)
+        case 2u: { return vec4<f32>(0.0, 0.118, 0.0, 1.0); } // Dark Gray (sRGB 96 → linear ~0.118)
+        default: { return vec4<f32>(0.040, 0.118, 0.060, 1.0); } // Black (sRGB 0)
     }
 }
