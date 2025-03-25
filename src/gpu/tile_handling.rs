@@ -1,4 +1,7 @@
-use super::{GPU, TILEMAP_ONE_START, TILEMAP_SIZE, TILEMAP_TWO_START};
+use super::{
+    GPU, TILE_DATA_BLOCK_0_START, TILE_DATA_BLOCK_1_START, TILE_DATA_BLOCK_2_START,
+    TILE_DATA_BLOCK_SIZE, TILEMAP_ONE_START, TILEMAP_SIZE, TILEMAP_ZERO_START,
+};
 use crate::memory_bus::VRAM_BEGIN;
 
 /// Represents the possible values of a tile pixel.
@@ -135,16 +138,16 @@ impl GPU {
     }
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
-    /// automatically according to LCDC bit 6 (window_tile_map).
+    /// automatically, according to LCDC bit 6 (window_tile_map).
     pub fn get_window_tile_map(&self) -> &[u8; 1024] {
         if self.gpu_registers.lcd_control.get_window_tile_map_flag() {
-            self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
-                ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+            self.vram[TILEMAP_ZERO_START - VRAM_BEGIN as usize
+                ..TILEMAP_ZERO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
                 .try_into()
                 .expect("Slice should be of correct length, work with me here compiler")
         } else {
-            self.vram[TILEMAP_TWO_START - VRAM_BEGIN as usize
-                ..TILEMAP_TWO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+            self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
+                ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
                 .try_into()
                 .expect("Slice should be of correct length, work with me here compiler")
         }
@@ -152,7 +155,7 @@ impl GPU {
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically according to LCDC bit 4 (background_and_window_tile_data).
-    pub fn get_background_and_window_tile_data(&self) -> [Tile; 256] {
+    pub fn get_background_and_window_tile_data(&self) -> [u8; 4096] {
         if self
             .gpu_registers
             .lcd_control
@@ -166,23 +169,29 @@ impl GPU {
 
     /// Returns the current tile set for the objects. That is, the tile set in
     /// Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
-    pub fn get_object_tile_data(&self) -> [Tile; 256] {
+    pub fn get_object_tile_data(&self) -> [u8; 4096] {
         self.get_background_and_window_tile_data_block_0_and_1()
     }
 
     /// Returns the tile data in Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
-    pub fn get_background_and_window_tile_data_block_0_and_1(&self) -> [Tile; 256] {
-        self.tile_set[0..256]
+    pub fn get_background_and_window_tile_data_block_0_and_1(&self) -> [u8; 4096] {
+        self.vram[TILE_DATA_BLOCK_0_START - VRAM_BEGIN as usize
+            ..TILE_DATA_BLOCK_1_START + TILE_DATA_BLOCK_SIZE - VRAM_BEGIN as usize]
             .try_into()
             .expect("Slice should be of correct length, work with me here compiler")
     }
 
     /// Returns the tile data in Block 2 (0x9000 - 0x97FF) and Block 1 (0x8800 - 0x8FFF).
-    pub fn get_background_and_window_tile_data_block_2_and_1(&self) -> [Tile; 256] {
-        [&self.tile_set[256..384], &self.tile_set[128..256]]
-            .concat()
-            .try_into()
-            .expect("Slice should be of correct length, work with me here compiler")
+    pub fn get_background_and_window_tile_data_block_2_and_1(&self) -> [u8; 4096] {
+        [
+            &self.vram[TILE_DATA_BLOCK_2_START - VRAM_BEGIN as usize
+                ..TILE_DATA_BLOCK_2_START + TILE_DATA_BLOCK_SIZE - VRAM_BEGIN as usize],
+            &self.vram[TILE_DATA_BLOCK_1_START - VRAM_BEGIN as usize
+                ..TILE_DATA_BLOCK_1_START + TILE_DATA_BLOCK_SIZE - VRAM_BEGIN as usize],
+        ]
+        .concat()
+        .try_into()
+        .expect("Slice should be of correct length, work with me here compiler")
     }
 
     /// Returns the current tile map for the background. Switches the addressing mode
@@ -201,16 +210,16 @@ impl GPU {
 
     /// Returns the zeroth tile map (0x9800 - 0x9BFF).
     pub fn get_background_tile_map_zero(&self) -> &[u8; 1024] {
-        self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
-            ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+        self.vram[TILEMAP_ZERO_START - VRAM_BEGIN as usize
+            ..TILEMAP_ZERO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
             .try_into()
             .expect("Slice should be of correct length, work with me here compiler")
     }
 
     /// Returns the first tile map (0x9C00 - 0x9FFF).
     pub fn get_background_tile_map_one(&self) -> &[u8; 1024] {
-        self.vram[TILEMAP_TWO_START - VRAM_BEGIN as usize
-            ..TILEMAP_TWO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
+        self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
+            ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
             .try_into()
             .expect("Slice should be of correct length, work with me here compiler")
     }

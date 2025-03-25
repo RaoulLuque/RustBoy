@@ -1,6 +1,10 @@
+struct TileDataPacked {
+    tiles: array<array<u32, 16>, 256>,
+}
+
 // Struct to hold the tilemap. Ensures alignment that is multiple of 16 bytes.
 struct TilemapUniform {
-    tiles: array<vec4<u32>, 256>,
+    indices: array<vec4<u32>, 256>,
 }
 
 // Struct to hold the possibly 10 objects/sprites in the current scanline
@@ -13,7 +17,7 @@ struct ObjectsInScanline {
 // The tiles here can be considered the building blocks used by the tilemap.
 // Each tile is 8x8 pixels, with a total of 16 tiles per row/column, so the atlas is 128 x 128 pixels in total.
 // It is encoded in Rgba8UnormSrgb format.
-@group(0) @binding(0) var background_tile_atlas: texture_2d<f32>;
+@group(0) @binding(0) var<storage, read> bg_and_window_tile_data: TileDataPacked;
 // We use only the first entry to store the current rendering line, the second entry is used to pass the object size
 // flag (FF40 bit 2)
 @group(0) @binding(1) var<uniform> current_line_and_obj_size: vec4<u32>;
@@ -31,7 +35,7 @@ struct ObjectsInScanline {
 @group(0) @binding(4) var framebuffer: texture_storage_2d<rgba8unorm, write>;
 
 // The sprite tile atlas is a 2D texture containing all the tiles used for the objects/sprites.
-@group(0) @binding(5) var object_tile_atlas: texture_2d<f32>;
+@group(0) @binding(5) var<storage, read> object_tile_data: TileDataPacked;
 // The objects in the current scnaline are the objects that are visible in the current line of the screen.
 // The objects are stored in an array of 10 elements, each element is a vec4<u32>.
 // If there are less than 10 objects, the rest of the array is filled with 0s.
@@ -106,10 +110,10 @@ fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: ve
     // Retrieve the tile index in the tile atlas from the tilemap
     var tile_index_in_atlas: u32;
     switch (comp_index) {
-        case 0: { tile_index_in_atlas = background_tilemap.tiles[vec_index].x; break; }
-        case 1: { tile_index_in_atlas = background_tilemap.tiles[vec_index].y; break; }
-        case 2: { tile_index_in_atlas = background_tilemap.tiles[vec_index].z; break; }
-        default: { tile_index_in_atlas = background_tilemap.tiles[vec_index].w; break; }
+        case 0: { tile_index_in_atlas = background_tilemap.indices[vec_index].x; break; }
+        case 1: { tile_index_in_atlas = background_tilemap.indices[vec_index].y; break; }
+        case 2: { tile_index_in_atlas = background_tilemap.indices[vec_index].z; break; }
+        default: { tile_index_in_atlas = background_tilemap.indices[vec_index].w; break; }
     }
 
     // Calculate the coordinates of the pixel within the tile
@@ -210,14 +214,16 @@ fn retrieve_color_from_atlas_texture(tile_index_in_atlas: u32, within_tile_pixel
         (atlas_tile_y + within_tile_pixel_uv_coords.y) / 16
     );
 
-    // Get the atlas texture dimensions
-    let atlasSize = textureDimensions(background_tile_atlas);
+    return vec4<f32>(1.0, 0.0, 0.0, 1.0); // TODO: Replace with actual texture lookup
 
-    // Convert the normalized UV to integer texel coordinates
-    let atlas_texel_coord = vec2<i32>(atlas_uv * vec2<f32>(atlasSize));
-
-    // Load the color from the tile atlas at mip level 0
-    let color = textureLoad(background_tile_atlas, atlas_texel_coord, 0);
-
-    return color;
+//    // Get the atlas texture dimensions
+//    let atlasSize = textureDimensions(bg_and_window_tile_data);
+//
+//    // Convert the normalized UV to integer texel coordinates
+//    let atlas_texel_coord = vec2<i32>(atlas_uv * vec2<f32>(atlasSize));
+//
+//    // Load the color from the tile atlas at mip level 0
+//    let color = textureLoad(bg_and_window_tile_data, atlas_texel_coord, 0);
+//
+//    return color;
 }

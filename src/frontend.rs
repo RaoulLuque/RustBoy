@@ -6,7 +6,7 @@ use winit::window::Window;
 
 use crate::frontend::shader::{
     ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, RenderingLinePosition, TILE_SIZE,
-    TilemapUniform, setup_compute_shader_pipeline, setup_render_shader_pipeline,
+    TileData, TilemapUniform, setup_compute_shader_pipeline, setup_render_shader_pipeline,
 };
 use crate::gpu::tile_handling::{
     Tile, tile_array_to_rgba_array, tile_data_to_string, tile_map_to_string,
@@ -45,10 +45,10 @@ pub struct State<'a> {
     compute_pipeline: wgpu::ComputePipeline,
     // The bind group corresponding to the compute pipeline
     compute_bind_group: wgpu::BindGroup,
-    // Tile atlas texture (128 x 128 rgba) to hold the (currently used) background tile data
-    tile_atlas_texture: wgpu::Texture,
+    // Tile atlas texture (128 x 128 rgba) to hold the (currently used) background tile data TODO: Update
+    tile_data_buffer: wgpu::Buffer,
     // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data
-    tilemap_buffer: wgpu::Buffer,
+    background_tile_map_buffer: wgpu::Buffer,
     // Buffer to hold the background viewport position (is a u32 array of 4 elements) where
     // the first two elements are the x and y position of the background viewport
     background_viewport_buffer: wgpu::Buffer,
@@ -57,8 +57,8 @@ pub struct State<'a> {
     // Buffer to hold the current line to be rendered for the compute shader
     rendering_line_and_obj_size_buffer: wgpu::Buffer,
 
-    // Storage texture (128 x 128 rgba) to hold the tiles used for objects/sprites
-    object_tile_atlas_texture: wgpu::Texture,
+    // Storage texture (128 x 128 rgba) to hold the tiles used for objects/sprites TODO: Update
+    object_tile_data_buffer: wgpu::Buffer,
     // Buffer to hold the information about the objects/sprites in the current scanline
     objects_in_scanline_buffer: wgpu::Buffer,
 }
@@ -129,12 +129,12 @@ impl<'a> State<'a> {
         let (
             compute_pipeline,
             compute_bind_group,
-            tile_atlas_texture,
-            tilemap_buffer,
+            tile_data_buffer,
+            background_tilemap_buffer,
             background_viewport_buffer,
             framebuffer_texture,
             rendering_line_and_obj_size_buffer,
-            object_tile_atlas_texture,
+            object_tile_data_buffer,
             objects_in_scanline_buffer,
         ) = setup_compute_shader_pipeline(&device);
 
@@ -156,12 +156,12 @@ impl<'a> State<'a> {
             render_bind_group,
             compute_pipeline,
             compute_bind_group,
-            tile_atlas_texture,
-            tilemap_buffer,
+            tile_data_buffer,
+            background_tile_map_buffer: background_tilemap_buffer,
             background_viewport_buffer,
             framebuffer_texture,
             rendering_line_and_obj_size_buffer,
-            object_tile_atlas_texture,
+            object_tile_data_buffer,
             objects_in_scanline_buffer,
         }
     }
@@ -295,8 +295,11 @@ impl<'a> State<'a> {
             // Update tilemap and tile atlas (e.g., VRAM changes)
             let new_tilemap_data = rust_boy_gpu.get_background_tile_map();
             let tilemap = TilemapUniform::from_array(new_tilemap_data);
-            self.queue
-                .write_buffer(&self.tilemap_buffer, 0, bytemuck::cast_slice(&[tilemap]));
+            self.queue.write_buffer(
+                &self.background_tile_map_buffer,
+                0,
+                bytemuck::cast_slice(&[tilemap]),
+            );
         }
 
         // Update the tile data if the tile data currently in use changed or if we switched
@@ -304,39 +307,26 @@ impl<'a> State<'a> {
         if rust_boy_gpu.current_tile_data_changed()
             | rust_boy_gpu.memory_changed.tile_data_flag_changed
         {
-            trace!("Updating tile data");
-            let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
-            trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
-            trace!(
-                "Tile data Block 0 and 1: \n {}",
-                tile_data_to_string(
-                    &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1()
-                )
-            );
-            trace!(
-                "Tile data Block 2 and 1: \n {}",
-                tile_data_to_string(
-                    &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1()
-                )
-            );
-            let new_tile_data = tile_array_to_rgba_array(
-                <&[Tile; 256]>::try_from(&rust_boy_gpu.get_background_and_window_tile_data())
-                    .unwrap(),
-            );
-            self.queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: &self.tile_atlas_texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &new_tile_data,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * TILE_SIZE * ATLAS_COLS),
-                    rows_per_image: None,
-                },
-                self.tile_atlas_texture.size(),
+            // trace!("Updating tile data");
+            // let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data();
+            // trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
+            // trace!(
+            //     "Tile data Block 0 and 1: \n {}",
+            //     tile_data_to_string(
+            //         &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1()
+            //     )
+            // );
+            // trace!(
+            //     "Tile data Block 2 and 1: \n {}",
+            //     tile_data_to_string(
+            //         &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1()
+            //     )
+            // );
+            let new_background_tile_data_plain = rust_boy_gpu.get_background_and_window_tile_data();
+            self.queue.write_buffer(
+                &self.tile_data_buffer,
+                0,
+                bytemuck::cast_slice(&[TileData::from_array(new_background_tile_data_plain)]),
             );
         }
 
@@ -375,36 +365,18 @@ impl<'a> State<'a> {
             bytemuck::cast_slice(&[updated_current_scanline]),
         );
 
-        // Update the object tile atlas if it changed since the last scanline
+        // Update the object tile data buffer if it changed since the last scanline
         if rust_boy_gpu.memory_changed.tile_data_block_0_1_changed {
-            let new_object_tile_data = tile_array_to_rgba_array(
-                <&[Tile; 256]>::try_from(&rust_boy_gpu.get_object_tile_data()).unwrap(),
-            );
-            self.queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: &self.object_tile_atlas_texture,
-                    mip_level: 0,
-                    origin: wgpu::Origin3d::ZERO,
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &new_object_tile_data,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(4 * TILE_SIZE * ATLAS_COLS),
-                    rows_per_image: None,
-                },
-                self.object_tile_atlas_texture.size(),
+            let new_object_tile_data = rust_boy_gpu.get_object_tile_data();
+            self.queue.write_buffer(
+                &self.tile_data_buffer,
+                0,
+                bytemuck::cast_slice(&[TileData::from_array(new_object_tile_data)]),
             );
         }
 
         // Update the objects in scanline buffer
         let objects_in_scanline = rust_boy_gpu.get_objects_for_current_scanline(current_scanline);
-        // let oam = rust_boy_gpu.oam;
-        // if objects_in_scanline[0][0] != 0 {
-        //     println!("Current scanline: {}", current_scanline);
-        //     println!("Objects in scanline: {:?}", objects_in_scanline);
-        //     println!("OAM: {:?}", oam);
-        // }
         let new_objects_in_scanline = ObjectsInScanline {
             objects: objects_in_scanline,
         };

@@ -10,8 +10,12 @@ use object_handling::Object;
 use registers::GPURegisters;
 use tile_handling::Tile;
 
-const TILEMAP_ONE_START: usize = 0x9800;
-const TILEMAP_TWO_START: usize = 0x9C00;
+const TILE_DATA_BLOCK_0_START: usize = 0x8000;
+const TILE_DATA_BLOCK_1_START: usize = 0x8800;
+const TILE_DATA_BLOCK_2_START: usize = 0x9000;
+const TILE_DATA_BLOCK_SIZE: usize = 2048;
+const TILEMAP_ZERO_START: usize = 0x9800;
+const TILEMAP_ONE_START: usize = 0x9C00;
 const TILEMAP_SIZE: usize = 1024;
 
 /// The number of dots (GPU cycles) in the Transfer Mode.

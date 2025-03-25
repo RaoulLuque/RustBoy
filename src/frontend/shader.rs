@@ -1,6 +1,7 @@
 use crate::{INITIAL_SCREEN_HEIGHT, INITIAL_SCREEN_WIDTH};
+use bytemuck::cast;
 use wgpu::util::DeviceExt;
-use wgpu::{Buffer, Device, SurfaceConfiguration};
+use wgpu::{Device, SurfaceConfiguration};
 
 pub(super) const TILE_SIZE: u32 = 8;
 pub(super) const ATLAS_COLS: u32 = 16;
@@ -62,14 +63,22 @@ impl Vertex {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct PackedTileData {
+pub(super) struct TileData {
+    // Each tile consists of 16 bytes = 128 bits, that is, 2 bits for each pixel and 8 x 8 = 64
+    // pixels in one tile. Furthermore, we have a total of 32 x 32 = 256 tiles.
+    pub tiles: [[u8; 16]; 256],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct PackedTilemapData {
     pub indices: [u32; 4],
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub(super) struct TilemapUniform {
-    pub(super) tiles: [PackedTileData; 256], // 32x32 grid
+    pub(super) tiles: [PackedTilemapData; 256], // 32x32 grid
 }
 
 #[repr(C)]
@@ -78,9 +87,21 @@ pub(super) struct ObjectsInScanline {
     pub(super) objects: [[u32; 4]; 10],
 }
 
+impl TileData {
+    /// Safely converts an input array of u8s of length 4096 to a TileData struct by using
+    /// [bytemuck::cast].
+    pub fn from_array(input: [u8; 4096]) -> Self {
+        // This usage of cast is safe because we know that the size of the input array is 4096 bytes
+        // and the size of the tile(s) array is 256 * 16 = 4096 bytes.
+        let tiles = cast(input);
+        TileData { tiles }
+    }
+}
+
 impl TilemapUniform {
+    /// TODO: Change this to actually pack the data by packing 4 u8s into a u32 to save space.
     pub fn from_array(input: &[u8; 1024]) -> Self {
-        let mut tiles = [PackedTileData { indices: [0; 4] }; 256];
+        let mut tiles = [PackedTilemapData { indices: [0; 4] }; 256];
 
         for i in 0..256 {
             tiles[i].indices = [
@@ -134,7 +155,13 @@ pub fn setup_render_shader_pipeline(
     device: &Device,
     config: &SurfaceConfiguration,
     framebuffer_texture: &wgpu::Texture,
-) -> (wgpu::RenderPipeline, Buffer, Buffer, u32, wgpu::BindGroup) {
+) -> (
+    wgpu::RenderPipeline,
+    wgpu::Buffer,
+    wgpu::Buffer,
+    u32,
+    wgpu::BindGroup,
+) {
     // Configuration for the sampler
     let framebuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("Framebuffer Sampler"),
@@ -150,11 +177,12 @@ pub fn setup_render_shader_pipeline(
     let initial_screensize = CurrentScreensize {
         size: [INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT, 0, 0],
     };
-    let screensize_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Screensize Buffer"),
-        contents: bytemuck::cast_slice(&[initial_screensize]),
-        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    });
+    let screensize_buffer: wgpu::Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Screensize Buffer"),
+            contents: bytemuck::cast_slice(&[initial_screensize]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
     // Create bind group layout for the framebuffer
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -289,45 +317,39 @@ pub fn setup_compute_shader_pipeline(
 ) -> (
     wgpu::ComputePipeline,
     wgpu::BindGroup,
+    wgpu::Buffer,
+    wgpu::Buffer,
+    wgpu::Buffer,
     wgpu::Texture,
-    Buffer,
-    Buffer,
-    wgpu::Texture,
-    Buffer,
-    wgpu::Texture,
-    Buffer,
+    wgpu::Buffer,
+    wgpu::Buffer,
+    wgpu::Buffer,
 ) {
-    // This holds the background and window tiles (16x16 tiles, 8x8 pixels each)
-    let background_tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Background Tile Atlas"),
-        size: wgpu::Extent3d {
-            // Each tile is 8x8 pixels, and we have 16x16 tiles
-            width: TILE_SIZE * ATLAS_COLS,
-            height: TILE_SIZE * ATLAS_COLS,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb, // Rust Boy uses 4 colors (RGBA for simplicity)
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
+    // This holds the background and window tiles (16x16 tiles, 16 bytes for each tile)
+    let initial_tile_data_buffer_plain = [0u8; 16 * 16 * 16];
+    let initial_tile_data_buffer = TileData::from_array(initial_tile_data_buffer_plain);
+    let bg_and_wd_tile_data_buffer: wgpu::Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Tile Data Buffer"),
+            contents: bytemuck::cast_slice(&[initial_tile_data_buffer]),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
 
     // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
     // Initialize blank tilemap (0th tile always)
-    let initial_tilemap_data = [0u8; 32 * 32];
-    let initial_tilemap = TilemapUniform::from_array(&initial_tilemap_data);
-    let tilemap_buffer: Buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("Tilemap Buffer"),
-        contents: bytemuck::cast_slice(&[initial_tilemap]),
-        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    });
+    let initial_background_tilemap_plain = [0u8; 32 * 32];
+    let initial_background_tilemap = TilemapUniform::from_array(&initial_background_tilemap_plain);
+    let background_tilemap_buffer: wgpu::Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Tilemap Buffer"),
+            contents: bytemuck::cast_slice(&[initial_background_tilemap]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
 
     // Sets the position from where the background is drawn. Used for scrolling. Is given as pixel
     // shift-values in the tilemap.
     let initial_background_viewport_position = BackgroundViewportPosition { pos: [0, 0, 0, 0] };
-    let background_viewport_buffer: Buffer =
+    let background_viewport_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Background Viewport Buffer"),
             contents: bytemuck::cast_slice(&[initial_background_viewport_position]),
@@ -354,35 +376,28 @@ pub fn setup_compute_shader_pipeline(
     // Buffer to hold the current line to be rendered and whether the objects
     // are in size 8x8 or 8x16 mode for the compute shader
     let initial_rendering_line = RenderingLinePosition { pos: [0, 0, 0, 0] };
-    let rendering_line_and_obj_size_buffer: Buffer =
+    let rendering_line_and_obj_size_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Rendering Line Buffer"),
             contents: bytemuck::cast_slice(&[initial_rendering_line]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // This holds the background and window tiles (16x16 tiles, 8x8 pixels each)
-    let object_tile_atlas_texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("Object Tile Atlas"),
-        size: wgpu::Extent3d {
-            // Each tile is 8x8 pixels, and we have 16x16 tiles
-            width: TILE_SIZE * ATLAS_COLS,
-            height: TILE_SIZE * ATLAS_COLS,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb, // Rust Boy uses 4 colors (RGBA for simplicity)
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
+    // This holds the background and window tiles (16x16 tiles, 16 bytes for each tile)
+    let object_tile_data_buffer = [0u8; 16 * 16 * 16];
+    let initial_object_tile_data_buffer = TileData::from_array(object_tile_data_buffer);
+    let object_tile_data_buffer: wgpu::Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Object Tile Data Buffer"),
+            contents: bytemuck::cast_slice(&[initial_object_tile_data_buffer]),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
 
     // Represents the objects that
     let initial_objects_in_scanline = ObjectsInScanline {
         objects: [[0; 4]; 10],
     };
-    let objects_in_scanline_buffer: Buffer =
+    let objects_in_scanline_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Tilemap Buffer"),
             contents: bytemuck::cast_slice(&[initial_objects_in_scanline]),
@@ -393,14 +408,14 @@ pub fn setup_compute_shader_pipeline(
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("Compute Shader Bind Group Layout"),
         entries: &[
-            // Tile Atlas Texture (binding 0)
+            // BG/Window Tile Data Buffer (binding 0)
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    multisampled: false,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
                 count: None,
             },
@@ -448,14 +463,14 @@ pub fn setup_compute_shader_pipeline(
                 },
                 count: None,
             },
-            // Object Atlas Texture (binding 5)
+            // Object Tile Data Buffer (binding 5)
             wgpu::BindGroupLayoutEntry {
                 binding: 5,
                 visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    multisampled: false,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
                 },
                 count: None,
             },
@@ -480,10 +495,7 @@ pub fn setup_compute_shader_pipeline(
         entries: &[
             wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::TextureView(
-                    &background_tile_atlas_texture
-                        .create_view(&wgpu::TextureViewDescriptor::default()),
-                ),
+                resource: bg_and_wd_tile_data_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 1,
@@ -491,7 +503,7 @@ pub fn setup_compute_shader_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 2,
-                resource: tilemap_buffer.as_entire_binding(),
+                resource: background_tilemap_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 3,
@@ -505,9 +517,7 @@ pub fn setup_compute_shader_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 5,
-                resource: wgpu::BindingResource::TextureView(
-                    &object_tile_atlas_texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                ),
+                resource: object_tile_data_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 6,
@@ -539,12 +549,12 @@ pub fn setup_compute_shader_pipeline(
     (
         compute_pipeline,
         bind_group,
-        background_tile_atlas_texture,
-        tilemap_buffer,
+        bg_and_wd_tile_data_buffer,
+        background_tilemap_buffer,
         background_viewport_buffer,
         framebuffer_texture,
         rendering_line_and_obj_size_buffer,
-        object_tile_atlas_texture,
+        object_tile_data_buffer,
         objects_in_scanline_buffer,
     )
 }
