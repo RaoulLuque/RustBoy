@@ -10,15 +10,38 @@
     </style>
 </head>
 <body id="emulator-body">
-<!--<canvas id="screen" width="160" height="144"></canvas>-->
+<input type="file" id="rom-input"/>
+<canvas id="screen" width="160" height="144"></canvas>
 <script type="module">
     import initSync, {run} from './pkg/rustboy.js';
 
     async function main() {
         console.log("Loading Game Boy Emulator...");
         await initSync();
-        run(false, false, false, false, false, "");
-        console.log("Game Boy Emulator Loaded");
+
+        const romInput = document.getElementById("rom-input");
+        romInput.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const arrayBuffer = reader.result;
+                // Convert ArrayBuffer to Uint8Array so it can be passed to wasm.
+                const romData = new Uint8Array(arrayBuffer);
+                await run(
+                    false,  // headless
+                    false,  // game_boy_doctor_mode
+                    false,  // file_logs
+                    false,  // binjgb_mode
+                    false,  // timing_mode
+                    false,  // print_serial_output_to_terminal
+                    romData
+                );
+                console.log("Game Boy Emulator Loaded with ROM");
+            };
+            reader.readAsArrayBuffer(file);
+        });
     }
 
     main();
