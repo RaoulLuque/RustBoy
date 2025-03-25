@@ -93,9 +93,10 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
 
     if (pixel_in_object) {
         color = compute_color_from_object(object, vec2<u32>(x, y));
-        if (color.x == color_zero.x && color.y == color_zero.y && color.z == color_zero.z) {
-            // If the color of the sprite pixel is white (color zero), it means that the sprite is transparent at this pixel
+        if (color.x == color_zero.x && color.y == color_zero.y && color.z == color_zero.z) || ((object.w & 0x80u) != 0u) {
+            // Either: If the color of the sprite pixel is white (color zero), it means that the sprite is transparent at this pixel
             // and we should use the background color instead.
+            // Or: The priority bit is set in the attributes of the sprite in which case we should use the background/window color instead.
             color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
         }
     } else {
