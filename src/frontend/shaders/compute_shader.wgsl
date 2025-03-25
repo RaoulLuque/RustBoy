@@ -18,6 +18,11 @@ struct ObjectsInScanline {
     objects: array<vec4<u32>, 10>,
 }
 
+const color_zero: vec4<f32> = vec4<f32>(0.836, 0.956, 0.726, 1.0);
+const color_one: vec4<f32> = vec4<f32>(0.270, 0.527, 0.170, 1.0);
+const color_two: vec4<f32> = vec4<f32>(0.0, 0.118, 0.0, 1.0);
+const color_three: vec4<f32> = vec4<f32>(0.040, 0.118, 0.060, 1.0);
+
 // Tile atlas is a 2D texture containing all the tiles used in the tilemap.
 // The tiles here can be considered the building blocks used by the tilemap.
 // Each tile is 8x8 pixels, with a total of 16 tiles per row/column, so the atlas is 128 x 128 pixels in total.
@@ -88,11 +93,10 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
 
     if (pixel_in_object) {
         color = compute_color_from_object(object, vec2<u32>(x, y));
-        if (color.x == 1.0 && color.y == 1.0 && color.z == 1.0) {
-            // If the color is white, it means that the pixel is transparent and we should use the background color(?)
-            // TODO: Check if this is correct
+        if (color.x == color_zero.x && color.y == color_zero.y && color.z == color_zero.z) {
+            // If the color of the sprite pixel is white (color zero), it means that the sprite is transparent at this pixel
+            // and we should use the background color instead.
             color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
-//            color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
         }
     } else {
         color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
@@ -204,9 +208,9 @@ fn convert_color_code_to_rgba8_color(color_code: u32) -> vec4<f32> {
     // The color code is a 2-bit value, where each bit represents a color
     // 0 = white, 1 = light green, 2 = dark green, 3 = very dark green/black
     switch (color_code) {
-        case 0u: { return vec4<f32>(0.836, 0.956, 0.726, 1.0); }
-        case 1u: { return vec4<f32>(0.270, 0.527, 0.170, 1.0); }
-        case 2u: { return vec4<f32>(0.0, 0.118, 0.0, 1.0); }
-        default: { return vec4<f32>(0.040, 0.118, 0.060, 1.0); }
+        case 0u: { return color_zero; }
+        case 1u: { return color_one; }
+        case 2u: { return color_two; }
+        default: { return color_three; }
     }
 }
