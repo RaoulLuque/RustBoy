@@ -14,5 +14,6 @@ impl RustBoy {
     /// interrupt is requested.
     fn halt(&mut self) {
         self.halted = true;
+        self.just_entered_halt = true;
     }
 }

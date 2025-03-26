@@ -36,15 +36,16 @@ impl RustBoy {
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
     pub fn cpu_step(&mut self) {
-        // Log the current state of the registers if in debug mode. Don't want all this in release
-        // builds, which is why we use the cfg conditional compilation feature.
         #[cfg(debug_assertions)]
-        if self.debugging_flags.doctor {
-            doctor_log(self, "doctor");
-        }
-        #[cfg(debug_assertions)]
-        if self.debugging_flags.file_logs {
-            doctor_log(self, LOG_FILE_NAME)
+        if self.debugging_flags.instruction_was_logged {
+            // Log the current state of the registers if in debug mode. Don't want all this in release
+            // builds, which is why we use the cfg conditional compilation feature.
+            if self.debugging_flags.doctor {
+                doctor_log(self, "doctor");
+            }
+            if self.debugging_flags.file_logs {
+                doctor_log(self, LOG_FILE_NAME)
+            }
         }
 
         // Check if an interrupt needs to be handled. If so, Some(u16) is returned with the
@@ -73,9 +74,9 @@ impl RustBoy {
         // and if so, go out of halt mode.
 
         // We use the following flag to track the halt bug. That is, if the IME flag is set to 0
-        // and the CPU is in halt mode and an interrupt is requested, the CPU will go out of halt,
-        // but the next instruction will be executed twice instead of once, which we simulate
-        // by not setting the new program counter (PC) to the next instruction.
+        // and the CPU just entered halt mode and an interrupt both is requested and enabled, the
+        // CPU will go out of halt, but the next instruction will be executed twice instead of once,
+        // which we simulate by not setting the new program counter (PC) to the next instruction.
         // See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt-bug)
         let mut halt_bug = false;
 
@@ -88,11 +89,26 @@ impl RustBoy {
                 // due to the halt bug
                 // TODO: Handle edge cases of the halt bug, see https://gbdev.io/pandocs/halt.html#halt-bug
                 self.halted = false;
-                halt_bug = true;
+                if self.just_entered_halt {
+                    halt_bug = true;
+                }
                 self.increment_cycle_counter(1);
             } else {
                 // If no interrupt is requested, just increment the cycle counter and return.
                 self.increment_cycle_counter(1);
+
+                // We also set the just_entered_halt flag to false, so that we don't trigger the halt
+                // bug, because it just triggers if the cpu just entered halt mode.
+                self.just_entered_halt = false;
+
+                #[cfg(debug_assertions)]
+                if self.debugging_flags.file_logs || self.debugging_flags.doctor {
+                    // We need to keep in mind that we are in halt mode and don't want to log the
+                    // current state of the registers until another instruction is logged, i.e.
+                    // we are out of halt mode
+                    self.debugging_flags.instruction_was_logged = false;
+                }
+
                 return;
             }
         }
@@ -111,6 +127,12 @@ impl RustBoy {
             #[cfg(debug_assertions)]
             if self.debugging_flags.file_logs {
                 instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
+            }
+
+            #[cfg(debug_assertions)]
+            if self.debugging_flags.file_logs || self.debugging_flags.doctor {
+                // We need to tell the logging functions that we are not in halt mode (anymore)
+                self.debugging_flags.instruction_was_logged = true;
             }
 
             self.execute(instruction)

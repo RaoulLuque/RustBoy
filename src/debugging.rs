@@ -27,6 +27,7 @@ pub struct DebugInfo {
     pub file_handle_extensive_logs: Option<std::fs::File>,
     pub log_file_index: u8,
     pub current_number_of_lines_in_log_file: u32,
+    pub instruction_was_logged: bool,
     pub doctor: bool,
     pub file_logs: bool,
     pub binjgb_mode: bool,

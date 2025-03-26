@@ -93,6 +93,7 @@ pub struct RustBoy {
     ime: bool,
     ime_to_be_set: bool,
     halted: bool,
+    just_entered_halt: bool,
     starting_up: bool,
 
     // Memory
@@ -139,6 +140,7 @@ impl RustBoy {
             ime: false,
             ime_to_be_set: false,
             halted: false,
+            just_entered_halt: false,
             gpu: GPU::new_empty(&debugging_flags),
             timer_info: TimerInfo::new(),
             interrupt_enable_register: InterruptEnableRegister::new(),
@@ -154,27 +156,10 @@ impl RustBoy {
     /// boot rom has been executed. For reference, see in the
     /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
     pub fn new_after_boot(debugging_flags: DebugInfo) -> RustBoy {
-        let mut rust_boy = RustBoy {
-            registers: CPURegisters::new_after_boot(),
-            pc: 0x0100,
-            sp: 0xFFFE,
-            cycle_counter: 0,
-            cycles_current_instruction: None,
-            memory: [0; 65536],
-            bios: [0; 0x0100],
-            starting_up: false,
-            being_initialized: true,
-            ime: false,
-            ime_to_be_set: false,
-            halted: false,
-            gpu: GPU::new_empty(&debugging_flags),
-            timer_info: TimerInfo::new(),
-            interrupt_enable_register: InterruptEnableRegister::new(),
-            interrupt_flag_register: InterruptFlagRegister::new(),
-            joypad: Joypad::new_blank(),
-
-            debugging_flags,
-        };
+        let mut rust_boy = RustBoy::new_before_boot(debugging_flags);
+        rust_boy.registers = CPURegisters::new_after_boot();
+        rust_boy.pc = 0x0100;
+        rust_boy.starting_up = false;
 
         rust_boy.initialize_hardware_registers();
         rust_boy.being_initialized = false;
@@ -215,6 +200,7 @@ pub async fn run(
         file_handle_extensive_logs: None,
         log_file_index: 0,
         current_number_of_lines_in_log_file: 0,
+        instruction_was_logged: true,
         doctor: game_boy_doctor_mode,
         file_logs,
         binjgb_mode,
