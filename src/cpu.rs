@@ -66,66 +66,65 @@ impl RustBoy {
             if self.debugging_flags.file_logs {
                 instruction_log(&self, LOG_FILE_NAME, None, Some(interrupt_location));
             }
+        }
+
+        // No interrupt was requested, so we can continue executing instructions.
+        // Except if the cpu is halted, in which case need to check if an interrupt is requested
+        // and if so, go out of halt mode.
+
+        // We use the following flag to track the halt bug. That is, if the IME flag is set to 0
+        // and the CPU is in halt mode and an interrupt is requested, the CPU will go out of halt,
+        // but the next instruction will be executed twice instead of once, which we simulate
+        // by not setting the new program counter (PC) to the next instruction.
+        // See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt-bug)
+        let mut halt_bug = false;
+
+        if self.halted {
+            // Check if an interrupt is requested. If so, go out of halt mode.
+            if u8::from(&self.interrupt_flag_register) & u8::from(&self.interrupt_enable_register)
+                != 0
+            {
+                // The cpu wakes up from halt mode and the next instruction is executed twice
+                // due to the halt bug
+                // TODO: Handle edge cases of the halt bug, see https://gbdev.io/pandocs/halt.html#halt-bug
+                self.halted = false;
+                halt_bug = true;
+                self.increment_cycle_counter(1);
+            } else {
+                // If no interrupt is requested, just increment the cycle counter and return.
+                self.increment_cycle_counter(1);
+                return;
+            }
+        }
+
+        let mut instruction_byte = self.read_instruction_byte(self.pc);
+
+        // Check if the instruction is a CB instruction (prefix)
+        let prefixed = instruction_byte == 0xCB;
+        if prefixed {
+            instruction_byte = self.read_byte(self.pc.wrapping_add(1));
+        }
+
+        let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
+        {
+            // Log the instruction byte if in debug mode.
+            #[cfg(debug_assertions)]
+            if self.debugging_flags.file_logs {
+                instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
+            }
+
+            self.execute(instruction)
         } else {
-            // No interrupt was requested, so we can continue executing instructions.
-            // Except if the cpu is halted, in which case need to check if an interrupt is requested
-            // and if so, go out of halt mode.
+            let panic_description = format!(
+                "0x{}{:02x}",
+                if prefixed { "CB" } else { "" },
+                instruction_byte
+            );
+            panic!("Invalid instruction found for: {}", panic_description);
+        };
 
-            // We use the following flag to track the halt bug. That is, if the IME flag is set to 0
-            // and the CPU is in halt mode and an interrupt is requested, the CPU will go out of halt,
-            // but the next instruction will be executed twice instead of once, which we simulate
-            // by not setting the new program counter (PC) to the next instruction.
-            // See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt-bug)
-            let mut halt_bug = false;
-
-            if self.halted {
-                // Check if an interrupt is requested. If so, go out of halt mode.
-                if u8::from(&self.interrupt_flag_register)
-                    & u8::from(&self.interrupt_enable_register)
-                    != 0
-                {
-                    // The cpu wakes up from halt mode and the next instruction is executed twice
-                    // due to the halt bug
-                    // TODO: Handle edge cases of the halt bug, see https://gbdev.io/pandocs/halt.html#halt-bug
-                    self.halted = false;
-                    halt_bug = true;
-                    self.increment_cycle_counter(1);
-                } else {
-                    // If no interrupt is requested, just increment the cycle counter and return.
-                    self.increment_cycle_counter(1);
-                    return;
-                }
-            }
-
-            let mut instruction_byte = self.read_instruction_byte(self.pc);
-
-            // Check if the instruction is a CB instruction (prefix)
-            let prefixed = instruction_byte == 0xCB;
-            if prefixed {
-                instruction_byte = self.read_byte(self.pc.wrapping_add(1));
-            }
-
-            let next_pc =
-                if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed) {
-                    // Log the instruction byte if in debug mode.
-                    #[cfg(debug_assertions)]
-                    if self.debugging_flags.file_logs {
-                        instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
-                    }
-
-                    self.execute(instruction)
-                } else {
-                    let panic_description = format!(
-                        "0x{}{:02x}",
-                        if prefixed { "CB" } else { "" },
-                        instruction_byte
-                    );
-                    panic!("Invalid instruction found for: {}", panic_description);
-                };
-
-            if !halt_bug {
-                self.pc = next_pc;
-            }
+        if !halt_bug {
+            self.pc = next_pc;
         }
     }
 
