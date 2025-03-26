@@ -80,6 +80,7 @@ impl GPU {
                 Some(self.gpu_registers.lcd_status.get_gpu_mode()),
                 Some(cycles_current_instruction),
                 true,
+                false,
             ),
             0xFF45 => self.gpu_registers.get_scanline_compare(),
             0xFF47 => self.gpu_registers.get_background_palette(),
@@ -329,14 +330,17 @@ impl GPURegisters {
     /// in HBlank mode and about to increment the scanline, we want to return this already incremented
     /// scanline instead of the current one since in the real Game Boy they (GPU and CPU) would run in
     /// parallel.
+    ///
+    /// TODO: Update docstring
     pub fn get_scanline(
         &self,
         rendering_info: Option<&RenderingInfo>,
         current_rendering_mode: Option<RenderingMode>,
         cycles_current_instruction: Option<u8>,
         calling_from_memory_bus: bool,
+        calling_from_gpu: bool,
     ) -> u8 {
-        if self.debugging_flags.doctor {
+        if self.debugging_flags.doctor && !calling_from_gpu {
             // Game Boy Doctor specifies that reading from the LY register (scanline) should always
             // return 0x90.
             0x90

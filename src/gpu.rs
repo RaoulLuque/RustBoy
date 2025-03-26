@@ -184,10 +184,16 @@ impl GPU {
                             self.rendering_info.dots_clock -= DOTS_IN_HBLANK_PLUS_TRANSFER
                                 - self.rendering_info.dots_for_transfer;
                             self.gpu_registers.set_scanline(
-                                self.gpu_registers.get_scanline(None, None, None, false) + 1,
+                                self.gpu_registers
+                                    .get_scanline(None, None, None, false, true)
+                                    + 1,
                                 interrupt_flags,
                             );
-                            if self.gpu_registers.get_scanline(None, None, None, false) == 144 {
+                            if self
+                                .gpu_registers
+                                .get_scanline(None, None, None, false, true)
+                                == 144
+                            {
                                 // We are entering VBlank, so we need to set the VBlank flag
                                 // and set the GPU mode to VBlank. Also, we send a render frame request to
                                 // the GPU, which renders the framebuffer to the screen.
@@ -202,7 +208,9 @@ impl GPU {
                                 self.gpu_registers
                                     .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
                                 return RenderTask::WriteLineToBuffer(
-                                    self.gpu_registers.get_scanline(None, None, None, false) - 1,
+                                    self.gpu_registers
+                                        .get_scanline(None, None, None, false, true)
+                                        - 1,
                                 );
                             }
                         }
@@ -212,10 +220,16 @@ impl GPU {
                     if self.rendering_info.dots_clock >= DOTS_IN_VBLANK / 10 {
                         self.rendering_info.dots_clock -= DOTS_IN_VBLANK / 10;
                         self.gpu_registers.set_scanline(
-                            self.gpu_registers.get_scanline(None, None, None, false) + 1,
+                            self.gpu_registers
+                                .get_scanline(None, None, None, false, true)
+                                + 1,
                             interrupt_flags,
                         );
-                        if self.gpu_registers.get_scanline(None, None, None, false) == 154 {
+                        if self
+                            .gpu_registers
+                            .get_scanline(None, None, None, false, true)
+                            == 154
+                        {
                             self.gpu_registers.set_scanline(0, interrupt_flags);
                             self.gpu_registers
                                 .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);

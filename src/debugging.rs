@@ -139,10 +139,12 @@ pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
         };
         data.push_str(&format!(" PPU:{}{}", ppu_mode_sign, ppu_mode_as_u8));
 
+        // We say we are calling from the gpu to bypass the doctor mode forcing the scanline
+        // to always output 0x90
         let current_scanline = rust_boy
             .gpu
             .gpu_registers
-            .get_scanline(None, None, None, false);
+            .get_scanline(None, None, None, false, true);
         data.push_str(&format!(" SCANLINE:{:<3}", current_scanline));
 
         data.push_str(&format!(" IME:{}", u8::from(rust_boy.ime)));
