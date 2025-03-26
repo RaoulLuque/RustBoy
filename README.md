@@ -3,6 +3,10 @@
 A Game Boy Emulator written in Rust using wgpu, wgsl, and winit.
 The app also runs in the web using WASM.
 
+## ROMs that work
+
+- Dr. Mario (almost)
+
 ## Resources and Tutorials Used
 
 - [Learn Wgpu](https://sotrh.github.io/learn-wgpu/)
