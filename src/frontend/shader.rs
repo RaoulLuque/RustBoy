@@ -248,7 +248,7 @@ pub fn setup_render_shader_pipeline(
 
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("Shader"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/shader.wgsl").into()),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/render_to_screen.wgsl").into()),
     });
 
     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -313,10 +313,12 @@ pub fn setup_render_shader_pipeline(
 }
 
 /// TODO: Add docstring
-pub fn setup_compute_shader_pipeline(
+pub fn setup_scanline_buffer_pipeline(
     device: &Device,
 ) -> (
-    wgpu::ComputePipeline,
+    wgpu::RenderPipeline,
+    wgpu::Buffer,
+    u32,
     wgpu::BindGroup,
     wgpu::Buffer,
     wgpu::Buffer,
@@ -370,7 +372,7 @@ pub fn setup_compute_shader_pipeline(
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         view_formats: &[],
     });
 
@@ -412,7 +414,7 @@ pub fn setup_compute_shader_pipeline(
             // BG/Window Tile Data Buffer (binding 0)
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::COMPUTE,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -423,7 +425,7 @@ pub fn setup_compute_shader_pipeline(
             // Rendering Line Buffer (binding 1)
             wgpu::BindGroupLayoutEntry {
                 binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -434,7 +436,7 @@ pub fn setup_compute_shader_pipeline(
             // Tilemap Uniform Buffer (binding 2)
             wgpu::BindGroupLayoutEntry {
                 binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -445,7 +447,7 @@ pub fn setup_compute_shader_pipeline(
             // Background Viewport Position Uniform Buffer (binding 3)
             wgpu::BindGroupLayoutEntry {
                 binding: 3,
-                visibility: wgpu::ShaderStages::COMPUTE,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -453,21 +455,10 @@ pub fn setup_compute_shader_pipeline(
                 },
                 count: None,
             },
-            // Framebuffer Texture (binding 4)
-            wgpu::BindGroupLayoutEntry {
-                binding: 4,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::StorageTexture {
-                    access: wgpu::StorageTextureAccess::WriteOnly,
-                    format: wgpu::TextureFormat::Rgba8Unorm,
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                },
-                count: None,
-            },
             // Object Tile Data Buffer (binding 5)
             wgpu::BindGroupLayoutEntry {
-                binding: 5,
-                visibility: wgpu::ShaderStages::COMPUTE,
+                binding: 4,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -477,8 +468,8 @@ pub fn setup_compute_shader_pipeline(
             },
             // Objects in scanline Uniform Buffer (binding 6)
             wgpu::BindGroupLayoutEntry {
-                binding: 6,
-                visibility: wgpu::ShaderStages::COMPUTE,
+                binding: 5,
+                visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -491,7 +482,7 @@ pub fn setup_compute_shader_pipeline(
 
     // Create the bind group
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("Main Bind Group"),
+        label: Some("Scanline Buffer Bind Group"),
         layout: &bind_group_layout,
         entries: &[
             wgpu::BindGroupEntry {
@@ -512,43 +503,76 @@ pub fn setup_compute_shader_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 4,
-                resource: wgpu::BindingResource::TextureView(
-                    &framebuffer_texture.create_view(&wgpu::TextureViewDescriptor::default()),
-                ),
-            },
-            wgpu::BindGroupEntry {
-                binding: 5,
                 resource: object_tile_data_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
-                binding: 6,
+                binding: 5,
                 resource: objects_in_scanline_buffer.as_entire_binding(),
             },
         ],
     });
 
-    let compute_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Compute Shader"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/compute_shader.wgsl").into()),
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("Shader"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("shaders/scanline_shader.wgsl").into()),
     });
 
-    let compute_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("Compute Pipeline Layout"),
+    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("Scanline Shader Pipeline Layout"),
         bind_group_layouts: &[&bind_group_layout],
         push_constant_ranges: &[],
     });
 
-    let compute_pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Compute Pipeline"),
-        layout: Some(&compute_pipeline_layout),
-        module: &compute_shader,
-        entry_point: Some("main"),
-        compilation_options: Default::default(),
+    let scanline_buffer_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("Scanline Render Pipeline"),
+        layout: Some(&render_pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            buffers: &[Vertex::desc()],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_main"),
+            targets: &[Some(wgpu::ColorTargetState {
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face: wgpu::FrontFace::Ccw,
+            cull_mode: Some(wgpu::Face::Back),
+            polygon_mode: wgpu::PolygonMode::Fill,
+            unclipped_depth: false,
+            conservative: false,
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState {
+            count: 1,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        },
+        multiview: None,
         cache: None,
     });
 
+    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Vertex Buffer"),
+        contents: bytemuck::cast_slice(VERTICES),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+
+    let num_vertices = VERTICES.len() as u32;
+
     (
-        compute_pipeline,
+        scanline_buffer_pipeline,
+        vertex_buffer,
+        num_vertices,
         bind_group,
         bg_and_wd_tile_data_buffer,
         background_tilemap_buffer,
