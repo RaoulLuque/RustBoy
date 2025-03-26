@@ -6,7 +6,7 @@ use winit::window::Window;
 
 use crate::frontend::shader::{
     ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, RenderingLinePosition, TILE_SIZE,
-    TileData, TilemapUniform, setup_compute_shader_pipeline, setup_render_shader_pipeline,
+    TileData, TilemapUniform, setup_render_shader_pipeline, setup_scanline_buffer_pipeline,
 };
 use crate::gpu::object_handling::custom_ordering;
 use crate::gpu::{ChangesToPropagateToShader, GPU};
@@ -27,22 +27,27 @@ pub struct State<'a> {
     render_pipeline: wgpu::RenderPipeline,
     // The vertex buffer is used to store the vertex data for the render pipeline (two triangles
     // that make up a rectangle).
-    vertex_buffer: wgpu::Buffer,
+    render_pipeline_vertex_buffer: wgpu::Buffer,
     // The screensize buffer is used to store the size of the screen (Width x Height in pixels).
     screensize_buffer: wgpu::Buffer,
     // Variable to keep track of whether the screen size has changed or not
     screensize_changed: bool,
     // The number of vertices in the vertex buffer (4).
-    num_vertices: u32,
+    render_pipeline_num_vertices: u32,
     // The bind group corresponding to the render pipeline
     render_bind_group: wgpu::BindGroup,
 
     // The compute pipeline is the pipeline that will be used to run the compute shader. This
     // shader writes to the framebuffer texture for every RustBoy render line (that is 144 times
     // per frame).
-    compute_pipeline: wgpu::ComputePipeline,
+    scanline_buffer_pipeline: wgpu::RenderPipeline,
+    // The vertex buffer is used to store the vertex data for the render pipeline (two triangles
+    // that make up a rectangle).
+    scanline_buffer_pipeline_vertex_buffer: wgpu::Buffer,
+    // The number of vertices in the vertex buffer (4).
+    scanline_buffer_pipeline_num_vertices: u32,
     // The bind group corresponding to the compute pipeline
-    compute_bind_group: wgpu::BindGroup,
+    scanline_buffer_bind_group: wgpu::BindGroup,
     // Tile atlas texture (128 x 128 rgba) to hold the (currently used) background tile data TODO: Update
     bg_and_wd_tile_data_buffer: wgpu::Buffer,
     // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data
@@ -125,8 +130,10 @@ impl<'a> State<'a> {
         };
 
         let (
-            compute_pipeline,
-            compute_bind_group,
+            scanline_buffer_pipeline,
+            scanline_buffer_pipeline_vertex_buffer,
+            scanline_buffer_pipeline_num_vertices,
+            scanline_buffer_bind_group,
             tile_data_buffer,
             background_tilemap_buffer,
             background_viewport_buffer,
@@ -134,10 +141,15 @@ impl<'a> State<'a> {
             rendering_line_and_obj_size_buffer,
             object_tile_data_buffer,
             objects_in_scanline_buffer,
-        ) = setup_compute_shader_pipeline(&device);
+        ) = setup_scanline_buffer_pipeline(&device);
 
-        let (render_pipeline, vertex_buffer, screensize_buffer, num_vertices, render_bind_group) =
-            setup_render_shader_pipeline(&device, &config, &framebuffer_texture);
+        let (
+            render_pipeline,
+            render_pipeline_vertex_buffer,
+            screensize_buffer,
+            render_pipeline_num_vertices,
+            render_bind_group,
+        ) = setup_render_shader_pipeline(&device, &config, &framebuffer_texture);
 
         Self {
             surface,
@@ -147,13 +159,15 @@ impl<'a> State<'a> {
             size,
             window,
             render_pipeline,
-            vertex_buffer,
+            render_pipeline_vertex_buffer,
             screensize_buffer,
             screensize_changed: false,
-            num_vertices,
+            render_pipeline_num_vertices,
             render_bind_group,
-            compute_pipeline,
-            compute_bind_group,
+            scanline_buffer_pipeline,
+            scanline_buffer_pipeline_vertex_buffer,
+            scanline_buffer_pipeline_num_vertices,
+            scanline_buffer_bind_group,
             bg_and_wd_tile_data_buffer: tile_data_buffer,
             background_tile_map_buffer: background_tilemap_buffer,
             background_viewport_buffer,
@@ -189,7 +203,7 @@ impl<'a> State<'a> {
     pub fn update(&mut self) {}
 
     /// TODO: Add docstring
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render_screen(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -227,8 +241,8 @@ impl<'a> State<'a> {
 
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.render_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..self.num_vertices, 0..1);
+            render_pass.set_vertex_buffer(0, self.render_pipeline_vertex_buffer.slice(..));
+            render_pass.draw(0..self.render_pipeline_num_vertices, 0..1);
         }
 
         // Update the screensize for the fragment shader, if the size has changed
@@ -251,27 +265,45 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn render_compute(&mut self, rust_boy_gpu: &mut GPU, current_scanline: u8) {
+    pub fn render_scanline(&mut self, rust_boy_gpu: &mut GPU, current_scanline: u8) {
+        // Create a view of the offscreen texture.
+        let framebuffer_view = self
+            .framebuffer_texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
         // Create command encoder
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Compute Encoder"),
+                label: Some("Render Scanline Encoder"),
             });
 
-        // Begin compute pass
+        // Begin a render pass that writes to the framebuffer texture ("offscreen texture")
         {
-            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("Line Render Compute Pass"),
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Offscreen Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &framebuffer_view,
+                    resolve_target: None,
+                    // Use LoadOp::Load to preserve previously rendered scanlines
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
                 timestamp_writes: None,
             });
 
-            compute_pass.set_pipeline(&self.compute_pipeline);
-            compute_pass.set_bind_group(0, &self.compute_bind_group, &[]);
+            render_pass.set_pipeline(&self.scanline_buffer_pipeline);
+            render_pass.set_bind_group(0, &self.scanline_buffer_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, self.scanline_buffer_pipeline_vertex_buffer.slice(..));
 
-            // Dispatch 1 workgroup per scanline (160 pixels wide)
-            // Workgroup size is defined as @workgroup_size(160, 1, 1)
-            compute_pass.dispatch_workgroups(1, 1, 1);
+            // Set the scissor rect to only update the current scanline.
+            render_pass.set_scissor_rect(0, current_scanline as u32, self.size.width, 1);
+
+            render_pass.draw(0..self.scanline_buffer_pipeline_num_vertices, 0..1);
         }
 
         // Update the tile map if the tile map currently in use changed or if we switched

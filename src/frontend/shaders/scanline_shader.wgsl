@@ -1,3 +1,24 @@
+// Vertex shader
+struct VertexInput {
+    @location(0) position: vec3<f32>,
+    @location(1) color: vec3<f32>,
+};
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) color: vec3<f32>,
+};
+
+@vertex
+fn vs_main(
+    model: VertexInput,
+) -> VertexOutput {
+    var out: VertexOutput;
+    out.color = model.color;
+    out.clip_position = vec4<f32>(model.position, 1.0);
+    return out;
+}
+
 // Struct to hold tile data in a packed format. This just converts the Game Boys encoding of an array of u8s into an
 // array of u32s with the same total size.
 // Each tile consists of 8 x 8 pixels. Each pixel is represented by 2 bits, therefore each tile
@@ -40,19 +61,16 @@ const color_three: vec4<f32> = vec4<f32>(0.040, 0.118, 0.060, 1.0);
 // That is it is a vector with values between 0 and 255, since the tilemap is 256x256 pixels.
 // We use the first two entries of the vector to store the x and y coordinates of the viewport position.
 @group(0) @binding(3) var<uniform> background_viewport_position: vec4<u32>;
-// The framebuffer stores the current state of the frame and is transferred to the fragment shader to render
-// the final image. It is a 2D texture with the same size as the screen (160 x 144)
-@group(0) @binding(4) var framebuffer: texture_storage_2d<rgba8unorm, write>;
 
 // The sprite tile atlas is a 2D texture containing all the tiles used for the objects/sprites.
-@group(0) @binding(5) var<uniform> object_tile_data: TileDataPacked;
+@group(0) @binding(4) var<uniform> object_tile_data: TileDataPacked;
 // The objects in the current scnaline are the objects that are visible in the current line of the screen.
 // The objects are stored in an array of 10 elements, each element is a vec4<u32>.
 // If there are less than 10 objects, the rest of the array is filled with 0s.
-@group(0) @binding(6) var<uniform> objects_in_scanline: ObjectsInScanline;
+@group(0) @binding(5) var<uniform> objects_in_scanline: ObjectsInScanline;
 
-@compute @workgroup_size(160, 1, 1)
-fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // The tilemap is a 32x32 grid of tiles, each tile is 8x8 pixels. That is 256x256 pixels. The following variable
     // represents the position of the top left pixel of the visible screen within the tilemap. That is it is a vector
     // with values between 0 and 255.
@@ -64,7 +82,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
     // Retrieve the "position" of "the current pixel". That is, per workgroup, the y coordinate is fixed to the current
     // (rendering) line. The x coordinate on the other hand, is the local invocation id, which is an index iterating
     // between 0 and 159 Thus, each workgroup will render a line/row of 160 pixels.
-    let x: u32 = local_id.x;
+    let x: u32 = u32(in.clip_position.x);
     let y: u32 = current_line_and_obj_size.x;
 
     var pixel_in_object = false;
@@ -101,7 +119,7 @@ fn main(@builtin(local_invocation_id) local_id: vec3<u32>) {
         color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
     }
 
-    textureStore(framebuffer, vec2<i32>(i32(x), i32(y)), color);
+    return color;
 }
 
 fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>, tile_size: vec2<i32>) -> vec4<f32> {
