@@ -42,7 +42,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-const TARGET_FPS: f64 = 1.0;
+const TARGET_FPS: f64 = 60.0;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS;
 pub(crate) const INITIAL_SCREEN_WIDTH: u32 = 160;
 pub(crate) const INITIAL_SCREEN_HEIGHT: u32 = 144;
@@ -420,7 +420,7 @@ fn handle_redraw_requested_event(
             // Estimate FPS
             *running_frame_counter += 1;
 
-            if *running_frame_counter == 300 {
+            if time_of_last_fps_calculation.elapsed().as_secs() > 5 {
                 let elapsed_time = time_of_last_fps_calculation.elapsed();
                 let fps = *running_frame_counter as f64 / elapsed_time.as_secs_f64();
                 log::debug!("FPS: {}", fps);
