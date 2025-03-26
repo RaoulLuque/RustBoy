@@ -9,6 +9,7 @@ jobs:
       matrix:
         rom:
           - "roms/test_roms/blarggs/cpu_instrs/01-special.gb"
+          - "roms/test_roms/blarggs/cpu_instrs/02-interrupts.gb"
           - "roms/test_roms/blarggs/cpu_instrs/03-op sp,hl.gb"
           - "roms/test_roms/blarggs/cpu_instrs/04-op r,imm.gb"
           - "roms/test_roms/blarggs/cpu_instrs/05-op rp.gb"
