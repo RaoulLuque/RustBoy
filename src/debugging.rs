@@ -170,7 +170,7 @@ pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
             .expect("Should be able to write data to doctor log file");
     } else {
         rust_boy.debugging_flags.current_number_of_lines_in_log_file += 1;
-        if rust_boy.debugging_flags.current_number_of_lines_in_log_file == 1_000_000 {
+        if rust_boy.debugging_flags.current_number_of_lines_in_log_file == 2_000_000 {
             rust_boy.debugging_flags.current_number_of_lines_in_log_file = 0;
             rust_boy.debugging_flags.log_file_index += 1;
             setup_debugging_logs_files(&mut rust_boy.debugging_flags);
