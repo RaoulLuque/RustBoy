@@ -61,13 +61,19 @@ const color_three: vec4<f32> = vec4<f32>(0.040, 0.118, 0.060, 1.0);
 // That is it is a vector with values between 0 and 255, since the tilemap is 256x256 pixels.
 // We use the first two entries of the vector to store the x and y coordinates of the viewport position.
 @group(0) @binding(3) var<uniform> background_viewport_position: vec4<u32>;
+// The lcd monochrome palettes are just the registers FF47, FF48, FF49 as specified in the Pandocs
+// (https://gbdev.io/pandocs/Palettes.html). The first entry in the vec is the background palette (FF47), the second
+// entry is the object palette 0 (FF48) and the third entry is the object palette 1 (FF49). The fourth entry is empty.
+@group(0) @binding(4) var<uniform> palettes: vec4<u32>;
 
 // The sprite tile atlas is a 2D texture containing all the tiles used for the objects/sprites.
-@group(0) @binding(4) var<uniform> object_tile_data: TileDataPacked;
+@group(0) @binding(5) var<uniform> object_tile_data: TileDataPacked;
 // The objects in the current scnaline are the objects that are visible in the current line of the screen.
 // The objects are stored in an array of 10 elements, each element is a vec4<u32>.
 // If there are less than 10 objects, the rest of the array is filled with 0s.
-@group(0) @binding(5) var<uniform> objects_in_scanline: ObjectsInScanline;
+@group(0) @binding(6) var<uniform> objects_in_scanline: ObjectsInScanline;
+
+
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {

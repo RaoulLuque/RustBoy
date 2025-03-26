@@ -5,8 +5,9 @@ use winit::event::WindowEvent;
 use winit::window::Window;
 
 use crate::frontend::shader::{
-    ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, RenderingLinePosition, TILE_SIZE,
-    TileData, TilemapUniform, setup_render_shader_pipeline, setup_scanline_buffer_pipeline,
+    ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, Palettes,
+    RenderingLinePositionAndObjectSize, TILE_SIZE, TileData, TilemapUniform,
+    setup_render_shader_pipeline, setup_scanline_buffer_pipeline,
 };
 use crate::gpu::object_handling::custom_ordering;
 use crate::gpu::{ChangesToPropagateToShader, GPU};
@@ -55,6 +56,12 @@ pub struct State<'a> {
     // Buffer to hold the background viewport position (is a u32 array of 4 elements) where
     // the first two elements are the x and y position of the background viewport
     background_viewport_buffer: wgpu::Buffer,
+    // Buffer to hold the palette data (is a u32 array of 4 elements) where only the first three are
+    // used. They just mirror the registers FF47, FF48, FF49 as specified in the Pandocs
+    // (https://gbdev.io/pandocs/Palettes.html) and make them available to the shader. The first
+    // entry in the vec is the background palette (FF47), the second entry is the object palette 0
+    // (FF48) and the third entry is the object palette 1 (FF49). The fourth entry is empty.
+    palette_buffer: wgpu::Buffer,
     // Storage texture (160x144) to act as a framebuffer for the compute shader
     framebuffer_texture: wgpu::Texture,
     // Buffer to hold the current line to be rendered for the compute shader
@@ -137,6 +144,7 @@ impl<'a> State<'a> {
             tile_data_buffer,
             background_tilemap_buffer,
             background_viewport_buffer,
+            palette_buffer,
             framebuffer_texture,
             rendering_line_and_obj_size_buffer,
             object_tile_data_buffer,
@@ -171,6 +179,7 @@ impl<'a> State<'a> {
             bg_and_wd_tile_data_buffer: tile_data_buffer,
             background_tile_map_buffer: background_tilemap_buffer,
             background_viewport_buffer,
+            palette_buffer,
             framebuffer_texture,
             rendering_line_and_obj_size_buffer,
             object_tile_data_buffer,
@@ -384,8 +393,23 @@ impl<'a> State<'a> {
             );
         }
 
-        // Update the current scanline uniform buffer
-        let updated_current_scanline = RenderingLinePosition {
+        // Update the palette buffer if the palettes have changed
+        let updated_palettes = Palettes {
+            values: [
+                rust_boy_gpu.gpu_registers.get_background_palette() as u32,
+                rust_boy_gpu.gpu_registers.get_object_palette_zero() as u32,
+                rust_boy_gpu.gpu_registers.get_object_palette_one() as u32,
+                0,
+            ],
+        };
+        self.queue.write_buffer(
+            &self.palette_buffer,
+            0,
+            bytemuck::cast_slice(&[updated_palettes]),
+        );
+
+        // Update the current scanline and object size uniform buffer
+        let updated_current_scanline = RenderingLinePositionAndObjectSize {
             pos: [
                 current_scanline as u32,
                 rust_boy_gpu.gpu_registers.get_sprite_size_flag() as u32,

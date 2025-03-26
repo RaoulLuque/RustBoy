@@ -125,11 +125,11 @@ pub struct BackgroundViewportPosition {
     pub pos: [u32; 4],
 }
 
-/// Represents the current rendering line. Is a list of 4 elements just for alignment, we only use
-/// the first entry.
+/// Represents the current rendering line and the object size flag. Is a list of 4 elements just for alignment, we only use
+/// the first and second entry. They are the current scanline and the object size flag (0 for 8x8, 1 for 8x16).
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct RenderingLinePosition {
+pub struct RenderingLinePositionAndObjectSize {
     pub pos: [u32; 4],
 }
 
@@ -140,6 +140,18 @@ pub struct RenderingLinePosition {
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CurrentScreensize {
     pub size: [u32; 4],
+}
+
+/// Represents the palettes used for the background, window and objects. Is a list of 4 elements just
+/// for alignment purposes. The last entry is not used. The first entry is the background and
+/// window palette that corresponds to register 0xFF47. The second entry is the object
+/// palette 0 that corresponds to register 0xFF48. The third entry is the object palette 1 that
+/// corresponds to register 0xFF49. See https://gbdev.io/pandocs/Palettes.html#lcd-monochrome-palettes
+/// for more information.
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Palettes {
+    pub values: [u32; 4],
 }
 
 /// Sets up the render shader pipeline.
@@ -323,6 +335,7 @@ pub fn setup_scanline_buffer_pipeline(
     wgpu::Buffer,
     wgpu::Buffer,
     wgpu::Buffer,
+    wgpu::Buffer,
     wgpu::Texture,
     wgpu::Buffer,
     wgpu::Buffer,
@@ -378,11 +391,22 @@ pub fn setup_scanline_buffer_pipeline(
 
     // Buffer to hold the current line to be rendered and whether the objects
     // are in size 8x8 or 8x16 mode for the compute shader
-    let initial_rendering_line = RenderingLinePosition { pos: [0, 0, 0, 0] };
+    let initial_rendering_line_and_obj_size =
+        RenderingLinePositionAndObjectSize { pos: [0, 0, 0, 0] };
     let rendering_line_and_obj_size_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Rendering Line Buffer"),
-            contents: bytemuck::cast_slice(&[initial_rendering_line]),
+            label: Some("Rendering Line and Object Size Buffer"),
+            contents: bytemuck::cast_slice(&[initial_rendering_line_and_obj_size]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+    let initial_palette = Palettes {
+        values: [0, 0, 0, 0],
+    };
+    let palette_buffer: wgpu::Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Palette Buffer"),
+            contents: bytemuck::cast_slice(&[initial_palette]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -455,7 +479,7 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Object Tile Data Buffer (binding 5)
+            // Palettes Uniform Buffer (binding 4)
             wgpu::BindGroupLayoutEntry {
                 binding: 4,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -466,9 +490,20 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Objects in scanline Uniform Buffer (binding 6)
+            // Object Tile Data Buffer (binding 5)
             wgpu::BindGroupLayoutEntry {
                 binding: 5,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            // Objects in scanline Uniform Buffer (binding 6)
+            wgpu::BindGroupLayoutEntry {
+                binding: 6,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
@@ -503,10 +538,14 @@ pub fn setup_scanline_buffer_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 4,
-                resource: object_tile_data_buffer.as_entire_binding(),
+                resource: palette_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 5,
+                resource: object_tile_data_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
                 resource: objects_in_scanline_buffer.as_entire_binding(),
             },
         ],
@@ -577,6 +616,7 @@ pub fn setup_scanline_buffer_pipeline(
         bg_and_wd_tile_data_buffer,
         background_tilemap_buffer,
         background_viewport_buffer,
+        palette_buffer,
         framebuffer_texture,
         rendering_line_and_obj_size_buffer,
         object_tile_data_buffer,
