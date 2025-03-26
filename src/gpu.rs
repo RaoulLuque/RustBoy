@@ -101,6 +101,7 @@ pub struct ChangesToPropagateToShader {
     pub(crate) tile_map_0_changed: bool,
     pub(crate) tile_map_1_changed: bool,
     pub(crate) background_viewport_position_changed: bool,
+    pub(crate) palette_changed: bool,
 }
 
 impl ChangesToPropagateToShader {
@@ -115,6 +116,7 @@ impl ChangesToPropagateToShader {
             tile_map_0_changed: false,
             tile_map_1_changed: false,
             background_viewport_position_changed: false,
+            palette_changed: false,
         }
     }
 }
@@ -336,6 +338,7 @@ impl GPU {
                 tile_map_0_changed: true,
                 tile_map_1_changed: true,
                 background_viewport_position_changed: true,
+                palette_changed: true,
             },
 
             debugging_flags,

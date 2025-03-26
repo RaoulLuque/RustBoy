@@ -27,7 +27,9 @@ const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 /// - 0xFF43: SCX - Scroll X Register
 /// - 0xFF44: LY - Current Scanline Register
 /// - 0xFF45: LYC - LY Compare Register TODO: Implement
-/// - 0xFF47: BGP - Background Palette Data Register TODO: Implement
+/// - 0xFF47: BGP - Background Palette Data Register
+/// - 0xFF48: OBP0 - Object Palette 0 Data Register
+/// - 0xFF49: OBP1 - Object Palette 1 Data Register
 pub struct GPURegisters {
     pub(super) lcd_control: LCDCRegister,
     pub(super) lcd_status: LCDStatusRegister,
@@ -36,6 +38,8 @@ pub struct GPURegisters {
     current_scanline: u8,
     scanline_compare: u8,
     background_palette: u8,
+    object_palette_zero: u8,
+    object_palette_one: u8,
     pub(super) debugging_flags: DebuggingFlagsWithoutFileHandles,
 }
 
@@ -84,6 +88,8 @@ impl GPU {
             ),
             0xFF45 => self.gpu_registers.get_scanline_compare(),
             0xFF47 => self.gpu_registers.get_background_palette(),
+            0xFF48 => self.gpu_registers.get_object_palette_zero(),
+            0xFF49 => self.gpu_registers.get_object_palette_one(),
             _ => panic!(
                 "Reading from invalid GPU register address: {:#04X}",
                 address
@@ -120,7 +126,15 @@ impl GPU {
             0xFF45 => self
                 .gpu_registers
                 .set_scanline_compare(value, interrupt_flag_register),
-            0xFF47 => self.gpu_registers.set_background_palette(value),
+            0xFF47 => self
+                .gpu_registers
+                .set_background_palette(value, &mut self.memory_changed),
+            0xFF48 => self
+                .gpu_registers
+                .set_object_palette_zero(value, &mut self.memory_changed),
+            0xFF49 => self
+                .gpu_registers
+                .set_object_palette_one(value, &mut self.memory_changed),
             _ => panic!("Writing to invalid GPU register address: {:#04X}", address),
         }
     }
@@ -138,6 +152,8 @@ impl GPURegisters {
             current_scanline: 0,
             scanline_compare: 0,
             background_palette: 0,
+            object_palette_zero: 0,
+            object_palette_one: 0,
             debugging_flags,
         }
     }
@@ -287,8 +303,51 @@ impl GPURegisters {
     }
 
     /// Set the background palette register to the provided value.
-    pub fn set_background_palette(&mut self, value: u8) {
+    ///
+    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn set_background_palette(
+        &mut self,
+        value: u8,
+        memory_changed: &mut ChangesToPropagateToShader,
+    ) {
+        if self.background_palette != value {
+            memory_changed.palette_changed = true;
+        }
         self.background_palette = value;
+    }
+
+    /// Set the object palette 0 register to the provided value.
+    ///
+    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn set_object_palette_zero(
+        &mut self,
+        value: u8,
+        memory_changed: &mut ChangesToPropagateToShader,
+    ) {
+        if self.object_palette_zero != value {
+            memory_changed.palette_changed = true;
+        }
+        self.object_palette_zero = value;
+    }
+
+    /// Set the object palette 1 register to the provided value.
+    ///
+    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn set_object_palette_one(
+        &mut self,
+        value: u8,
+        memory_changed: &mut ChangesToPropagateToShader,
+    ) {
+        if self.object_palette_one != value {
+            memory_changed.palette_changed = true;
+        }
+        self.object_palette_one = value;
     }
 
     /// Get the LCD Control register.
@@ -386,6 +445,16 @@ impl GPURegisters {
     /// Get the background palette register.
     pub fn get_background_palette(&self) -> u8 {
         self.background_palette
+    }
+
+    /// Get the object palette 0 register.
+    pub fn get_object_palette_zero(&self) -> u8 {
+        self.object_palette_zero
+    }
+
+    /// Get the object palette 1 register.
+    pub fn get_object_palette_one(&self) -> u8 {
+        self.object_palette_one
     }
 
     /// Get the GPU Mode

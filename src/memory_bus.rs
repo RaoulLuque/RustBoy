@@ -54,7 +54,7 @@ impl RustBoy {
             0xFF00 => self.joypad.read_joypad_register(),
 
             // GPU registers
-            0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
+            0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49 => {
                 self.gpu.read_registers(
                     address,
                     self.cycles_current_instruction
@@ -85,7 +85,7 @@ impl RustBoy {
             0xFF00 => self.joypad.write_joypad_register(value),
 
             // GPU registers
-            0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 => {
+            0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49 => {
                 self.gpu
                     .write_registers(address, value, &mut self.interrupt_flag_register);
             }
