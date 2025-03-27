@@ -101,12 +101,27 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let x: u32 = u32(in.clip_position.x);
     let y: u32 = current_line_and_lcd_control_register.x;
 
-    let pixel_in_object_info = is_pixel_in_object(x, y, viewport_position_in_pixels);
-    var color = pixel_in_object_info.color;
+    var color: vec4<f32>;
+    var pixel_in_object: bool = false;
 
+    // Check if the current pixel lies within an object which is not transparent, if the OBJ enable flag in the LCD
+    // control register is set. Otherwise just take the background/window.
+    if (current_line_and_lcd_control_register.y & 0x02) != 0 || true {
+        let pixel_in_object_info = is_pixel_in_object(x, y, viewport_position_in_pixels);
+        color = pixel_in_object_info.color;
+        pixel_in_object = pixel_in_object_info.pixel_in_object;
+    }
 
-    if (!pixel_in_object_info.pixel_in_object) {
-        color = get_color_for_background_pixel(x, y, viewport_position_in_pixels);
+    // If the pixel is not in an object, we take the color from the background/window. Except if it is disabled via the
+    // LCD control register. Then we just take white (COLOR_ZERO).
+    if (!pixel_in_object) {
+        // Check if the background/window is enabled
+        if (current_line_and_lcd_control_register.y & 0x01) != 0 {
+            color = get_color_for_background_pixel(x, y, viewport_position_in_pixels);
+        } else {
+            // Background and window are disabled, so we take white as the color
+            color = COLOR_ZERO;
+        }
     }
 
     return color;
