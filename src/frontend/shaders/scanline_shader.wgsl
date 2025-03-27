@@ -39,6 +39,8 @@ struct ObjectsInScanline {
     objects: array<vec4<u32>, 10>,
 }
 
+const BACKGROUND_TILE_SIZE = vec2<i32>(8, 8);
+
 const COLOR_ZERO: vec4<f32> = vec4<f32>(0.836, 0.956, 0.726, 1.0);  // White
 const COLOR_ONE: vec4<f32> = vec4<f32>(0.270, 0.527, 0.170, 1.0);   // Light green
 const COLOR_TWO: vec4<f32> = vec4<f32>(0.0, 0.118, 0.0, 1.0);       // Dark green
@@ -89,9 +91,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // with values between 0 and 255.
     let viewport_position_in_pixels = vec2<i32>(i32(background_viewport_position.x), i32(background_viewport_position.y));
 
-    // Set the size of the tiles
-    let tile_size = vec2<i32>(8, 8);
-
     // Retrieve the "position" of "the current pixel". That is, per workgroup, the y coordinate is fixed to the current
     // (rendering) line. The x coordinate on the other hand, is the local invocation id, which is an index iterating
     // between 0 and 159 Thus, each workgroup will render a line/row of 160 pixels.
@@ -129,27 +128,27 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
 
     if (!pixel_in_object) || ((object.w & 0x80u) != 0u) {
-        color = get_color_for_background_pixel(x, y, viewport_position_in_pixels, tile_size);
+        color = get_color_for_background_pixel(x, y, viewport_position_in_pixels);
     }
 
     return color;
 }
 
-fn get_color_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>, tile_size: vec2<i32>) -> vec4<f32> {
-    let color_id = get_color_id_for_background_pixel(x, y, viewport_position_in_pixels, tile_size);
+fn get_color_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> vec4<f32> {
+    let color_id = get_color_id_for_background_pixel(x, y, viewport_position_in_pixels);
     let type_of_tile = BACKGROUND_TILE;
     let color = convert_color_id_to_rgba8_color(color_id, type_of_tile);
 
     return color;
 }
 
-fn get_color_id_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>, tile_size: vec2<i32>) -> u32 {
+fn get_color_id_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> u32 {
     // This is the position of the current pixel in the screen in the tilemap taking into consideration the viewport
     // position.
     let pixel_coords = vec2<f32>(f32(x), f32(y)) + vec2<f32>(viewport_position_in_pixels);
 
     // Calculate the index (vector of x and y indeces) of the tile the pixel is in
-    let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(tile_size))) % vec2<i32>(32, 32);
+    let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(BACKGROUND_TILE_SIZE))) % vec2<i32>(32, 32);
     // Calculate the flattened index
     let tilemap_flat_index = tile_index_in_tilemap.x + tile_index_in_tilemap.y * 32;
     let vec_index = tilemap_flat_index / 4;
@@ -165,7 +164,7 @@ fn get_color_id_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels
     }
 
     // Calculate the coordinates of the pixel within the tile
-    let pixel_index = vec2<i32>(pixel_coords) % tile_size;
+    let pixel_index = vec2<i32>(pixel_coords) % BACKGROUND_TILE_SIZE;
 
     let type_of_tile = BACKGROUND_TILE;
 
