@@ -1,8 +1,10 @@
+pub(crate) mod information_for_shader;
 pub(crate) mod object_handling;
 mod registers;
 pub(crate) mod tile_handling;
 
 use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
+use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
 
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::interrupts::InterruptFlagRegister;
@@ -45,6 +47,7 @@ pub struct GPU {
     vram: [u8; VRAM_END as usize - VRAM_BEGIN as usize + 1],
     pub tile_set: [Tile; 384],
     pub(crate) rendering_info: RenderingInfo,
+    pub(crate) buffers_for_rendering: BuffersForRendering,
     pub gpu_registers: GPURegisters,
     background_viewport_changed: bool,
 
@@ -85,40 +88,6 @@ pub enum RenderTask {
     None,
     WriteLineToBuffer(u8),
     RenderFrame,
-}
-
-/// Struct to keep track of changes/writes to tile data, tile map, viewport position, and OAM.
-///
-/// We reset this struct after rendering each scanline. Therefore, it tracks the resources that
-/// changed since the last scanline which the render step can use to only (re)send the data that
-/// actually changed to the Shader/GPU.
-pub struct ChangesToPropagateToShader {
-    pub(crate) tile_data_flag_changed: bool,
-    pub(crate) tile_data_block_0_1_changed: bool,
-    pub(crate) tile_data_block_2_1_changed: bool,
-    pub(crate) background_tile_map_flag_changed: bool,
-    pub(crate) window_tile_map_flag_changed: bool,
-    pub(crate) tile_map_0_changed: bool,
-    pub(crate) tile_map_1_changed: bool,
-    pub(crate) background_viewport_position_changed: bool,
-    pub(crate) palette_changed: bool,
-}
-
-impl ChangesToPropagateToShader {
-    /// Returns a new instance of MemoryChanged with only false values
-    pub(crate) fn new() -> Self {
-        Self {
-            tile_data_flag_changed: false,
-            tile_data_block_0_1_changed: false,
-            tile_data_block_2_1_changed: false,
-            background_tile_map_flag_changed: false,
-            window_tile_map_flag_changed: false,
-            tile_map_0_changed: false,
-            tile_map_1_changed: false,
-            background_viewport_position_changed: false,
-            palette_changed: false,
-        }
-    }
 }
 
 impl GPU {
@@ -207,6 +176,8 @@ impl GPU {
                                 // We are still in HBlank, so we need to set the GPU mode to OAMScan2.
                                 // Also we send a request to the GPU to write the current line to the
                                 // framebuffer
+                                // We need to return current scanline - 1, since we are already in the next
+                                // scanline.
                                 self.gpu_registers
                                     .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
                                 return RenderTask::WriteLineToBuffer(
@@ -233,6 +204,7 @@ impl GPU {
                             == 154
                         {
                             self.gpu_registers.set_scanline(0, interrupt_flags);
+
                             self.gpu_registers
                                 .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
                         }
@@ -241,6 +213,11 @@ impl GPU {
                 RenderingMode::OAMScan2 => {
                     if self.rendering_info.dots_clock >= DOTS_IN_OAM_SCAN {
                         self.rendering_info.dots_clock -= DOTS_IN_OAM_SCAN;
+                        self.fetch_objects_in_scanline_to_rendering_buffer(
+                            self.gpu_registers
+                                .get_scanline(None, None, None, false, true),
+                        );
+
                         self.gpu_registers
                             .set_ppu_mode(RenderingMode::Transfer3, interrupt_flags);
                     }
@@ -250,6 +227,11 @@ impl GPU {
                     if self.rendering_info.dots_clock >= DOTS_IN_TRANSFER {
                         self.rendering_info.dots_clock -= DOTS_IN_TRANSFER;
                         self.rendering_info.dots_for_transfer = DOTS_IN_TRANSFER;
+                        self.fetch_rendering_information_to_rendering_buffer(
+                            self.gpu_registers
+                                .get_scanline(None, None, None, false, true),
+                        );
+
                         self.gpu_registers
                             .set_ppu_mode(RenderingMode::HBlank0, interrupt_flags);
                     }
@@ -318,28 +300,13 @@ impl GPU {
         Self {
             vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
             tile_set: [tile_handling::empty_tile(); 384],
-            rendering_info: RenderingInfo {
-                dots_clock: 0,
-                total_dots: 0,
-                dots_for_transfer: 0,
-                lcd_was_turned_off: true,
-                first_scanline_after_lcd_was_turned_on: false,
-            },
+            rendering_info: RenderingInfo::new_initial_state(),
+            buffers_for_rendering: BuffersForRendering::new_empty(),
             gpu_registers: GPURegisters::new(debugging_flags),
             background_viewport_changed: true,
             oam: [Object::default(); 40],
 
-            memory_changed: ChangesToPropagateToShader {
-                tile_data_flag_changed: true,
-                tile_data_block_0_1_changed: true,
-                tile_data_block_2_1_changed: true,
-                background_tile_map_flag_changed: true,
-                window_tile_map_flag_changed: true,
-                tile_map_0_changed: true,
-                tile_map_1_changed: true,
-                background_viewport_position_changed: true,
-                palette_changed: true,
-            },
+            memory_changed: ChangesToPropagateToShader::new_true(),
 
             debugging_flags,
         }
@@ -373,6 +340,20 @@ impl RenderingMode {
             2 => RenderingMode::OAMScan2,
             3 => RenderingMode::Transfer3,
             _ => panic!("Invalid GPU mode: {}", value),
+        }
+    }
+}
+
+impl RenderingInfo {
+    /// Returns a new RenderingInfo instance with the initial state of the rendering information.
+    /// That is, the dots clocks are set to 0, and the lcd was turned off flag is set to true.
+    fn new_initial_state() -> Self {
+        RenderingInfo {
+            dots_clock: 0,
+            total_dots: 0,
+            dots_for_transfer: 0,
+            lcd_was_turned_off: true,
+            first_scanline_after_lcd_was_turned_on: false,
         }
     }
 }

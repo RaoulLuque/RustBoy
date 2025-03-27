@@ -97,7 +97,7 @@ impl GPU {
     /// Also sets flags in self.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn current_tile_data_changed(&mut self) -> bool {
+    pub fn current_bg_and_wd_tile_data_changed(&mut self) -> bool {
         if self
             .gpu_registers
             .lcd_control

@@ -1,10 +1,11 @@
 use super::{
-    ChangesToPropagateToShader, DOTS_IN_HBLANK_PLUS_TRANSFER, DOTS_IN_VBLANK, GPU,
-    GPU_MODE_WHILE_LCD_TURNED_OFF, RenderingInfo, RenderingMode,
+    DOTS_IN_HBLANK_PLUS_TRANSFER, DOTS_IN_VBLANK, GPU, GPU_MODE_WHILE_LCD_TURNED_OFF,
+    RenderingInfo, RenderingMode,
 };
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
 use crate::debugging::DebuggingFlagsWithoutFileHandles;
+use crate::gpu::information_for_shader::ChangesToPropagateToShader;
 use crate::interrupts::InterruptFlagRegister;
 
 const LCD_ENABLE_BIT_POSITION: usize = 7;
