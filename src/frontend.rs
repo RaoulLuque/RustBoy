@@ -1,9 +1,9 @@
 mod shader;
 
-use log::trace;
 use winit::event::WindowEvent;
 use winit::window::Window;
 
+use super::ORIGINAL_SCREEN_WIDTH;
 use crate::frontend::shader::{
     ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, Palettes,
     RenderingLinePositionAndObjectSize, TILE_SIZE, TileData, TilemapUniform,
@@ -310,7 +310,7 @@ impl<'a> State<'a> {
             render_pass.set_vertex_buffer(0, self.scanline_buffer_pipeline_vertex_buffer.slice(..));
 
             // Set the scissor rect to only update the current scanline.
-            render_pass.set_scissor_rect(0, current_scanline as u32, self.size.width, 1);
+            render_pass.set_scissor_rect(0, current_scanline as u32, ORIGINAL_SCREEN_WIDTH, 1);
 
             render_pass.draw(0..self.scanline_buffer_pipeline_num_vertices, 0..1);
         }

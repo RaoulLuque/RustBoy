@@ -44,8 +44,8 @@ use winit::{
 
 const TARGET_FPS: f64 = 60.0;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS;
-pub(crate) const INITIAL_SCREEN_WIDTH: u32 = 160;
-pub(crate) const INITIAL_SCREEN_HEIGHT: u32 = 144;
+pub(crate) const ORIGINAL_SCREEN_WIDTH: u32 = 160;
+pub(crate) const ORIGINAL_SCREEN_HEIGHT: u32 = 144;
 const M_CYCLES_PER_SECOND: u32 = 1_048_576;
 const MEMORY_SIZE: usize = 65536;
 
@@ -243,8 +243,8 @@ pub async fn run(
     }
     // Force a resize event to trigger initial configuration
     let _ = window.request_inner_size(PhysicalSize::new(
-        crate::INITIAL_SCREEN_WIDTH,
-        crate::INITIAL_SCREEN_HEIGHT,
+        crate::ORIGINAL_SCREEN_WIDTH,
+        crate::ORIGINAL_SCREEN_HEIGHT,
     ));
 
     let mut state = State::new(&window).await;

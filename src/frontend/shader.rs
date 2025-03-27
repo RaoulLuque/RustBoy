@@ -1,4 +1,4 @@
-use crate::{INITIAL_SCREEN_HEIGHT, INITIAL_SCREEN_WIDTH};
+use crate::{ORIGINAL_SCREEN_HEIGHT, ORIGINAL_SCREEN_WIDTH};
 use bytemuck::cast;
 use wgpu::util::DeviceExt;
 use wgpu::{Device, SurfaceConfiguration};
@@ -188,7 +188,7 @@ pub fn setup_render_shader_pipeline(
     // Sets the screensize for the rendering shader. Is a list of 4 elements for alignment purposes,
     // the first and two entries represent the width and height of the emulator window.
     let initial_screensize = CurrentScreensize {
-        size: [INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT, 0, 0],
+        size: [ORIGINAL_SCREEN_WIDTH, ORIGINAL_SCREEN_HEIGHT, 0, 0],
     };
     let screensize_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
