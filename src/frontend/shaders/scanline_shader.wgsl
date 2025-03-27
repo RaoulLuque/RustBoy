@@ -39,10 +39,17 @@ struct ObjectsInScanline {
     objects: array<vec4<u32>, 10>,
 }
 
-const color_zero: vec4<f32> = vec4<f32>(0.836, 0.956, 0.726, 1.0);
-const color_one: vec4<f32> = vec4<f32>(0.270, 0.527, 0.170, 1.0);
-const color_two: vec4<f32> = vec4<f32>(0.0, 0.118, 0.0, 1.0);
-const color_three: vec4<f32> = vec4<f32>(0.040, 0.118, 0.060, 1.0);
+const COLOR_ZERO: vec4<f32> = vec4<f32>(0.836, 0.956, 0.726, 1.0);  // White
+const COLOR_ONE: vec4<f32> = vec4<f32>(0.270, 0.527, 0.170, 1.0);   // Light green
+const COLOR_TWO: vec4<f32> = vec4<f32>(0.0, 0.118, 0.0, 1.0);       // Dark green
+const COLOR_THREE: vec4<f32> = vec4<f32>(0.040, 0.118, 0.060, 1.0); // Very dark green/black
+const COLOR_TRANSPARENT: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0); // This color is never actually displayed and instead
+                                                                    // signals that this object pixel should be transparent
+                                                                    // and covered by the background / window
+
+const BACKGROUND_TILE: u32 = 0;
+const OBJECT_TILE_WITH_PALETTE_ZERO: u32 = 1;
+const OBJECT_TILE_WITH_PALETTE_ONE: u32 = 2;
 
 // Tile atlas is a 2D texture containing all the tiles used in the tilemap.
 // The tiles here can be considered the building blocks used by the tilemap.
@@ -109,8 +116,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             // objects_in_scanline.objects[i].y is the x coordinate of the object. With this, we check if the current pixel
             // lies within the object. For the y coordinate this is already guaranteed by objects_in_scanline
             object = objects_in_scanline.objects[i];
-            color = compute_color_from_object(object, vec2<u32>(x, y));
-            if (color.x == color_zero.x && color.y == color_zero.y && color.z == color_zero.z) {
+            color = get_color_for_object_pixel(object, vec2<u32>(x, y));
+            if (color.x == COLOR_ZERO.x && color.y == COLOR_ZERO.y && color.z == COLOR_ZERO.z) {
                 // If the color is transparent we can search the rest of the objects if they cover this pixel
                 continue;
             } else {
@@ -122,13 +129,21 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
 
     if (!pixel_in_object) || ((object.w & 0x80u) != 0u) {
-        color = compute_color_from_background(x, y, viewport_position_in_pixels, tile_size);
+        color = get_color_for_background_pixel(x, y, viewport_position_in_pixels, tile_size);
     }
 
     return color;
 }
 
-fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>, tile_size: vec2<i32>) -> vec4<f32> {
+fn get_color_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>, tile_size: vec2<i32>) -> vec4<f32> {
+    let color_id = get_color_id_for_background_pixel(x, y, viewport_position_in_pixels, tile_size);
+    let type_of_tile = BACKGROUND_TILE;
+    let color = convert_color_id_to_rgba8_color(color_id, type_of_tile);
+
+    return color;
+}
+
+fn get_color_id_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>, tile_size: vec2<i32>) -> u32 {
     // This is the position of the current pixel in the screen in the tilemap taking into consideration the viewport
     // position.
     let pixel_coords = vec2<f32>(f32(x), f32(y)) + vec2<f32>(viewport_position_in_pixels);
@@ -152,10 +167,27 @@ fn compute_color_from_background(x: u32, y: u32, viewport_position_in_pixels: ve
     // Calculate the coordinates of the pixel within the tile
     let pixel_index = vec2<i32>(pixel_coords) % tile_size;
 
-    return retrieve_color_from_tile_data_buffers(tile_index_in_atlas, vec2<u32>(pixel_index), 0);
+    let type_of_tile = BACKGROUND_TILE;
+
+    return get_color_id_from_tile_data_buffers(tile_index_in_atlas, vec2<u32>(pixel_index), type_of_tile);
 }
 
-fn compute_color_from_object(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
+fn get_color_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4<f32> {
+    var type_of_tile: u32;
+    if (object.w & 0x10) != 0 {
+        // Object palette 1
+        type_of_tile = OBJECT_TILE_WITH_PALETTE_ONE;
+    } else {
+        // Object palette 0
+        type_of_tile = OBJECT_TILE_WITH_PALETTE_ZERO;
+    }
+    let color_id = get_color_id_for_object_pixel(object, pixel_coords, type_of_tile);
+    let color = convert_color_id_to_rgba8_color(color_id, type_of_tile);
+
+    return color;
+}
+
+fn get_color_id_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>, type_of_tile: u32) -> u32 {
     let object_size_flag = (current_line_and_obj_size.y & 0x1) != 0;
 
     // These are the x and y coordinates of the top left corner of the object
@@ -194,16 +226,18 @@ fn compute_color_from_object(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec4
         }
     }
 
-    return retrieve_color_from_tile_data_buffers(tile_index_in_atlas, within_object_pixel_coordinates, 1);
+    return get_color_id_from_tile_data_buffers(tile_index_in_atlas, within_object_pixel_coordinates, type_of_tile);
 }
 
-/// Given the tile_index_in_buffer, the pixel coordinates within the tile, computes the color a pixel should have.
-/// To distinguish between the background and window tile data buffer and the object tile data buffer, the tile_data_flag
-/// can be set to = 0 for background and window tile data buffer and = 1 (and else) for object tile data buffer.
-fn retrieve_color_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_pixel_coords: vec2<u32>, tile_data_flag: u32) -> vec4<f32> {
+/// Given the tile_index_in_buffer, the pixel coordinates within the tile, computes the color id a pixel should have.
+/// To distinguish between the background and window tile data buffer and the object tile data buffer, the type_of_tile
+/// can be set to the value of const BACKGROUND_TILE for background and window tile data buffer and to the value of
+/// const OBJECT_TILE_WITH_PALETTE_ZERO for object tile data buffer with object palette 0 and to the value of const
+/// OBJECT_TILE_WITH_PALETTE_ONE (and else) for object tile data buffer with object palette 1.
+fn get_color_id_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_pixel_coords: vec2<u32>, type_of_tile: u32) -> u32 {
     // Get the correct tile based on whether we are using the background or object tile data
     var tile_containing_pixel: vec4<u32>;
-    if tile_data_flag == 0 {
+    if type_of_tile == BACKGROUND_TILE {
         tile_containing_pixel = bg_and_window_tile_data.tiles[tile_index_in_buffer];
     } else {
         tile_containing_pixel = object_tile_data.tiles[tile_index_in_buffer];
@@ -211,29 +245,40 @@ fn retrieve_color_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_
 
     // Find the encoded color value of the pixel in the tile. This is quite obscure due to the Game Boys' tile data
     // encoding scheme, see: https://gbdev.io/pandocs/Tile_Data.html#data-format
-    var bytes_containing_color_code: u32;
+    var bytes_containing_color_id: u32;
     let in_tile_index = within_tile_pixel_coords.y / 2;
     switch (in_tile_index) {
-            case 0u: { bytes_containing_color_code = tile_containing_pixel.x; break; }
-            case 1u: { bytes_containing_color_code = tile_containing_pixel.y; break; }
-            case 2u: { bytes_containing_color_code = tile_containing_pixel.z; break; }
-            default: { bytes_containing_color_code = tile_containing_pixel.w; break; }
+            case 0u: { bytes_containing_color_id = tile_containing_pixel.x; break; }
+            case 1u: { bytes_containing_color_id = tile_containing_pixel.y; break; }
+            case 2u: { bytes_containing_color_id = tile_containing_pixel.z; break; }
+            default: { bytes_containing_color_id = tile_containing_pixel.w; break; }
     }
     let mask_lower_bit: u32 = 1u << (15u - within_tile_pixel_coords.x + ((within_tile_pixel_coords.y % 2) * 16u) - 8u);
     let mask_upper_bit: u32 = 1u << (15u - within_tile_pixel_coords.x + ((within_tile_pixel_coords.y % 2) * 16u));
-    let color_code = u32((bytes_containing_color_code & mask_lower_bit) != 0) | (u32((bytes_containing_color_code & mask_upper_bit) != 0) << 1u);
-    let color = convert_color_code_to_rgba8_color(color_code);
+    let color_id = u32((bytes_containing_color_id & mask_lower_bit) != 0) | (u32((bytes_containing_color_id & mask_upper_bit) != 0) << 1u);
 
-    return color;
+    return color_id;
 }
 
-fn convert_color_code_to_rgba8_color(color_code: u32) -> vec4<f32> {
-    // The color code is a 2-bit value, where each bit represents a color
+fn convert_color_id_to_rgba8_color(color_id: u32, type_of_tile: u32) -> vec4<f32> {
+    var palette: u32;
+    if type_of_tile == BACKGROUND_TILE {
+        // Background and window palette
+        palette = palettes.x;
+    } else if type_of_tile == OBJECT_TILE_WITH_PALETTE_ZERO {
+        // Object palette 0. We need to mask the palette to always assign color white (transparent) to color ID 0
+        palette = palettes.y & 0xFCu;
+    } else {
+        // Object palette 1. We need to mask the palette to always assign color white (transparent) to color ID 0
+        palette = palettes.z;
+    }
+
+    // The color id is a 2-bit value, where each bit represents a color
     // 0 = white, 1 = light green, 2 = dark green, 3 = very dark green/black
-    switch (color_code) {
-        case 0u: { return color_zero; }
-        case 1u: { return color_one; }
-        case 2u: { return color_two; }
-        default: { return color_three; }
+    switch (color_id) {
+        case 0u: { return COLOR_ZERO; }
+        case 1u: { return COLOR_ONE; }
+        case 2u: { return COLOR_TWO; }
+        default: { return COLOR_THREE; }
     }
 }
