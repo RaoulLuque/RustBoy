@@ -115,19 +115,31 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             // objects_in_scanline.objects[i].y is the x coordinate of the object. With this, we check if the current pixel
             // lies within the object. For the y coordinate this is already guaranteed by objects_in_scanline
             object = objects_in_scanline.objects[i];
-            color = get_color_for_object_pixel(object, vec2<u32>(x, y));
-            if (color.x == COLOR_ZERO.x && color.y == COLOR_ZERO.y && color.z == COLOR_ZERO.z) {
-                // If the color is transparent we can search the rest of the objects if they cover this pixel
+            let object_color_id = get_color_id_for_object_pixel(object, vec2<u32>(x, y), 1);
+            if (object_color_id == 0) {
+                // If the color id is 0, it means that the object is transparent at this pixel and we should continue
+                // searching, whether there is an object that is not transparent at this pixel
                 continue;
             } else {
-                // If the color is not transparent, we have found the object that covers the pixel
+                // If the color id is not transparent, we have found the object that covers the pixel
                 pixel_in_object = true;
+                // We need to check if the priority bit is set, if so the background pixel might 'dominate' this one
+                if (object.w & 0x80) != 0 {
+                    // The priority bit is set we need to check the color id of the background/window at this pixel
+                    let background_color_id = get_color_id_for_background_pixel(x, y, viewport_position_in_pixels);
+                    if (background_color_id != 0) {
+                        // The background/window covers this pixel
+                        color = convert_color_id_to_rgba8_color(background_color_id, BACKGROUND_TILE);
+                        break;
+                    }
+                }
+                color = get_color_for_object_pixel(object, vec2<u32>(x, y));
                 break;
             }
         }
     }
 
-    if (!pixel_in_object) || ((object.w & 0x80u) != 0u) {
+    if (!pixel_in_object) {
         color = get_color_for_background_pixel(x, y, viewport_position_in_pixels);
     }
 
@@ -180,7 +192,7 @@ fn get_color_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec
         // Object palette 0
         type_of_tile = OBJECT_TILE_WITH_PALETTE_ZERO;
     }
-    let color_id = get_color_id_for_object_pixel(object, pixel_coords, type_of_tile);
+    let color_id = get_color_id_for_object_pixel(object, pixel_coords, 1);
     let color = convert_color_id_to_rgba8_color(color_id, type_of_tile);
 
     return color;
@@ -225,7 +237,7 @@ fn get_color_id_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>, typ
         }
     }
 
-    return get_color_id_from_tile_data_buffers(tile_index_in_atlas, within_object_pixel_coordinates, type_of_tile);
+    return get_color_id_from_tile_data_buffers(tile_index_in_atlas, within_object_pixel_coordinates, 1);
 }
 
 /// Given the tile_index_in_buffer, the pixel coordinates within the tile, computes the color id a pixel should have.
@@ -265,10 +277,10 @@ fn convert_color_id_to_rgba8_color(color_id: u32, type_of_tile: u32) -> vec4<f32
         // Background and window palette
         palette = palettes.x;
     } else if type_of_tile == OBJECT_TILE_WITH_PALETTE_ZERO {
-        // Object palette 0. We need to mask the palette to always assign color white (transparent) to color ID 0
-        palette = palettes.y & 0xFCu;
+        // Object palette 0
+        palette = palettes.y;
     } else {
-        // Object palette 1. We need to mask the palette to always assign color white (transparent) to color ID 0
+        // Object palette 1
         palette = palettes.z;
     }
 
