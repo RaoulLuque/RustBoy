@@ -33,6 +33,10 @@ impl BuffersForRendering {
 }
 
 impl GPU {
+    /// Fetches the tile data, tile map, viewport position, palettes and other data needed for the
+    /// next scanline to be rendered using the scanline shader. This data is buffered because the original
+    /// RustBoy fetches it in mode 3 (Transfer) and we only actually render it in mode 0 (HBlank).
+    /// So, to avoid reading already changed data for rendering, we buffer the "old state".
     pub(super) fn fetch_rendering_information_to_rendering_buffer(&mut self, current_scanline: u8) {
         self.buffers_for_rendering.background_tile_map = *self.get_background_tile_map();
         self.buffers_for_rendering.bg_and_wd_tile_data = self.get_background_and_window_tile_data();
@@ -64,6 +68,10 @@ impl GPU {
         self.buffers_for_rendering.object_tile_data = self.get_object_tile_data();
     }
 
+    /// Fetches the list of objects for the current scanline. This is needed for the
+    /// next scanline to be rendered using the scanline shader. This is buffered because the original
+    /// RustBoy fetches it in mode 2 (OAMScan) and we only actually render it in mode 0 (HBlank).
+    /// So, to avoid reading already changed data for rendering, we buffer the "old state".
     pub(super) fn fetch_objects_in_scanline_to_rendering_buffer(&mut self, current_scanline: u8) {
         self.buffers_for_rendering.objects_in_scanline_buffer =
             self.get_objects_for_current_scanline(current_scanline);
