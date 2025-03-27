@@ -284,9 +284,19 @@ fn convert_color_id_to_rgba8_color(color_id: u32, type_of_tile: u32) -> vec4<f32
         palette = palettes.z;
     }
 
+    var color_value: u32;
+    // The color value is a 2-bit value, representing one of the four possible colors.
+    // It is determined by the color_id and what color the palette assigns this color_id.
+    switch (color_id) {
+        case 0u: { color_value = palette & 0x03; break; }
+        case 1u: { color_value = (palette & 0x0C) >> 2u; break; }
+        case 2u: { color_value = (palette & 0x30) >> 4u; break; }
+        default: { color_value = (palette & 0xC0) >> 6u; break; }
+    }
+
     // The color id is a 2-bit value, where each bit represents a color
     // 0 = white, 1 = light green, 2 = dark green, 3 = very dark green/black
-    switch (color_id) {
+    switch (color_value) {
         case 0u: { return COLOR_ZERO; }
         case 1u: { return COLOR_ONE; }
         case 2u: { return COLOR_TWO; }
