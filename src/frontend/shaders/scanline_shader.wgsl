@@ -260,6 +260,10 @@ fn get_color_id_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>, typ
     // If the object is 16 pixels high, we need to adjust the tile_index_in_atlas and the pixel coordinates
     // such that we are compatible with retrieve_color_from_tile_data_buffers
     if object_size_flag {
+        // The object is 16 pixels high. In this case, for the tile index, the bit 0 is ignored. That is, odd indexes
+        // are interpreted as the previous even index (which specifies the upper 8 pixels/tile of the object) and the
+        // next tile specifying the lower 8 pixels/tile of the object.
+        tile_index_in_atlas = tile_index_in_atlas & 0xFE;
         if within_object_pixel_coordinates.y > 7 {
             // The pixel lies within the bottom part of the object, therefore we need to adjust the tile index
             // and the pixel coordinates
