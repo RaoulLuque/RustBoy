@@ -157,8 +157,9 @@ fn is_pixel_in_object(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) ->
             } else {
                 // If the color id is not transparent, we have found the object that covers the pixel
                 pixel_in_object = true;
-                // We need to check if the priority bit is set, if so the background pixel might 'dominate' this one
-                if (object.w & 0x80) != 0 {
+                // We need to check if the priority bit is set, if so the background pixel might 'dominate' this one.
+                // In order for the background to be able to do that the BG enable bit must be set
+                if ((object.w & 0x80) != 0) && ((current_line_and_lcd_control_register.y & 0x01) != 0) {
                     // The priority bit is set we need to check the color id of the background/window at this pixel
                     let background_color_id = get_color_id_for_background_pixel(x, y, viewport_position_in_pixels);
                     if (background_color_id != 0) {
