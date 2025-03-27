@@ -42,7 +42,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-const TARGET_FPS: f64 = 1.0;
+const TARGET_FPS: f64 = 60.0;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS;
 pub(crate) const ORIGINAL_SCREEN_WIDTH: u32 = 160;
 pub(crate) const ORIGINAL_SCREEN_HEIGHT: u32 = 144;
