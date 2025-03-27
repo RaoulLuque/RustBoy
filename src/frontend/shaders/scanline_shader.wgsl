@@ -53,6 +53,12 @@ const BACKGROUND_TILE: u32 = 0;
 const OBJECT_TILE_WITH_PALETTE_ZERO: u32 = 1;
 const OBJECT_TILE_WITH_PALETTE_ONE: u32 = 2;
 
+/// This struct is just used to store the return values of the is_pixel_in_object function.
+struct PixelInObjectReturnValue {
+    color: vec4<f32>,
+    pixel_in_object: bool,
+}
+
 // Tile atlas is a 2D texture containing all the tiles used in the tilemap.
 // The tiles here can be considered the building blocks used by the tilemap.
 // Each tile is 8x8 pixels, with a total of 16 tiles per row/column, so the atlas is 128 x 128 pixels in total.
@@ -82,8 +88,6 @@ const OBJECT_TILE_WITH_PALETTE_ONE: u32 = 2;
 // If there are less than 10 objects, the rest of the array is filled with 0s.
 @group(0) @binding(6) var<uniform> objects_in_scanline: ObjectsInScanline;
 
-
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // The tilemap is a 32x32 grid of tiles, each tile is 8x8 pixels. That is 256x256 pixels. The following variable
@@ -97,9 +101,24 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let x: u32 = u32(in.clip_position.x);
     let y: u32 = current_line_and_lcd_control_register.x;
 
+    let pixel_in_object_info = is_pixel_in_object(x, y, viewport_position_in_pixels);
+    var color = pixel_in_object_info.color;
+
+
+    if (!pixel_in_object_info.pixel_in_object) {
+        color = get_color_for_background_pixel(x, y, viewport_position_in_pixels);
+    }
+
+    return color;
+}
+
+/// This function checks if the current pixel is in an object. If it is, it returns the color of the object and a boolean
+/// set to true to indicate that the pixel is in an object. Otherwise it returns the COLOR_TRANSPARENT and a boolean set to
+/// false to indicate that the pixel is not in an object.
+fn is_pixel_in_object(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> PixelInObjectReturnValue {
     var pixel_in_object = false;
     var object = vec4<u32>(0, 0, 0, 0);
-    var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    var color = COLOR_TRANSPARENT;
     // We have to adjust for x_position = 0 being 8 pixels to the left of the left border of the screen
     let adjusted_x = x + 8;
 
@@ -139,11 +158,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
     }
 
-    if (!pixel_in_object) {
-        color = get_color_for_background_pixel(x, y, viewport_position_in_pixels);
-    }
-
-    return color;
+    return PixelInObjectReturnValue(color, pixel_in_object);
 }
 
 fn get_color_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> vec4<f32> {
