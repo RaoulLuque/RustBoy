@@ -58,9 +58,9 @@ const OBJECT_TILE_WITH_PALETTE_ONE: u32 = 2;
 // Each tile is 8x8 pixels, with a total of 16 tiles per row/column, so the atlas is 128 x 128 pixels in total.
 // It is encoded in Rgba8UnormSrgb format.
 @group(0) @binding(0) var<uniform> bg_and_window_tile_data: TileDataPacked;
-// We use only the first entry to store the current rendering line, the second entry is used to pass the object size
-// flag (FF40 bit 2)
-@group(0) @binding(1) var<uniform> current_line_and_obj_size: vec4<u32>;
+// We use only the first two entries. The first to store the current rendering line, and the second to pass the state of the
+// lcd control register (FF40)
+@group(0) @binding(1) var<uniform> current_line_and_lcd_control_register: vec4<u32>;
 // Tilemap
 // Tilemap is a 32x32 array of u32s, the same size as the grid of tiles that is loaded in the Rust Boy.
 // Each u32 is a tile index, which is used to look up the tile in the tile atlas. The tilemap is in row major,
@@ -95,7 +95,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // (rendering) line. The x coordinate on the other hand, is the local invocation id, which is an index iterating
     // between 0 and 159 Thus, each workgroup will render a line/row of 160 pixels.
     let x: u32 = u32(in.clip_position.x);
-    let y: u32 = current_line_and_obj_size.x;
+    let y: u32 = current_line_and_lcd_control_register.x;
 
     var pixel_in_object = false;
     var object = vec4<u32>(0, 0, 0, 0);
@@ -199,7 +199,7 @@ fn get_color_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec
 }
 
 fn get_color_id_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>, type_of_tile: u32) -> u32 {
-    let object_size_flag = (current_line_and_obj_size.y & 0x1) != 0;
+    let object_size_flag = (current_line_and_lcd_control_register.y & 0x4) != 0;
 
     // These are the x and y coordinates of the top left corner of the object
     let object_coordinates = vec2<u32>(object.y - 8, object.x - 16);

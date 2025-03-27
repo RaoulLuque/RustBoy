@@ -391,12 +391,12 @@ pub fn setup_scanline_buffer_pipeline(
 
     // Buffer to hold the current line to be rendered and whether the objects
     // are in size 8x8 or 8x16 mode for the compute shader
-    let initial_rendering_line_and_obj_size =
+    let initial_rendering_line_and_lcd_control =
         RenderingLinePositionAndObjectSize { pos: [0, 0, 0, 0] };
-    let rendering_line_and_obj_size_buffer: wgpu::Buffer =
+    let rendering_line_and_lcd_control_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Rendering Line and Object Size Buffer"),
-            contents: bytemuck::cast_slice(&[initial_rendering_line_and_obj_size]),
+            contents: bytemuck::cast_slice(&[initial_rendering_line_and_lcd_control]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -526,7 +526,7 @@ pub fn setup_scanline_buffer_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: rendering_line_and_obj_size_buffer.as_entire_binding(),
+                resource: rendering_line_and_lcd_control_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
@@ -618,7 +618,7 @@ pub fn setup_scanline_buffer_pipeline(
         background_viewport_buffer,
         palette_buffer,
         framebuffer_texture,
-        rendering_line_and_obj_size_buffer,
+        rendering_line_and_lcd_control_buffer,
         object_tile_data_buffer,
         objects_in_scanline_buffer,
     )
