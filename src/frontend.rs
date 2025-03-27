@@ -52,11 +52,13 @@ pub struct State<'a> {
     scanline_buffer_bind_group: wgpu::BindGroup,
     // Tile atlas texture (128 x 128 rgba) to hold the (currently used) background tile data TODO: Update
     bg_and_wd_tile_data_buffer: wgpu::Buffer,
-    // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data
-    background_tile_map_buffer: wgpu::Buffer,
+    // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data for the background
+    background_tilemap_buffer: wgpu::Buffer,
+    // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data for the window
+    window_tilemap_buffer: wgpu::Buffer,
     // Buffer to hold the background viewport position (is a u32 array of 4 elements) where
     // the first two elements are the x and y position of the background viewport
-    background_viewport_buffer: wgpu::Buffer,
+    bg_and_wd_viewport_buffer: wgpu::Buffer,
     // Buffer to hold the palette data (is a u32 array of 4 elements) where only the first three are
     // used. They just mirror the registers FF47, FF48, FF49 as specified in the Pandocs
     // (https://gbdev.io/pandocs/Palettes.html) and make them available to the shader. The first
@@ -144,7 +146,8 @@ impl<'a> State<'a> {
             scanline_buffer_bind_group,
             tile_data_buffer,
             background_tilemap_buffer,
-            background_viewport_buffer,
+            window_tilemap_buffer,
+            bg_and_wd_viewport_buffer,
             palette_buffer,
             framebuffer_texture,
             rendering_line_and_lcd_control_buffer,
@@ -178,8 +181,9 @@ impl<'a> State<'a> {
             scanline_buffer_pipeline_num_vertices,
             scanline_buffer_bind_group,
             bg_and_wd_tile_data_buffer: tile_data_buffer,
-            background_tile_map_buffer: background_tilemap_buffer,
-            background_viewport_buffer,
+            background_tilemap_buffer,
+            window_tilemap_buffer,
+            bg_and_wd_viewport_buffer,
             palette_buffer,
             framebuffer_texture,
             rendering_line_and_lcd_control_buffer,
@@ -316,16 +320,16 @@ impl<'a> State<'a> {
             render_pass.draw(0..self.scanline_buffer_pipeline_num_vertices, 0..1);
         }
 
-        // Update the tile map if the tile map currently in use changed or if we switched
-        // the tile map we are using since the last scanline
+        // Update the background tilemap if the tilemap currently in use changed or if we switched
+        // the tilemap we are using since the last scanline
         if rust_boy_gpu.current_background_tile_map_changed()
             | rust_boy_gpu.memory_changed.background_tile_map_flag_changed
         {
             // trace!("Updating tilemap");
             // trace!(
             //     "Current Scrolling: x: {} y: {}",
-            //     rust_boy_gpu.gpu_registers.get_scroll_x() as u32,
-            //     rust_boy_gpu.gpu_registers.get_scroll_y() as u32,
+            //     rust_boy_gpu.gpu_registers.get_bg_scroll_x() as u32,
+            //     rust_boy_gpu.gpu_registers.get_bg_scroll_y() as u32,
             // );
             // trace!(
             //     "New Tilemap (in use) \n {} \n \n",
@@ -336,14 +340,40 @@ impl<'a> State<'a> {
             let new_tilemap_data = rust_boy_gpu.buffers_for_rendering.background_tile_map;
             let tilemap = TilemapUniform::from_array(&new_tilemap_data);
             self.queue.write_buffer(
-                &self.background_tile_map_buffer,
+                &self.background_tilemap_buffer,
+                0,
+                bytemuck::cast_slice(&[tilemap]),
+            );
+        }
+
+        // Update the background tilemap if the tilemap currently in use changed or if we switched
+        // the tilemap we are using since the last scanline
+        if rust_boy_gpu.current_window_tile_map_changed()
+            | rust_boy_gpu.memory_changed.window_tile_map_flag_changed
+        {
+            // trace!("Updating tilemap");
+            // trace!(
+            //     "Current Scrolling: x: {} y: {}",
+            //     rust_boy_gpu.gpu_registers.get_bg_scroll_x() as u32,
+            //     rust_boy_gpu.gpu_registers.get_bg_scroll_y() as u32,
+            // );
+            // trace!(
+            //     "New Tilemap (in use) \n {} \n \n",
+            //     tile_map_to_string(rust_boy_gpu.get_background_tile_map())
+            // );
+
+            // Update tilemap and tile atlas (e.g., VRAM changes)
+            let new_tilemap_data = rust_boy_gpu.buffers_for_rendering.window_tile_map;
+            let tilemap = TilemapUniform::from_array(&new_tilemap_data);
+            self.queue.write_buffer(
+                &self.window_tilemap_buffer,
                 0,
                 bytemuck::cast_slice(&[tilemap]),
             );
         }
 
         // Update the tile data if the tile data currently in use changed or if we switched
-        // the tile map we are using since the last scanline
+        // the tilemap we are using since the last scanline
         if rust_boy_gpu.current_bg_and_wd_tile_data_changed()
             | rust_boy_gpu.memory_changed.tile_data_flag_changed
         {
@@ -375,17 +405,19 @@ impl<'a> State<'a> {
             );
         }
 
-        // Update the background viewport position if it changed since the last scanline
+        // Update the background and window viewport position if either of them changed since the last scanline
         if rust_boy_gpu
             .memory_changed
             .background_viewport_position_changed
+            || rust_boy_gpu.memory_changed.window_viewport_position_changed
         {
-            let updated_background_viewport_position =
-                rust_boy_gpu.buffers_for_rendering.bg_viewport_position;
+            let updated_bg_and_wd_viewport_position = rust_boy_gpu
+                .buffers_for_rendering
+                .bg_and_wd_viewport_position;
             self.queue.write_buffer(
-                &self.background_viewport_buffer,
+                &self.bg_and_wd_viewport_buffer,
                 0,
-                bytemuck::cast_slice(&[updated_background_viewport_position]),
+                bytemuck::cast_slice(&[updated_bg_and_wd_viewport_position]),
             );
         }
 

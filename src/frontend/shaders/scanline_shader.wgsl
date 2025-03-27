@@ -67,33 +67,34 @@ struct PixelInObjectReturnValue {
 // We use only the first two entries. The first to store the current rendering line, and the second to pass the state of the
 // lcd control register (FF40)
 @group(0) @binding(1) var<uniform> current_line_and_lcd_control_register: vec4<u32>;
-// Tilemap
 // Tilemap is a 32x32 array of u32s, the same size as the grid of tiles that is loaded in the Rust Boy.
 // Each u32 is a tile index, which is used to look up the tile in the tile atlas. The tilemap is in row major,
 // so the first 32 u32s are the first row of tiles, the next 32 u32s are the second row of tiles, and so on.
 @group(0) @binding(2) var<uniform> background_tilemap: TilemapUniform;
+@group(0) @binding(3) var<uniform> window_tilemap: TilemapUniform;
 // The viewport position is the position of the top left pixel of the visible screen within the tilemap.
 // That is it is a vector with values between 0 and 255, since the tilemap is 256x256 pixels.
-// We use the first two entries of the vector to store the x and y coordinates of the viewport position.
-@group(0) @binding(3) var<uniform> background_viewport_position: vec4<u32>;
+// We use the first two entries of the vector to store the x and y coordinates of the background viewport position.
+// The last two entries are the x and y coordinates of the window viewport position.
+@group(0) @binding(4) var<uniform> bg_and_wd_viewport_position: vec4<u32>;
 // The lcd monochrome palettes are just the registers FF47, FF48, FF49 as specified in the Pandocs
 // (https://gbdev.io/pandocs/Palettes.html). The first entry in the vec is the background palette (FF47), the second
 // entry is the object palette 0 (FF48) and the third entry is the object palette 1 (FF49). The fourth entry is empty.
-@group(0) @binding(4) var<uniform> palettes: vec4<u32>;
+@group(0) @binding(5) var<uniform> palettes: vec4<u32>;
 
 // The sprite tile atlas is a 2D texture containing all the tiles used for the objects/sprites.
-@group(0) @binding(5) var<uniform> object_tile_data: TileDataPacked;
+@group(0) @binding(6) var<uniform> object_tile_data: TileDataPacked;
 // The objects in the current scnaline are the objects that are visible in the current line of the screen.
 // The objects are stored in an array of 10 elements, each element is a vec4<u32>.
 // If there are less than 10 objects, the rest of the array is filled with 0s.
-@group(0) @binding(6) var<uniform> objects_in_scanline: ObjectsInScanline;
+@group(0) @binding(7) var<uniform> objects_in_scanline: ObjectsInScanline;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // The tilemap is a 32x32 grid of tiles, each tile is 8x8 pixels. That is 256x256 pixels. The following variable
     // represents the position of the top left pixel of the visible screen within the tilemap. That is it is a vector
     // with values between 0 and 255.
-    let viewport_position_in_pixels = vec2<i32>(i32(background_viewport_position.x), i32(background_viewport_position.y));
+    let viewport_position_in_pixels = vec2<i32>(i32(bg_and_wd_viewport_position.x), i32(bg_and_wd_viewport_position.y));
 
     // Retrieve the "position" of "the current pixel". That is, per workgroup, the y coordinate is fixed to the current
     // (rendering) line. The x coordinate on the other hand, is the local invocation id, which is an index iterating

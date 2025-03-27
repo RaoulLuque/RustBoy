@@ -8,8 +8,9 @@ use crate::frontend::shader::{
 pub struct BuffersForRendering {
     // Transfer mode buffers:
     pub(crate) background_tile_map: [u8; 1024],
+    pub(crate) window_tile_map: [u8; 1024],
     pub(crate) bg_and_wd_tile_data: [u8; 4096],
-    pub(crate) bg_viewport_position: BackgroundViewportPosition,
+    pub(crate) bg_and_wd_viewport_position: BackgroundViewportPosition,
     pub(crate) palettes: Palettes,
     pub(crate) rendering_line_and_lcd_control: RenderingLinePositionAndObjectSize,
     pub(crate) object_tile_data: [u8; 4096],
@@ -22,8 +23,9 @@ impl BuffersForRendering {
     pub fn new_empty() -> Self {
         Self {
             background_tile_map: [0; 1024],
+            window_tile_map: [0; 1024],
             bg_and_wd_tile_data: [0; 4096],
-            bg_viewport_position: BackgroundViewportPosition { pos: [0; 4] },
+            bg_and_wd_viewport_position: BackgroundViewportPosition { pos: [0; 4] },
             palettes: Palettes { values: [0; 4] },
             rendering_line_and_lcd_control: RenderingLinePositionAndObjectSize { pos: [0; 4] },
             object_tile_data: [0; 4096],
@@ -33,19 +35,20 @@ impl BuffersForRendering {
 }
 
 impl GPU {
-    /// Fetches the tile data, tile map, viewport position, palettes and other data needed for the
+    /// Fetches the tile data, tilemap, viewport position, palettes and other data needed for the
     /// next scanline to be rendered using the scanline shader. This data is buffered because the original
     /// RustBoy fetches it in mode 3 (Transfer) and we only actually render it in mode 0 (HBlank).
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
     pub(super) fn fetch_rendering_information_to_rendering_buffer(&mut self, current_scanline: u8) {
         self.buffers_for_rendering.background_tile_map = *self.get_background_tile_map();
+        self.buffers_for_rendering.window_tile_map = *self.get_window_tile_map();
         self.buffers_for_rendering.bg_and_wd_tile_data = self.get_background_and_window_tile_data();
-        self.buffers_for_rendering.bg_viewport_position = BackgroundViewportPosition {
+        self.buffers_for_rendering.bg_and_wd_viewport_position = BackgroundViewportPosition {
             pos: [
-                self.gpu_registers.get_scroll_x() as u32,
-                self.gpu_registers.get_scroll_y() as u32,
-                0,
-                0,
+                self.gpu_registers.get_bg_scroll_x() as u32,
+                self.gpu_registers.get_bg_scroll_y() as u32,
+                self.gpu_registers.get_window_x_position() as u32,
+                self.gpu_registers.get_window_y_position() as u32,
             ],
         };
         self.buffers_for_rendering.palettes = Palettes {
@@ -78,7 +81,7 @@ impl GPU {
     }
 }
 
-/// Struct to keep track of changes/writes to tile data, tile map, viewport position, and OAM.
+/// Struct to keep track of changes/writes to tile data, tilemap, viewport position, and OAM.
 ///
 /// We reset this struct after rendering each scanline. Therefore, it tracks the resources that
 /// changed since the last scanline which the render step can use to only (re)send the data that
@@ -92,6 +95,7 @@ pub struct ChangesToPropagateToShader {
     pub(crate) tile_map_0_changed: bool,
     pub(crate) tile_map_1_changed: bool,
     pub(crate) background_viewport_position_changed: bool,
+    pub(crate) window_viewport_position_changed: bool,
     pub(crate) palette_changed: bool,
 }
 
@@ -107,6 +111,7 @@ impl ChangesToPropagateToShader {
             tile_map_0_changed: false,
             tile_map_1_changed: false,
             background_viewport_position_changed: false,
+            window_viewport_position_changed: false,
             palette_changed: false,
         }
     }
@@ -121,6 +126,7 @@ impl ChangesToPropagateToShader {
             tile_map_0_changed: true,
             tile_map_1_changed: true,
             background_viewport_position_changed: true,
+            window_viewport_position_changed: true,
             palette_changed: true,
         }
     }

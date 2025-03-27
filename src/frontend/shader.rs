@@ -336,6 +336,7 @@ pub fn setup_scanline_buffer_pipeline(
     wgpu::Buffer,
     wgpu::Buffer,
     wgpu::Buffer,
+    wgpu::Buffer,
     wgpu::Texture,
     wgpu::Buffer,
     wgpu::Buffer,
@@ -351,7 +352,7 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Represents which tiles are displayed where (Rust Boy: 32x32 tile grid)
+    // Represents which background tiles are displayed where (Rust Boy: 32x32 tile grid)
     // Initialize blank tilemap (0th tile always)
     let initial_background_tilemap_plain = [0u8; 32 * 32];
     let initial_background_tilemap = TilemapUniform::from_array(&initial_background_tilemap_plain);
@@ -362,13 +363,25 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Sets the position from where the background is drawn. Used for scrolling. Is given as pixel
-    // shift-values in the tilemap.
-    let initial_background_viewport_position = BackgroundViewportPosition { pos: [0, 0, 0, 0] };
-    let background_viewport_buffer: wgpu::Buffer =
+    // Represents which window tiles are displayed where (Rust Boy: 32x32 tile grid)
+    // Initialize blank tilemap (0th tile always)
+    let initial_window_tilemap_plain = [0u8; 32 * 32];
+    let initial_window_tilemap = TilemapUniform::from_array(&initial_window_tilemap_plain);
+    let window_tilemap_buffer: wgpu::Buffer =
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Tilemap Buffer"),
+            contents: bytemuck::cast_slice(&[initial_window_tilemap]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+    // Sets the positions from where the background and the window are drawn. Used for scrolling.
+    // Is given as pixel shift-values in the tilemap. The first two are the x and y position of the
+    // background and the last two are the x and y position of the window. The values are in pixels.
+    let initial_bg_and_wd_viewport_position = BackgroundViewportPosition { pos: [0, 0, 0, 0] };
+    let bg_and_wd_viewport_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Background Viewport Buffer"),
-            contents: bytemuck::cast_slice(&[initial_background_viewport_position]),
+            contents: bytemuck::cast_slice(&[initial_bg_and_wd_viewport_position]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -435,7 +448,7 @@ pub fn setup_scanline_buffer_pipeline(
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("Compute Shader Bind Group Layout"),
         entries: &[
-            // BG/Window Tile Data Buffer (binding 0)
+            // BG/Window Tile Data Buffer
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -446,7 +459,7 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Rendering Line Buffer (binding 1)
+            // Rendering Line Buffer
             wgpu::BindGroupLayoutEntry {
                 binding: 1,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -457,7 +470,7 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Tilemap Uniform Buffer (binding 2)
+            // Background Tilemap Uniform Buffer
             wgpu::BindGroupLayoutEntry {
                 binding: 2,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -468,7 +481,7 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Background Viewport Position Uniform Buffer (binding 3)
+            // Window Tilemap Uniform Buffer
             wgpu::BindGroupLayoutEntry {
                 binding: 3,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -479,7 +492,7 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Palettes Uniform Buffer (binding 4)
+            // Background and Window Viewport Position Uniform Buffer
             wgpu::BindGroupLayoutEntry {
                 binding: 4,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -490,7 +503,7 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Object Tile Data Buffer (binding 5)
+            // Palettes Uniform Buffer
             wgpu::BindGroupLayoutEntry {
                 binding: 5,
                 visibility: wgpu::ShaderStages::FRAGMENT,
@@ -501,9 +514,20 @@ pub fn setup_scanline_buffer_pipeline(
                 },
                 count: None,
             },
-            // Objects in scanline Uniform Buffer (binding 6)
+            // Object Tile Data Buffer
             wgpu::BindGroupLayoutEntry {
                 binding: 6,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            // Objects in scanline Uniform Buffer
+            wgpu::BindGroupLayoutEntry {
+                binding: 7,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
@@ -534,18 +558,22 @@ pub fn setup_scanline_buffer_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 3,
-                resource: background_viewport_buffer.as_entire_binding(),
+                resource: window_tilemap_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 4,
-                resource: palette_buffer.as_entire_binding(),
+                resource: bg_and_wd_viewport_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 5,
-                resource: object_tile_data_buffer.as_entire_binding(),
+                resource: palette_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 6,
+                resource: object_tile_data_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 7,
                 resource: objects_in_scanline_buffer.as_entire_binding(),
             },
         ],
@@ -615,7 +643,8 @@ pub fn setup_scanline_buffer_pipeline(
         bind_group,
         bg_and_wd_tile_data_buffer,
         background_tilemap_buffer,
-        background_viewport_buffer,
+        window_tilemap_buffer,
+        bg_and_wd_viewport_buffer,
         palette_buffer,
         framebuffer_texture,
         rendering_line_and_lcd_control_buffer,

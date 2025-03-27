@@ -34,12 +34,12 @@ pub(crate) const GPU_MODE_WHILE_LCD_TURNED_OFF: RenderingMode = RenderingMode::H
 
 /// Represents the GPU of the Rust Boy.
 /// It has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF) containing the tile set with 384 tiles
-/// and two tile maps of 32 * 32 = 1024 bytes each.
+/// and two tilemaps of 32 * 32 = 1024 bytes each.
 ///
 /// The tile set is a 2D array of 8x8 tile pixel values which redundantly stores the tiles
 /// which are already in vram. They are however more accessible than via the vram.
 ///
-/// The tile maps are two 2D arrays of 32x32 tile u8 indices which are used to determine which tile
+/// The tilemaps are two 2D arrays of 32x32 tile u8 indices which are used to determine which tile
 /// to draw at which position on the screen. They are just stored directly in the vram field.
 ///
 /// Also has a tile_data_changed flag to indicate if the tile data has changed.
@@ -265,12 +265,12 @@ impl GPU {
         // so we can simply return
         if normalized_address >= 0x1800 {
             if address < 0x9C00 {
-                // We are writing to tile map 0. Therefore, we set the changed flag to make sure
-                // the GPU receives the new tile map later in rendering.
+                // We are writing to tilemap 0. Therefore, we set the changed flag to make sure
+                // the GPU receives the new tilemap later in rendering.
                 self.memory_changed.tile_map_0_changed = true;
             } else {
-                // We are writing to tile map 1. Therefore, we set the changed flag to make sure
-                // the GPU receives the new tile map later in rendering.
+                // We are writing to tilemap 1. Therefore, we set the changed flag to make sure
+                // the GPU receives the new tilemap later in rendering.
                 self.memory_changed.tile_map_1_changed = true;
             }
             return;

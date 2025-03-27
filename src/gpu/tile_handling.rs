@@ -75,7 +75,7 @@ impl GPU {
 
             self.tile_set[tile_index][row_index][pixel_index] = value;
         }
-        // We set the memory changed flags to make sure the GPU receives the new tile map later
+        // We set the memory changed flags to make sure the GPU receives the new tilemap later
         // in rendering.
         let original_address = address + VRAM_BEGIN;
         if original_address < 0x8800 {
@@ -109,7 +109,7 @@ impl GPU {
         }
     }
 
-    /// Returns true if the tile map currently used for the background has changed since the last
+    /// Returns true if the tilemap currently used for the background has changed since the last
     /// time it was checked (usually the last scanline).
     ///
     /// Also sets flags in self.memory_changed, to keep track of which parts
@@ -121,6 +121,20 @@ impl GPU {
             .lcd_control
             .get_background_tile_map_flag()
         {
+            self.memory_changed.tile_map_1_changed
+        } else {
+            self.memory_changed.tile_map_0_changed
+        }
+    }
+
+    /// Returns true if the tilemap currently used for the window has changed since the last
+    /// time it was checked (usually the last scanline).
+    ///
+    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
+    pub fn current_window_tile_map_changed(&mut self) -> bool {
+        if self.gpu_registers.lcd_control.get_window_tile_map_flag() {
             self.memory_changed.tile_map_1_changed
         } else {
             self.memory_changed.tile_map_0_changed
@@ -223,7 +237,7 @@ impl GPU {
             .expect("Slice should be of correct length, work with me here compiler")
     }
 
-    /// Returns the current tile map for the background. Switches the addressing mode
+    /// Returns the current tilemap for the background. Switches the addressing mode
     /// automatically according to LCDC bit 3 (background_tile_map).
     pub fn get_background_tile_map(&self) -> &[u8; 1024] {
         if !self
@@ -237,7 +251,7 @@ impl GPU {
         }
     }
 
-    /// Returns the zeroth tile map (0x9800 - 0x9BFF).
+    /// Returns the zeroth tilemap (0x9800 - 0x9BFF).
     pub fn get_background_tile_map_zero(&self) -> &[u8; 1024] {
         self.vram[TILEMAP_ZERO_START - VRAM_BEGIN as usize
             ..TILEMAP_ZERO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
@@ -245,7 +259,7 @@ impl GPU {
             .expect("Slice should be of correct length, work with me here compiler")
     }
 
-    /// Returns the first tile map (0x9C00 - 0x9FFF).
+    /// Returns the first tilemap (0x9C00 - 0x9FFF).
     pub fn get_background_tile_map_one(&self) -> &[u8; 1024] {
         self.vram[TILEMAP_ONE_START - VRAM_BEGIN as usize
             ..TILEMAP_ONE_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
