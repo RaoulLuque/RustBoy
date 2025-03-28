@@ -352,17 +352,6 @@ impl<'a> State<'a> {
         if rust_boy_gpu.current_window_tile_map_changed()
             | rust_boy_gpu.memory_changed.window_tile_map_flag_changed
         {
-            // trace!("Updating tilemap");
-            // trace!(
-            //     "Current Scrolling: x: {} y: {}",
-            //     rust_boy_gpu.gpu_registers.get_bg_scroll_x() as u32,
-            //     rust_boy_gpu.gpu_registers.get_bg_scroll_y() as u32,
-            // );
-            // trace!(
-            //     "New Tilemap (in use) \n {} \n \n",
-            //     tile_map_to_string(rust_boy_gpu.get_background_tile_map())
-            // );
-
             // Update tilemap and tile atlas (e.g., VRAM changes)
             let new_tilemap_data = rust_boy_gpu.buffers_for_rendering.window_tile_map;
             let tilemap = TilemapUniform::from_array(&new_tilemap_data);
@@ -435,7 +424,7 @@ impl<'a> State<'a> {
             .buffers_for_rendering
             .rendering_line_lcd_control_and_window_internal_line_info;
         // DEBUG
-        log::trace!(
+        println!(
             "Updated rendering_line_lcd_control_and_window_internal_line_info: {:?}",
             updated_current_scanline_lcd_control_and_window_internal_line_info
         );
