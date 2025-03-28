@@ -181,16 +181,18 @@ impl GPURegisters {
     pub fn set_lcd_control(&mut self, value: u8, memory_changed: &mut ChangesToPropagateToShader) {
         let old_value = self.lcd_control.register;
         self.lcd_control.register = value;
-        if self.lcd_control.get_display_on_flag() {
-            log::debug!("LCD is turned on");
-        } else {
-            log::debug!("LCD is turned off");
+        let distinct_bits = old_value ^ value;
+        if is_bit_set(distinct_bits, LCD_ENABLE_BIT_POSITION as u8) {
+            if self.lcd_control.get_display_on_flag() {
+                log::debug!("LCD is turned on");
+            } else {
+                log::debug!("LCD is turned off");
+            }
         }
 
         // We need to check if the tile data area or background our window tilemap area changed
         // and set flags accordingly to make sure the GPU/Shader receives these changes in the
         // rendering step
-        let distinct_bits = old_value ^ value;
         if is_bit_set(distinct_bits, WINDOW_TILE_MAP_BIT_POSITION as u8) {
             memory_changed.window_tile_map_flag_changed = true;
         }
