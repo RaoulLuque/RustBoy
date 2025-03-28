@@ -59,6 +59,8 @@ pub struct GPU {
 }
 
 /// Struct to collect the information about the current rendering state of the GPU.
+///
+/// TODO: Add more detailed docstring
 pub struct RenderingInfo {
     pub(crate) dots_clock: u32,
     pub(crate) total_dots: u128,
