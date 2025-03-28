@@ -378,8 +378,6 @@ fn handle_redraw_requested_event(
         // We draw a new line to the framebuffer whenever the gpu requests a new line or when it requests a
         // new frame, since in the latter case, the last line is still missing
         if *current_rendering_task != RenderTask::None {
-            state.update();
-
             if let RenderTask::WriteLineToBuffer(current_scanline) = *current_rendering_task {
                 // If the current rendering task was to render a line, we need to reset it to none,
                 // since we have just written a line to the framebuffer. If it was to render a frame,
@@ -414,7 +412,6 @@ fn handle_redraw_requested_event(
                 *time_of_last_fps_calculation = now;
             }
 
-            state.update();
             match state.render_screen() {
                 Ok(_) => {}
                 // Reconfigure the surface if it's lost or outdated

@@ -115,7 +115,8 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    /// TODO: Add docstring
+    /// Creates a new instance of [State]. This function is called once at the beginning of the
+    /// program to set up the GPU (of the Host) and the window.
     pub async fn new(window: &'a Window) -> State<'a> {
         let size = window.inner_size();
 
@@ -230,12 +231,12 @@ impl<'a> State<'a> {
         }
     }
 
-    /// TODO: Add docstring
+    /// Get a reference to the window.
     pub fn window(&self) -> &Window {
         &self.window
     }
 
-    /// TODO: Add docstring
+    /// Resize the window to the provided new_size.
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
@@ -246,15 +247,13 @@ impl<'a> State<'a> {
         }
     }
 
-    /// TODO: Add docstring
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
+    /// Check if an event is a valid input event.
+    pub fn input(&mut self, _: &WindowEvent) -> bool {
         false
     }
 
-    /// TODO: Add docstring
-    pub fn update(&mut self) {}
-
-    /// TODO: Add docstring
+    /// Render the screen. This function is called once per frame to render the
+    /// current framebuffer to the screen using the render shader pipeline.
     pub fn render_screen(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -317,6 +316,9 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /// Render the provided `current_scanline` scanline to the framebuffer texture.
+    /// This function is called once per frame to render the current scanline to the screen using
+    /// the scanline shader pipeline.
     pub fn render_scanline(&mut self, rust_boy_gpu: &mut GPU, current_scanline: u8) {
         // Create a view of the offscreen texture.
         let framebuffer_view = self
@@ -404,25 +406,23 @@ impl<'a> State<'a> {
         if rust_boy_gpu.current_bg_and_wd_tile_data_changed()
             | rust_boy_gpu.memory_changed.tile_data_flag_changed
         {
-            #[cfg(debug_assertions)]
-            {
-                // For debug
-                // trace!("Updating tile data");
-                // let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data_debug();
-                // trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
-                // trace!(
-                //     "Tile data Block 0 and 1: \n {}",
-                //     tile_data_to_string(
-                //         &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1_debug()
-                //     )
-                // );
-                // trace!(
-                //     "Tile data Block 2 and 1: \n {}",
-                //     tile_data_to_string(
-                //         &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1_debug()
-                //     )
-                // );
-            }
+            // DEBUG
+            // trace!("Updating tile data");
+            // let tile_data_as_tiles = rust_boy_gpu.get_background_and_window_tile_data_debug();
+            // trace!("Tile data: \n {}", tile_data_to_string(&tile_data_as_tiles));
+            // trace!(
+            //     "Tile data Block 0 and 1: \n {}",
+            //     tile_data_to_string(
+            //         &rust_boy_gpu.get_background_and_window_tile_data_block_0_and_1_debug()
+            //     )
+            // );
+            // trace!(
+            //     "Tile data Block 2 and 1: \n {}",
+            //     tile_data_to_string(
+            //         &rust_boy_gpu.get_background_and_window_tile_data_block_2_and_1_debug()
+            //     )
+            // );
+
             let new_background_tile_data_plain =
                 rust_boy_gpu.buffers_for_rendering.bg_and_wd_tile_data;
             self.queue.write_buffer(
