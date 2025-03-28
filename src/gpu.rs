@@ -5,7 +5,9 @@ pub(crate) mod tile_handling;
 
 use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
 use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
+use std::thread::current;
 
+use crate::cpu::is_bit_set;
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::interrupts::InterruptFlagRegister;
 use object_handling::Object;
@@ -61,12 +63,26 @@ pub struct GPU {
 /// Struct to collect the information about the current rendering state of the GPU.
 ///
 /// TODO: Add more detailed docstring
+/// - `window_internal_line_counter`: Determines how many lines have been rendered where the window
+/// was part of the line. Its value is incremented after transfer mode (3). That is, before it,
+/// it indicates the next line that will be used from the window tilemap and after transfer mode (3)
+/// it indicates both how many lines have been rendered already and what the next line used from
+/// the window tilemap will be.
+/// - `wy_condition_was_met_this_frame`: Indicates if the window y position (wy) was equal to the current
+/// scanline at some point already throughout this frame.
+/// - `window_is_rendered_this_scanline`: Indicates after exiting transfer mode (3), if the window is rendered
+/// on the current scanline. Before exiting transfer mode, it indicates the state for the last scanline
 pub struct RenderingInfo {
+    // GPU rendering info
     pub(crate) dots_clock: u32,
     pub(crate) total_dots: u128,
     dots_for_transfer: u32,
     lcd_was_turned_off: bool,
     first_scanline_after_lcd_was_turned_on: bool,
+    // Window rendering info
+    window_internal_line_counter: u8,
+    wy_condition_was_met_this_frame: bool,
+    window_is_rendered_this_scanline: bool,
 }
 
 /// Represents the possible rendering modes of the GPU.
@@ -182,11 +198,18 @@ impl GPU {
                                 // scanline.
                                 self.gpu_registers
                                     .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
-                                return RenderTask::WriteLineToBuffer(
-                                    self.gpu_registers
-                                        .get_scanline(None, None, None, false, true)
-                                        - 1,
+                                let next_scanline = self
+                                    .gpu_registers
+                                    .get_scanline(None, None, None, false, true);
+
+                                // Since we are now entering OAMScan2, we want to check whether
+                                // the WY condition is met
+                                self.rendering_info.check_wy_condition(
+                                    next_scanline,
+                                    self.gpu_registers.get_window_y_position(),
                                 );
+
+                                return RenderTask::WriteLineToBuffer(next_scanline - 1);
                             }
                         }
                     }
@@ -205,7 +228,23 @@ impl GPU {
                             .get_scanline(None, None, None, false, true)
                             == 154
                         {
+                            // On exiting VBlank, we update (reset) the window internal line counter
+                            self.rendering_info.update_window_internal_line_counter(
+                                // The current scanline is guaranteed to be 154 by the if condition
+                                154,
+                                &self.gpu_registers,
+                            );
+                            // We also need to reset the wy_condition_was_triggered_this_frame and
+                            // window_is_rendered_this_scanline flags for the next frame
+                            self.rendering_info.wy_condition_was_met_this_frame = false;
+                            self.rendering_info.window_is_rendered_this_scanline = false;
+
                             self.gpu_registers.set_scanline(0, interrupt_flags);
+
+                            // Since we are now entering OAMScan2, we want to check whether
+                            // the WY condition is met
+                            self.rendering_info
+                                .check_wy_condition(0, self.gpu_registers.get_window_y_position());
 
                             self.gpu_registers
                                 .set_ppu_mode(RenderingMode::OAMScan2, interrupt_flags);
@@ -229,10 +268,16 @@ impl GPU {
                     if self.rendering_info.dots_clock >= DOTS_IN_TRANSFER {
                         self.rendering_info.dots_clock -= DOTS_IN_TRANSFER;
                         self.rendering_info.dots_for_transfer = DOTS_IN_TRANSFER;
-                        self.fetch_rendering_information_to_rendering_buffer(
-                            self.gpu_registers
-                                .get_scanline(None, None, None, false, true),
+                        let current_scanline = self
+                            .gpu_registers
+                            .get_scanline(None, None, None, false, true);
+                        // On exiting Transfer mode, before buffering the information for
+                        // the next scanline, we update the window internal line counter
+                        self.rendering_info.update_window_internal_line_counter(
+                            current_scanline,
+                            &self.gpu_registers,
                         );
+                        self.fetch_rendering_information_to_rendering_buffer(current_scanline);
 
                         self.gpu_registers
                             .set_ppu_mode(RenderingMode::HBlank0, interrupt_flags);
@@ -356,6 +401,52 @@ impl RenderingInfo {
             dots_for_transfer: 0,
             lcd_was_turned_off: true,
             first_scanline_after_lcd_was_turned_on: false,
+            window_internal_line_counter: 0,
+            wy_condition_was_met_this_frame: false,
+            window_is_rendered_this_scanline: false,
+        }
+    }
+
+    /// Updates the window internal line counter.
+    /// This is used to determine how many lines have been rendered where the window was part of the
+    /// line.
+    fn update_window_internal_line_counter(
+        &mut self,
+        current_scanline: u8,
+        gpu_registers: &GPURegisters,
+    ) {
+        if current_scanline > 143 {
+            // If the current scanline is greater than 143, we are in VBlank mode and the window
+            // internal line counter is reset to 0.
+            self.window_internal_line_counter = 0;
+        } else {
+            // We are about to exit Transfer mode and we need to check, if the window will be
+            // rendered on the current scanline.
+            if self.wy_condition_was_met_this_frame
+                && gpu_registers.get_window_x_position() < 167
+                && is_bit_set(gpu_registers.get_lcd_control(), 5)
+            {
+                // The window will be rendered, if the wy condition was met this frame, the x position
+                // of the window is not out of bounds, and the window flag in the lcd control register
+                // is set
+                self.window_is_rendered_this_scanline = true;
+                self.window_internal_line_counter += 1;
+            } else {
+                // The window will not be rendered, which we need to keep track of to pass to the
+                // shader
+                self.window_is_rendered_this_scanline = false;
+            }
+        }
+    }
+
+    /// Checks if the window y position (wy) is equal to the current scanline.
+    /// If so, we set the wy_condition_was_triggered_this_frame flag to true. Otherwise, we don't
+    /// do anything.
+    /// This is always checked when entering OAMScan (mode 2), see [Pan Docs](https://gbdev.io/pandocs/Scrolling.html#window)
+    fn check_wy_condition(&mut self, current_scanline: u8, wy: u8) {
+        // Check if the current scanline is equal to the y position of the window (wy)
+        if current_scanline == wy {
+            self.wy_condition_was_met_this_frame = true;
         }
     }
 }

@@ -1,4 +1,5 @@
 use super::GPU;
+use crate::cpu::is_bit_set;
 use crate::frontend::shader::{
     BackgroundViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
 };
@@ -41,8 +42,11 @@ impl GPU {
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
     pub(super) fn fetch_rendering_information_to_rendering_buffer(&mut self, current_scanline: u8) {
         self.buffers_for_rendering.background_tile_map = *self.get_background_tile_map();
+
         self.buffers_for_rendering.window_tile_map = *self.get_window_tile_map();
+
         self.buffers_for_rendering.bg_and_wd_tile_data = self.get_background_and_window_tile_data();
+
         self.buffers_for_rendering.bg_and_wd_viewport_position = BackgroundViewportPosition {
             pos: [
                 self.gpu_registers.get_bg_scroll_x() as u32,
@@ -51,6 +55,7 @@ impl GPU {
                 self.gpu_registers.get_window_y_position() as u32,
             ],
         };
+
         self.buffers_for_rendering.palettes = Palettes {
             values: [
                 self.gpu_registers.get_background_palette() as u32,
@@ -59,6 +64,9 @@ impl GPU {
                 0,
             ],
         };
+
+        self.buffers_for_rendering.object_tile_data = self.get_object_tile_data();
+
         self.buffers_for_rendering.rendering_line_and_lcd_control =
             RenderingLinePositionAndObjectSize {
                 pos: [
@@ -68,7 +76,14 @@ impl GPU {
                     0,
                 ],
             };
-        self.buffers_for_rendering.object_tile_data = self.get_object_tile_data();
+        // DEBUG
+        log::info!(
+            "Current LCD control: {:<8b}, Current Scanline: {:<3}, Window position: {:<3}/{:<3}",
+            self.gpu_registers.get_lcd_control(),
+            current_scanline,
+            self.gpu_registers.get_window_x_position(),
+            self.gpu_registers.get_window_y_position()
+        );
     }
 
     /// Fetches the list of objects for the current scanline. This is needed for the

@@ -434,6 +434,7 @@ impl GPURegisters {
     /// parallel.
     ///
     /// TODO: Update docstring
+    /// TODO: Change calling from parameters to an ENUM
     pub fn get_scanline(
         &self,
         rendering_info: Option<&RenderingInfo>,
