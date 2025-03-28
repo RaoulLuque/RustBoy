@@ -51,6 +51,10 @@ impl RustBoy {
             }
         }
 
+        // This variable tracks if an interrupt was requested, to possibly override the check
+        // whether to step out of halt mode.
+        let mut interrupt_requested = false;
+
         // Check if an interrupt needs to be handled. If so, Some(u16) is returned with the
         // interrupt location. If no interrupt is requested, None is returned.
         // If an interrupt is requested, the corresponding bit in the interrupt flag register
@@ -64,6 +68,9 @@ impl RustBoy {
             self.push(self.pc);
             self.pc = interrupt_location;
             self.increment_cycle_counter(5);
+
+            // Set flag that interrupt was requested
+            interrupt_requested = true;
 
             // Log the interrupt if in debug mode
             #[cfg(debug_assertions)]
@@ -87,6 +94,7 @@ impl RustBoy {
             // Check if an interrupt is requested. If so, go out of halt mode.
             if u8::from(&self.interrupt_flag_register) & u8::from(&self.interrupt_enable_register)
                 != 0
+                || interrupt_requested
             {
                 // The cpu wakes up from halt mode and the next instruction is executed twice
                 // due to the halt bug
