@@ -408,7 +408,7 @@ impl GPURegisters {
         if self.lcd_control.get_display_on_flag() {
             // If the LCD is turned off, we return VBlank mode (0b01) as the current mode (lower two
             // bits of the LCD status register)
-            before_lcd_enable & GPU_MODE_WHILE_LCD_TURNED_OFF.as_u8()
+            before_lcd_enable & (0b1111_1100 | GPU_MODE_WHILE_LCD_TURNED_OFF.as_u8())
         } else {
             before_lcd_enable
         }
