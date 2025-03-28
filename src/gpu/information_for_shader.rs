@@ -88,7 +88,7 @@ impl GPU {
                 ],
             };
         // DEBUG
-        log::info!(
+        log::trace!(
             "Window rendered this scanline: {}, Current LCD control: {:<8b}, Current Scanline: {:<3}, Window position: {:<3}/{:<3}",
             self.rendering_info.window_is_rendered_this_scanline as u32,
             self.gpu_registers.get_lcd_control(),

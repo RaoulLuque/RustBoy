@@ -434,7 +434,8 @@ impl<'a> State<'a> {
         let updated_current_scanline_lcd_control_and_window_internal_line_info = rust_boy_gpu
             .buffers_for_rendering
             .rendering_line_lcd_control_and_window_internal_line_info;
-        println!(
+        // DEBUG
+        log::trace!(
             "Updated rendering_line_lcd_control_and_window_internal_line_info: {:?}",
             updated_current_scanline_lcd_control_and_window_internal_line_info
         );
