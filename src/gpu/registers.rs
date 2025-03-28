@@ -95,6 +95,8 @@ impl GPU {
             0xFF47 => self.gpu_registers.get_background_palette(),
             0xFF48 => self.gpu_registers.get_object_palette_zero(),
             0xFF49 => self.gpu_registers.get_object_palette_one(),
+            0xFF4A => self.gpu_registers.get_window_y_position(),
+            0xFF4B => self.gpu_registers.get_window_x_position(),
             _ => panic!(
                 "Reading from invalid GPU register address: {:#04X}",
                 address
@@ -140,6 +142,12 @@ impl GPU {
             0xFF49 => self
                 .gpu_registers
                 .set_object_palette_one(value, &mut self.memory_changed),
+            0xFF4A => self
+                .gpu_registers
+                .set_window_y_position(value, &mut self.memory_changed),
+            0xFF4B => self
+                .gpu_registers
+                .set_window_x_position(value, &mut self.memory_changed),
             _ => panic!("Writing to invalid GPU register address: {:#04X}", address),
         }
     }
