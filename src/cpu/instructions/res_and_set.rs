@@ -20,7 +20,7 @@ impl RustBoy {
             ResAndSetInstructionType::Type(target, bit_to_reset) => {
                 match target {
                     SixteenBitInstructionTarget::HLRef => {
-                        self.increment_cycle_counter(3);
+                        self.increment_cycle_counter(4);
                     }
                     _ => {
                         self.increment_cycle_counter(2);
@@ -54,7 +54,7 @@ impl RustBoy {
             ResAndSetInstructionType::Type(target, bit_to_set) => {
                 match target {
                     SixteenBitInstructionTarget::HLRef => {
-                        self.increment_cycle_counter(3);
+                        self.increment_cycle_counter(4);
                     }
                     _ => {
                         self.increment_cycle_counter(2);
