@@ -195,12 +195,12 @@ pub async fn run(
     }
     log::info!("Logger initialized");
 
+    // TODO: Write initializer function to make this more compact
     let debugging_flags = DebugInfo {
         file_handle_doctor_logs: None,
         file_handle_extensive_logs: None,
         log_file_index: 0,
         current_number_of_lines_in_log_file: 0,
-        instruction_was_logged: true,
         doctor: game_boy_doctor_mode,
         file_logs,
         binjgb_mode,

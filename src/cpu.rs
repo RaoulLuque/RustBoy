@@ -36,10 +36,13 @@ impl RustBoy {
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
     pub fn cpu_step(&mut self) {
+        // Log the current state of the registers if in debug mode. Don't want all this in release
+        // builds, which is why we use the cfg conditional compilation feature.
         #[cfg(debug_assertions)]
-        if self.debugging_flags.instruction_was_logged {
-            // Log the current state of the registers if in debug mode. Don't want all this in release
-            // builds, which is why we use the cfg conditional compilation feature.
+        if !self.halted {
+            // We only log the current state right after an instruction is executed, so we don't
+            // have to log the state of the registers if we are in halt mode.
+            // TODO: Make this more compact by calling a function to handle the logging
             if self.debugging_flags.doctor {
                 doctor_log(self, "doctor");
             }
@@ -93,6 +96,19 @@ impl RustBoy {
                     halt_bug = true;
                 }
                 self.increment_cycle_counter(1);
+
+                // Log the current state of the registers if in debug mode. Don't want all this in release
+                // builds, which is why we use the cfg conditional compilation feature.
+                #[cfg(debug_assertions)]
+                {
+                    // We are leaving halt mode, so we log the current state of the registers
+                    if self.debugging_flags.doctor {
+                        doctor_log(self, "doctor");
+                    }
+                    if self.debugging_flags.file_logs {
+                        doctor_log(self, LOG_FILE_NAME)
+                    }
+                }
             } else {
                 // If no interrupt is requested, just increment the cycle counter and return.
                 self.increment_cycle_counter(1);
@@ -100,14 +116,6 @@ impl RustBoy {
                 // We also set the just_entered_halt flag to false, so that we don't trigger the halt
                 // bug, because it just triggers if the cpu just entered halt mode.
                 self.just_entered_halt = false;
-
-                #[cfg(debug_assertions)]
-                if self.debugging_flags.file_logs || self.debugging_flags.doctor {
-                    // We need to keep in mind that we are in halt mode and don't want to log the
-                    // current state of the registers until another instruction is logged, i.e.
-                    // we are out of halt mode
-                    self.debugging_flags.instruction_was_logged = false;
-                }
 
                 return;
             }
@@ -127,12 +135,6 @@ impl RustBoy {
             #[cfg(debug_assertions)]
             if self.debugging_flags.file_logs {
                 instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
-            }
-
-            #[cfg(debug_assertions)]
-            if self.debugging_flags.file_logs || self.debugging_flags.doctor {
-                // We need to tell the logging functions that we are not in halt mode (anymore)
-                self.debugging_flags.instruction_was_logged = true;
             }
 
             self.execute(instruction)
