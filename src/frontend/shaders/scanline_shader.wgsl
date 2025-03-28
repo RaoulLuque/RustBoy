@@ -108,7 +108,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     // Check if the current pixel lies within an object which is not transparent, if the OBJ enable flag in the LCD
     // control register is set. Otherwise just take the background/window.
-    if (current_line_lcd_control_register_and_window_internal_line_info.y & 0x02) != 0 || true {
+    if (current_line_lcd_control_register_and_window_internal_line_info.y & 0x02) != 0 {
         let pixel_in_object_info = is_pixel_in_object(x, y, viewport_position_in_pixels);
         color = pixel_in_object_info.color;
         pixel_in_object = pixel_in_object_info.pixel_in_object;
