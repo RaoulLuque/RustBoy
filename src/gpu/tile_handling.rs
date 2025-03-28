@@ -144,7 +144,7 @@ impl GPU {
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically, according to LCDC bit 6 (window_tile_map).
     pub fn get_window_tile_map(&self) -> &[u8; 1024] {
-        if self.gpu_registers.lcd_control.get_window_tile_map_flag() {
+        if !self.gpu_registers.lcd_control.get_window_tile_map_flag() {
             self.vram[TILEMAP_ZERO_START - VRAM_BEGIN as usize
                 ..TILEMAP_ZERO_START + TILEMAP_SIZE - VRAM_BEGIN as usize]
                 .try_into()
