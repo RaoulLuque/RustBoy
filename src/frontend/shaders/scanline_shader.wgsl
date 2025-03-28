@@ -187,9 +187,31 @@ fn get_color_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: vec
 }
 
 fn get_color_id_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> u32 {
+    // We have to check first, whether this is a background or window pixel
+    // It is a window pixel, if the window is enabled and if the top left corner of the window is to the top left of this
+    // pixel
+    var window_pixel = false;
+    // A Window x position of 0 is 7 pixels to the left of the left border of the screen (a y position of 0 is exactly
+    // at the top of the screen). Therefore, we want to normalize the window position
+    let normalized_wd_viewport_position = vec2<u32>(bg_and_wd_viewport_position.z - 7, bg_and_wd_viewport_position.w);
+    if ((current_line_and_lcd_control_register.y & 0x20) != 0) && (normalized_wd_viewport_position.x <= x) && (normalized_wd_viewport_position.y <= y) {
+        // The window is enabled and the pixel is within the window, therefore we need to use the window tilemap
+        window_pixel = true;
+    }
+
     // This is the position of the current pixel in the screen in the tilemap taking into consideration the viewport
-    // position.
-    let pixel_coords = vec2<f32>(f32(x), f32(y)) + vec2<f32>(viewport_position_in_pixels);
+    // position
+    // The background viewport determines the position of the screen within the tilemap, whereas the window viewport
+    // determines the position of the window within the frame. The windows top left pixel is therefore always the top
+    // left pixel of the tilemap.
+    var pixel_coords: vec2<f32>;
+    if !window_pixel {
+        // Background pixel
+        pixel_coords = vec2<f32>(f32(x), f32(y)) + vec2<f32>(viewport_position_in_pixels);
+    } else {
+        // Window pixel
+        pixel_coords = vec2<f32>(f32(x), f32(y)) - vec2<f32>(normalized_wd_viewport_position);
+    }
 
     // Calculate the index (vector of x and y indeces) of the tile the pixel is in
     let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(BG_AND_WD_TILE_SIZE))) % vec2<i32>(32, 32);
@@ -198,13 +220,24 @@ fn get_color_id_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: 
     let vec_index = tilemap_flat_index / 4;
     let comp_index = tilemap_flat_index % 4;
 
-    // Retrieve the tile index in the tile atlas from the tilemap
+    // Retrieve the tile index in the tile atlas from the respective tilemaps
     var tile_index_in_atlas: u32;
-    switch (comp_index) {
-        case 0: { tile_index_in_atlas = background_tilemap.indices[vec_index].x; break; }
-        case 1: { tile_index_in_atlas = background_tilemap.indices[vec_index].y; break; }
-        case 2: { tile_index_in_atlas = background_tilemap.indices[vec_index].z; break; }
-        default: { tile_index_in_atlas = background_tilemap.indices[vec_index].w; break; }
+    if !window_pixel {
+        // Background pixel
+        switch (comp_index) {
+            case 0: { tile_index_in_atlas = background_tilemap.indices[vec_index].x; break; }
+            case 1: { tile_index_in_atlas = background_tilemap.indices[vec_index].y; break; }
+            case 2: { tile_index_in_atlas = background_tilemap.indices[vec_index].z; break; }
+            default: { tile_index_in_atlas = background_tilemap.indices[vec_index].w; break; }
+        }
+    } else {
+        // Window pixel
+        switch (comp_index) {
+            case 0: { tile_index_in_atlas = window_tilemap.indices[vec_index].x; break; }
+            case 1: { tile_index_in_atlas = window_tilemap.indices[vec_index].y; break; }
+            case 2: { tile_index_in_atlas = window_tilemap.indices[vec_index].z; break; }
+            default: { tile_index_in_atlas = window_tilemap.indices[vec_index].w; break; }
+        }
     }
 
     // Calculate the coordinates of the pixel within the tile
