@@ -39,7 +39,7 @@ struct ObjectsInScanline {
     objects: array<vec4<u32>, 10>,
 }
 
-const BACKGROUND_TILE_SIZE = vec2<i32>(8, 8);
+const BG_AND_WD_TILE_SIZE = vec2<i32>(8, 8);
 
 const COLOR_ZERO: vec4<f32> = vec4<f32>(0.836, 0.956, 0.726, 1.0);  // White
 const COLOR_ONE: vec4<f32> = vec4<f32>(0.270, 0.527, 0.170, 1.0);   // Light green
@@ -49,7 +49,7 @@ const COLOR_TRANSPARENT: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0); // This colo
                                                                     // signals that this object pixel should be transparent
                                                                     // and covered by the background / window
 
-const BACKGROUND_TILE: u32 = 0;
+const BG_OR_WD_TILE: u32 = 0;
 const OBJECT_TILE_WITH_PALETTE_ZERO: u32 = 1;
 const OBJECT_TILE_WITH_PALETTE_ONE: u32 = 2;
 
@@ -78,7 +78,7 @@ struct PixelInObjectReturnValue {
 // The last two entries are the x and y coordinates of the window viewport position.
 @group(0) @binding(4) var<uniform> bg_and_wd_viewport_position: vec4<u32>;
 // The lcd monochrome palettes are just the registers FF47, FF48, FF49 as specified in the Pandocs
-// (https://gbdev.io/pandocs/Palettes.html). The first entry in the vec is the background palette (FF47), the second
+// (https://gbdev.io/pandocs/Palettes.html). The first entry in the vec is the background and window palette (FF47), the second
 // entry is the object palette 0 (FF48) and the third entry is the object palette 1 (FF49). The fourth entry is empty.
 @group(0) @binding(5) var<uniform> palettes: vec4<u32>;
 
@@ -118,7 +118,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     if (!pixel_in_object) {
         // Check if the background/window is enabled
         if (current_line_and_lcd_control_register.y & 0x01) != 0 {
-            color = get_color_for_background_pixel(x, y, viewport_position_in_pixels);
+            color = get_color_for_bg_or_wd_pixel(x, y, viewport_position_in_pixels);
         } else {
             // Background and window are disabled, so we take white as the color
             color = COLOR_ZERO;
@@ -158,14 +158,14 @@ fn is_pixel_in_object(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) ->
             } else {
                 // If the color id is not transparent, we have found the object that covers the pixel
                 pixel_in_object = true;
-                // We need to check if the priority bit is set, if so the background pixel might 'dominate' this one.
-                // In order for the background to be able to do that the BG enable bit must be set
+                // We need to check if the priority bit is set, if so the background/window pixel might 'dominate' this one.
+                // In order for the background/window to be able to do that the BG enable bit must be set
                 if ((object.w & 0x80) != 0) && ((current_line_and_lcd_control_register.y & 0x01) != 0) {
                     // The priority bit is set we need to check the color id of the background/window at this pixel
-                    let background_color_id = get_color_id_for_background_pixel(x, y, viewport_position_in_pixels);
-                    if (background_color_id != 0) {
+                    let bg_or_wd_color_id = get_color_id_for_bg_or_wd_pixel(x, y, viewport_position_in_pixels);
+                    if (bg_or_wd_color_id != 0) {
                         // The background/window covers this pixel
-                        color = convert_color_id_to_rgba8_color(background_color_id, BACKGROUND_TILE);
+                        color = convert_color_id_to_rgba8_color(bg_or_wd_color_id, BG_OR_WD_TILE);
                         break;
                     }
                 }
@@ -178,21 +178,21 @@ fn is_pixel_in_object(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) ->
     return PixelInObjectReturnValue(color, pixel_in_object);
 }
 
-fn get_color_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> vec4<f32> {
-    let color_id = get_color_id_for_background_pixel(x, y, viewport_position_in_pixels);
-    let type_of_tile = BACKGROUND_TILE;
+fn get_color_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> vec4<f32> {
+    let color_id = get_color_id_for_bg_or_wd_pixel(x, y, viewport_position_in_pixels);
+    let type_of_tile = BG_OR_WD_TILE;
     let color = convert_color_id_to_rgba8_color(color_id, type_of_tile);
 
     return color;
 }
 
-fn get_color_id_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> u32 {
+fn get_color_id_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> u32 {
     // This is the position of the current pixel in the screen in the tilemap taking into consideration the viewport
     // position.
     let pixel_coords = vec2<f32>(f32(x), f32(y)) + vec2<f32>(viewport_position_in_pixels);
 
     // Calculate the index (vector of x and y indeces) of the tile the pixel is in
-    let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(BACKGROUND_TILE_SIZE))) % vec2<i32>(32, 32);
+    let tile_index_in_tilemap = (vec2<i32>(pixel_coords / vec2<f32>(BG_AND_WD_TILE_SIZE))) % vec2<i32>(32, 32);
     // Calculate the flattened index
     let tilemap_flat_index = tile_index_in_tilemap.x + tile_index_in_tilemap.y * 32;
     let vec_index = tilemap_flat_index / 4;
@@ -208,9 +208,9 @@ fn get_color_id_for_background_pixel(x: u32, y: u32, viewport_position_in_pixels
     }
 
     // Calculate the coordinates of the pixel within the tile
-    let pixel_index = vec2<i32>(pixel_coords) % BACKGROUND_TILE_SIZE;
+    let pixel_index = vec2<i32>(pixel_coords) % BG_AND_WD_TILE_SIZE;
 
-    let type_of_tile = BACKGROUND_TILE;
+    let type_of_tile = BG_OR_WD_TILE;
 
     return get_color_id_from_tile_data_buffers(tile_index_in_atlas, vec2<u32>(pixel_index), type_of_tile);
 }
@@ -282,9 +282,9 @@ fn get_color_id_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>, typ
 /// const OBJECT_TILE_WITH_PALETTE_ZERO for object tile data buffer with object palette 0 and to the value of const
 /// OBJECT_TILE_WITH_PALETTE_ONE (and else) for object tile data buffer with object palette 1.
 fn get_color_id_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_pixel_coords: vec2<u32>, type_of_tile: u32) -> u32 {
-    // Get the correct tile based on whether we are using the background or object tile data
+    // Get the correct tile based on whether we are using the background/window or object tile data
     var tile_containing_pixel: vec4<u32>;
-    if type_of_tile == BACKGROUND_TILE {
+    if type_of_tile == BG_OR_WD_TILE {
         tile_containing_pixel = bg_and_window_tile_data.tiles[tile_index_in_buffer];
     } else {
         tile_containing_pixel = object_tile_data.tiles[tile_index_in_buffer];
@@ -309,7 +309,7 @@ fn get_color_id_from_tile_data_buffers(tile_index_in_buffer: u32, within_tile_pi
 
 fn convert_color_id_to_rgba8_color(color_id: u32, type_of_tile: u32) -> vec4<f32> {
     var palette: u32;
-    if type_of_tile == BACKGROUND_TILE {
+    if type_of_tile == BG_OR_WD_TILE {
         // Background and window palette
         palette = palettes.x;
     } else if type_of_tile == OBJECT_TILE_WITH_PALETTE_ZERO {
