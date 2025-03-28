@@ -64,9 +64,10 @@ struct PixelInObjectReturnValue {
 // Each tile is 8x8 pixels, with a total of 16 tiles per row/column, so the atlas is 128 x 128 pixels in total.
 // It is encoded in Rgba8UnormSrgb format.
 @group(0) @binding(0) var<uniform> bg_and_window_tile_data: TileDataPacked;
-// We use only the first two entries. The first to store the current rendering line, and the second to pass the state of the
-// lcd control register (FF40)
-@group(0) @binding(1) var<uniform> current_line_and_lcd_control_register: vec4<u32>;
+// The first entry is the current rendering line, the second the LCD control register, the third the a bool indicating
+// whether the window is being rendered this scanline and the last, the current line of the window tilemap that would be
+// used, if the window is rendered.
+@group(0) @binding(1) var<uniform> current_line_lcd_control_register_and_window_internal_line_info: vec4<u32>;
 // Tilemap is a 32x32 array of u32s, the same size as the grid of tiles that is loaded in the Rust Boy.
 // Each u32 is a tile index, which is used to look up the tile in the tile atlas. The tilemap is in row major,
 // so the first 32 u32s are the first row of tiles, the next 32 u32s are the second row of tiles, and so on.
@@ -100,14 +101,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // (rendering) line. The x coordinate on the other hand, is the local invocation id, which is an index iterating
     // between 0 and 159 Thus, each workgroup will render a line/row of 160 pixels.
     let x: u32 = u32(in.clip_position.x);
-    let y: u32 = current_line_and_lcd_control_register.x;
+    let y: u32 = current_line_lcd_control_register_and_window_internal_line_info.x;
 
     var color: vec4<f32>;
     var pixel_in_object: bool = false;
 
     // Check if the current pixel lies within an object which is not transparent, if the OBJ enable flag in the LCD
     // control register is set. Otherwise just take the background/window.
-    if (current_line_and_lcd_control_register.y & 0x02) != 0 || true {
+    if (current_line_lcd_control_register_and_window_internal_line_info.y & 0x02) != 0 || true {
         let pixel_in_object_info = is_pixel_in_object(x, y, viewport_position_in_pixels);
         color = pixel_in_object_info.color;
         pixel_in_object = pixel_in_object_info.pixel_in_object;
@@ -117,7 +118,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // LCD control register. Then we just take white (COLOR_ZERO).
     if (!pixel_in_object) {
         // Check if the background/window is enabled
-        if (current_line_and_lcd_control_register.y & 0x01) != 0 {
+        if (current_line_lcd_control_register_and_window_internal_line_info.y & 0x01) != 0 {
             color = get_color_for_bg_or_wd_pixel(x, y, viewport_position_in_pixels);
         } else {
             // Background and window are disabled, so we take white as the color
@@ -160,7 +161,7 @@ fn is_pixel_in_object(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) ->
                 pixel_in_object = true;
                 // We need to check if the priority bit is set, if so the background/window pixel might 'dominate' this one.
                 // In order for the background/window to be able to do that the BG enable bit must be set
-                if ((object.w & 0x80) != 0) && ((current_line_and_lcd_control_register.y & 0x01) != 0) {
+                if ((object.w & 0x80) != 0) && ((current_line_lcd_control_register_and_window_internal_line_info.y & 0x01) != 0) {
                     // The priority bit is set we need to check the color id of the background/window at this pixel
                     let bg_or_wd_color_id = get_color_id_for_bg_or_wd_pixel(x, y, viewport_position_in_pixels);
                     if (bg_or_wd_color_id != 0) {
@@ -189,11 +190,15 @@ fn get_color_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: vec
 fn get_color_id_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: vec2<i32>) -> u32 {
     // We have to check first, whether this is a background or window pixel
     // It is a window pixel, if the window is enabled and if the top left corner of the window is to the top left of this
-    // pixel
+    // pixel. Furthermore, the window has to be actually rendered this scanline, which is determined by the internal
+    // line counter logic.
     var window_pixel = false;
     // A Window x position of 0 is 7 pixels to the left of the left border of the screen (a y position of 0 is exactly
     // at the top of the screen). Therefore, we need to add 7 to x when comparing it to the window viewport position.
-    if ((current_line_and_lcd_control_register.y & 0x20) != 0) && (bg_and_wd_viewport_position.z <= x + 7) && (bg_and_wd_viewport_position.w <= y) {
+    if  ((current_line_lcd_control_register_and_window_internal_line_info.z == 1)
+        && ((current_line_lcd_control_register_and_window_internal_line_info.y & 0x20) != 0)
+        && (bg_and_wd_viewport_position.z <= x + 7)
+        && (bg_and_wd_viewport_position.w <= y)) {
         // The window is enabled and the pixel is within the window, therefore we need to use the window tilemap
         window_pixel = true;
     }
@@ -204,12 +209,14 @@ fn get_color_id_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: 
     // determines the position of the window within the frame. The windows top left pixel is therefore always the top
     // left pixel of the tilemap.
     var pixel_coords: vec2<f32>;
-    if !window_pixel {
+    if (!window_pixel) {
         // Background pixel
         pixel_coords = vec2<f32>(f32(x), f32(y)) + vec2<f32>(viewport_position_in_pixels);
     } else {
         // Window pixel
-        pixel_coords = vec2<f32>(f32(x + 7), f32(y)) - vec2<f32>(f32(bg_and_wd_viewport_position.z), f32(bg_and_wd_viewport_position.w));
+        // The line of the window tilemap we actually use for rendering is the one set by the internal line counter. It
+        // is passed as current_line_lcd_control_register_and_window_internal_line_info.w
+        pixel_coords = vec2<f32>(f32(x + 7 - bg_and_wd_viewport_position.z), f32(current_line_lcd_control_register_and_window_internal_line_info.w));
     }
 
     // Calculate the index (vector of x and y indeces) of the tile the pixel is in
@@ -263,7 +270,7 @@ fn get_color_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>) -> vec
 }
 
 fn get_color_id_for_object_pixel(object: vec4<u32>, pixel_coords: vec2<u32>, type_of_tile: u32) -> u32 {
-    let object_size_flag = (current_line_and_lcd_control_register.y & 0x4) != 0;
+    let object_size_flag = (current_line_lcd_control_register_and_window_internal_line_info.y & 0x4) != 0;
 
     // These are the x and y coordinates of the top left corner of the object
     let object_coordinates = vec2<u32>(object.y - 8, object.x - 16);

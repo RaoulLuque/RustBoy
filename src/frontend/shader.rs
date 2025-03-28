@@ -121,7 +121,7 @@ impl TilemapUniform {
 /// just for alignment, we only use the first 2.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct BackgroundViewportPosition {
+pub struct BgAndWdViewportPosition {
     pub pos: [u32; 4],
 }
 
@@ -377,7 +377,7 @@ pub fn setup_scanline_buffer_pipeline(
     // Sets the positions from where the background and the window are drawn. Used for scrolling.
     // Is given as pixel shift-values in the tilemap. The first two are the x and y position of the
     // background and the last two are the x and y position of the window. The values are in pixels.
-    let initial_bg_and_wd_viewport_position = BackgroundViewportPosition { pos: [0, 0, 0, 0] };
+    let initial_bg_and_wd_viewport_position = BgAndWdViewportPosition { pos: [0, 0, 0, 0] };
     let bg_and_wd_viewport_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Background Viewport Buffer"),
@@ -402,14 +402,16 @@ pub fn setup_scanline_buffer_pipeline(
         view_formats: &[],
     });
 
-    // Buffer to hold the current line to be rendered and whether the objects
-    // are in size 8x8 or 8x16 mode for the compute shader
-    let initial_rendering_line_and_lcd_control =
+    // Buffer to hold the current line to be rendered, the lcd control register and some
+    // window internal line counter information
+    let initial_rendering_line_lcd_control_and_window_internal_line_info =
         RenderingLinePositionAndObjectSize { pos: [0, 0, 0, 0] };
-    let rendering_line_and_lcd_control_buffer: wgpu::Buffer =
-        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    let rendering_line_lcd_control_and_window_internal_line_info_buffer: wgpu::Buffer = device
+        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Rendering Line and Object Size Buffer"),
-            contents: bytemuck::cast_slice(&[initial_rendering_line_and_lcd_control]),
+            contents: bytemuck::cast_slice(&[
+                initial_rendering_line_lcd_control_and_window_internal_line_info,
+            ]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -550,7 +552,8 @@ pub fn setup_scanline_buffer_pipeline(
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: rendering_line_and_lcd_control_buffer.as_entire_binding(),
+                resource: rendering_line_lcd_control_and_window_internal_line_info_buffer
+                    .as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
@@ -647,7 +650,7 @@ pub fn setup_scanline_buffer_pipeline(
         bg_and_wd_viewport_buffer,
         palette_buffer,
         framebuffer_texture,
-        rendering_line_and_lcd_control_buffer,
+        rendering_line_lcd_control_and_window_internal_line_info_buffer,
         object_tile_data_buffer,
         objects_in_scanline_buffer,
     )

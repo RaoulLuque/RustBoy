@@ -1,7 +1,7 @@
 use super::GPU;
 use crate::cpu::is_bit_set;
 use crate::frontend::shader::{
-    BackgroundViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
+    BgAndWdViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
 };
 
 /// Struct to keep track of the resources that are fetched during transfer (and OAMScan) mode which are then
@@ -11,9 +11,10 @@ pub struct BuffersForRendering {
     pub(crate) background_tile_map: [u8; 1024],
     pub(crate) window_tile_map: [u8; 1024],
     pub(crate) bg_and_wd_tile_data: [u8; 4096],
-    pub(crate) bg_and_wd_viewport_position: BackgroundViewportPosition,
+    pub(crate) bg_and_wd_viewport_position: BgAndWdViewportPosition,
     pub(crate) palettes: Palettes,
-    pub(crate) rendering_line_and_lcd_control: RenderingLinePositionAndObjectSize,
+    pub(crate) rendering_line_lcd_control_and_window_internal_line_info:
+        RenderingLinePositionAndObjectSize,
     pub(crate) object_tile_data: [u8; 4096],
     // OAMScan mode buffer:
     pub(crate) objects_in_scanline_buffer: [[u32; 4]; 10],
@@ -26,9 +27,10 @@ impl BuffersForRendering {
             background_tile_map: [0; 1024],
             window_tile_map: [0; 1024],
             bg_and_wd_tile_data: [0; 4096],
-            bg_and_wd_viewport_position: BackgroundViewportPosition { pos: [0; 4] },
+            bg_and_wd_viewport_position: BgAndWdViewportPosition { pos: [0; 4] },
             palettes: Palettes { values: [0; 4] },
-            rendering_line_and_lcd_control: RenderingLinePositionAndObjectSize { pos: [0; 4] },
+            rendering_line_lcd_control_and_window_internal_line_info:
+                RenderingLinePositionAndObjectSize { pos: [0; 4] },
             object_tile_data: [0; 4096],
             objects_in_scanline_buffer: [[0; 4]; 10],
         }
@@ -47,7 +49,7 @@ impl GPU {
 
         self.buffers_for_rendering.bg_and_wd_tile_data = self.get_background_and_window_tile_data();
 
-        self.buffers_for_rendering.bg_and_wd_viewport_position = BackgroundViewportPosition {
+        self.buffers_for_rendering.bg_and_wd_viewport_position = BgAndWdViewportPosition {
             pos: [
                 self.gpu_registers.get_bg_scroll_x() as u32,
                 self.gpu_registers.get_bg_scroll_y() as u32,
@@ -67,18 +69,28 @@ impl GPU {
 
         self.buffers_for_rendering.object_tile_data = self.get_object_tile_data();
 
-        self.buffers_for_rendering.rendering_line_and_lcd_control =
+        self.buffers_for_rendering
+            .rendering_line_lcd_control_and_window_internal_line_info =
             RenderingLinePositionAndObjectSize {
                 pos: [
                     current_scanline as u32,
                     self.gpu_registers.get_lcd_control() as u32,
-                    0,
-                    0,
+                    // We pass the info necessary for the window internal line counter
+                    self.rendering_info.window_is_rendered_this_scanline as u32,
+                    // By the documentation of the [window_internal_line_counter](super::RenderingInfo)
+                    // field, its value is equal to the window line to be rendered plus 1, if
+                    // the window is rendered this scanline.
+                    if self.rendering_info.window_is_rendered_this_scanline {
+                        self.rendering_info.window_internal_line_counter - 1
+                    } else {
+                        self.rendering_info.window_internal_line_counter
+                    } as u32,
                 ],
             };
         // DEBUG
         log::info!(
-            "Current LCD control: {:<8b}, Current Scanline: {:<3}, Window position: {:<3}/{:<3}",
+            "Window rendered this scanline: {}, Current LCD control: {:<8b}, Current Scanline: {:<3}, Window position: {:<3}/{:<3}",
+            self.rendering_info.window_is_rendered_this_scanline as u32,
             self.gpu_registers.get_lcd_control(),
             current_scanline,
             self.gpu_registers.get_window_x_position(),

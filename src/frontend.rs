@@ -5,7 +5,7 @@ use winit::window::Window;
 
 use super::ORIGINAL_SCREEN_WIDTH;
 use crate::frontend::shader::{
-    ATLAS_COLS, BackgroundViewportPosition, ObjectsInScanline, Palettes,
+    ATLAS_COLS, BgAndWdViewportPosition, ObjectsInScanline, Palettes,
     RenderingLinePositionAndObjectSize, TILE_SIZE, TileData, TilemapUniform,
     setup_render_shader_pipeline, setup_scanline_buffer_pipeline,
 };
@@ -67,8 +67,9 @@ pub struct State<'a> {
     palette_buffer: wgpu::Buffer,
     // Storage texture (160x144) to act as a framebuffer for the compute shader
     framebuffer_texture: wgpu::Texture,
-    // Buffer to hold the current line to be rendered for the compute shader
-    rendering_line_and_lcd_control_buffer: wgpu::Buffer,
+    // Buffer to hold the current line to be rendered, the lcd control register and some
+    // window internal line counter information
+    rendering_line_lcd_control_and_window_internal_line_info_buffer: wgpu::Buffer,
 
     // Storage texture (128 x 128 rgba) to hold the tiles used for objects/sprites TODO: Update
     object_tile_data_buffer: wgpu::Buffer,
@@ -150,7 +151,7 @@ impl<'a> State<'a> {
             bg_and_wd_viewport_buffer,
             palette_buffer,
             framebuffer_texture,
-            rendering_line_and_lcd_control_buffer,
+            rendering_line_lcd_control_and_window_internal_line_info_buffer,
             object_tile_data_buffer,
             objects_in_scanline_buffer,
         ) = setup_scanline_buffer_pipeline(&device);
@@ -186,7 +187,7 @@ impl<'a> State<'a> {
             bg_and_wd_viewport_buffer,
             palette_buffer,
             framebuffer_texture,
-            rendering_line_and_lcd_control_buffer,
+            rendering_line_lcd_control_and_window_internal_line_info_buffer,
             object_tile_data_buffer,
             objects_in_scanline_buffer,
         }
@@ -430,13 +431,19 @@ impl<'a> State<'a> {
         );
 
         // Update the current scanline and object size uniform buffer
-        let updated_current_scanline = rust_boy_gpu
+        let updated_current_scanline_lcd_control_and_window_internal_line_info = rust_boy_gpu
             .buffers_for_rendering
-            .rendering_line_and_lcd_control;
+            .rendering_line_lcd_control_and_window_internal_line_info;
+        println!(
+            "Updated rendering_line_lcd_control_and_window_internal_line_info: {:?}",
+            updated_current_scanline_lcd_control_and_window_internal_line_info
+        );
         self.queue.write_buffer(
-            &self.rendering_line_and_lcd_control_buffer,
+            &self.rendering_line_lcd_control_and_window_internal_line_info_buffer,
             0,
-            bytemuck::cast_slice(&[updated_current_scanline]),
+            bytemuck::cast_slice(&[
+                updated_current_scanline_lcd_control_and_window_internal_line_info,
+            ]),
         );
 
         // Update the object tile data buffer if it changed since the last scanline
