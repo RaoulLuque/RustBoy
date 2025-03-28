@@ -13,68 +13,105 @@ use crate::gpu::GPU;
 use crate::gpu::information_for_shader::ChangesToPropagateToShader;
 use crate::gpu::object_handling::custom_ordering;
 
-/// TODO: Add docstring
+/// Big struct capturing the current state of the window and shader pipeline, including its buffers.
 pub struct State<'a> {
+    /// The surface to render to (the window's screen).
     surface: wgpu::Surface<'a>,
+    /// The device to use for rendering (the GPU).
     device: wgpu::Device,
+    /// The queue to use for rendering (the command queue).
     queue: wgpu::Queue,
+    /// The configuration for the surface.
     config: wgpu::SurfaceConfiguration,
+    /// The size of the window.
     pub(super) size: winit::dpi::PhysicalSize<u32>,
-    // The window must be declared after the surface so
-    // it gets dropped after it, as the surface contains
-    // unsafe references to the window's resources.
+    /// The window to render to, which "owns" the surface.
     pub(super) window: &'a Window,
 
-    // The render pipeline is the pipeline that will be used to render the frames to the screen.
+    /// The render pipeline to use for rendering.
     render_pipeline: wgpu::RenderPipeline,
-    // The vertex buffer is used to store the vertex data for the render pipeline (two triangles
-    // that make up a rectangle).
+    /// The vertex buffer to use for rendering. Used to store the vertex data
+    /// for the render pipeline (two triangles forming a rectangle).
     render_pipeline_vertex_buffer: wgpu::Buffer,
-    // The screensize buffer is used to store the size of the screen (Width x Height in pixels).
+    /// The buffer to hold the screensize (width x height in pixels).
     screensize_buffer: wgpu::Buffer,
-    // Variable to keep track of whether the screen size has changed or not
+    /// A flag to indicate if the screensize has changed. Used to ensure the
+    /// shader is informed of the new screensize.
     screensize_changed: bool,
-    // The number of vertices in the vertex buffer (4).
+    /// The number of vertices in the vertex buffer (4).
     render_pipeline_num_vertices: u32,
-    // The bind group corresponding to the render pipeline
+    /// The bind group corresponding to the render pipeline which renders the
+    /// `framebuffer_texture` to the screen.
     render_bind_group: wgpu::BindGroup,
 
-    // The compute pipeline is the pipeline that will be used to run the compute shader. This
-    // shader writes to the framebuffer texture for every RustBoy render line (that is 144 times
-    // per frame).
+    /// The compute pipeline that runs the compute shader. This shader writes to the
+    /// framebuffer texture for every RustBoy render line (144 times per frame).
     scanline_buffer_pipeline: wgpu::RenderPipeline,
-    // The vertex buffer is used to store the vertex data for the render pipeline (two triangles
-    // that make up a rectangle).
+    /// The vertex buffer used to store vertex data for the render pipeline (two
+    /// triangles forming a rectangle).
     scanline_buffer_pipeline_vertex_buffer: wgpu::Buffer,
-    // The number of vertices in the vertex buffer (4).
+    /// The number of vertices in the vertex buffer (4).
     scanline_buffer_pipeline_num_vertices: u32,
-    // The bind group corresponding to the compute pipeline
+    /// The bind group corresponding to the compute pipeline.
     scanline_buffer_bind_group: wgpu::BindGroup,
-    // Tile atlas texture (128 x 128 rgba) to hold the (currently used) background tile data TODO: Update
+
+    /// The buffer to hold the background and window tile data. It consists of 16 x 16 tiles in a
+    /// 2D grid, each of which is 8 x 8 pixels. Each pixel takes up two bits, which results in 16
+    /// bytes per tile and a total size of 4096 bytes for the buffer.
     bg_and_wd_tile_data_buffer: wgpu::Buffer,
-    // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data for the background
+    /// Holds the background tilemap data. Is a flattened 32x32 u8 array to hold the (currently used)
+    /// tilemap data for the background. The tilemap is used to look up the tiles to be drawn on the screen.
     background_tilemap_buffer: wgpu::Buffer,
-    // Tilemap buffer flattened 32x32 u8 array to hold the (currently used) tilemap data for the window
+    /// Holds the window tilemap data. Is a flattened 32x32 u8 array to hold the (currently used)
+    /// tilemap data for the window. The tilemap is used to look up the tiles to be drawn on the screen.
     window_tilemap_buffer: wgpu::Buffer,
-    // Buffer to hold the background viewport position (is a u32 array of 4 elements) where
-    // the first two elements are the x and y position of the background viewport
+    /// Buffer to hold the background and window viewport position. The viewport position is used to
+    /// calculate the position of the background and window on the screen. It is a list of four u32s
+    /// where the first two are the x and y position of the background and the last two the x and y
+    /// positions of the window. Note that for the background, this can be interpreted as the position
+    /// of the screen within the background tilemap, whereas for the window it can be seen as the
+    /// position of the window (tilemap) within the screen.
     bg_and_wd_viewport_buffer: wgpu::Buffer,
-    // Buffer to hold the palette data (is a u32 array of 4 elements) where only the first three are
-    // used. They just mirror the registers FF47, FF48, FF49 as specified in the Pandocs
-    // (https://gbdev.io/pandocs/Palettes.html) and make them available to the shader. The first
-    // entry in the vec is the background palette (FF47), the second entry is the object palette 0
-    // (FF48) and the third entry is the object palette 1 (FF49). The fourth entry is empty.
+    /// The buffer to hold the object/sprite tile data. It consists of 16 x 16 tiles in a
+    /// 2D grid, each of which is 8 x 8 pixels. Each pixel takes up two bits, which results in 16
+    /// bytes per tile and a total size of 4096 bytes for the buffer.
+    object_tile_data_buffer: wgpu::Buffer,
+    /// This buffer contains the objects that should be drawn on the current scanline. It always
+    /// has length 10, but the number of objects that are in the current scanline might be less.
+    /// In that case, the rest of the buffer is filled with zeroes. Each object consists of four
+    /// bytes which give the information about the object. The bytes are as follows:
+    /// - Byte 0: The y coordinate of the object (with some extras, see [Pan Docs](https://gbdev.io/pandocs/OAM.html)).
+    /// - Byte 1: The x coordinate of the object (with some extras, see [Pan Docs](https://gbdev.io/pandocs/OAM.html)).
+    /// - Byte 2: The tile index of the object.
+    /// - Byte 3: The attributes of the object.
+    ///
+    /// See also [Pan Docs](https://gbdev.io/pandocs/OAM.html).
+    objects_in_scanline_buffer: wgpu::Buffer,
+    /// Buffer to hold the palette data (a u32 array of 4 elements). The first three elements
+    /// mirror the registers FF47, FF48, and FF49 as specified in the Pandocs
+    /// (https://gbdev.io/pandocs/Palettes.html), making them available to the shader.
+    /// - The first entry is the background palette (FF47).
+    /// - The second entry is the object palette 0 (FF48).
+    /// - The third entry is the object palette 1 (FF49).
+    /// - The fourth entry is empty (zero).
     palette_buffer: wgpu::Buffer,
-    // Storage texture (160x144) to act as a framebuffer for the compute shader
-    framebuffer_texture: wgpu::Texture,
-    // Buffer to hold the current line to be rendered, the lcd control register and some
-    // window internal line counter information
+    /// Buffer to hold different rendering info.
+    /// This includes the current scanline, the LCD control register, and the window
+    /// internal line info. More precisely the entries are as follows:
+    /// - The first entry is the current scanline index.
+    /// - The second entry is the LCD control register (FF40).
+    /// - The third entry is a flag whether the window is being drawn this scanline.
+    /// - The fourth entry is the window internal line counter, that is, if the window is being
+    /// drawn this scanline, the line that is taken from the window tilemap, see
+    /// [Pan Docs](https://gbdev.io/pandocs/Scrolling.html#window).
     rendering_line_lcd_control_and_window_internal_line_info_buffer: wgpu::Buffer,
 
-    // Storage texture (128 x 128 rgba) to hold the tiles used for objects/sprites TODO: Update
-    object_tile_data_buffer: wgpu::Buffer,
-    // Buffer to hold the information about the objects/sprites in the current scanline
-    objects_in_scanline_buffer: wgpu::Buffer,
+    /// This texture is used as an "offscreen" framebuffer of size 160 x 144 pixels. That is, the size
+    /// of the original GameBoy screen. We use a framebuffer to render scanline by scanline to it
+    /// and then render the entire framebuffer at once to the screen.
+    /// Note that this is not a storage texture since WebGL2 and therefore WASM as a target does not
+    /// support storage textures.
+    framebuffer_texture: wgpu::Texture,
 }
 
 impl<'a> State<'a> {
@@ -145,7 +182,7 @@ impl<'a> State<'a> {
             scanline_buffer_pipeline_vertex_buffer,
             scanline_buffer_pipeline_num_vertices,
             scanline_buffer_bind_group,
-            tile_data_buffer,
+            bg_and_wd_tile_data_buffer,
             background_tilemap_buffer,
             window_tilemap_buffer,
             bg_and_wd_viewport_buffer,
@@ -181,7 +218,7 @@ impl<'a> State<'a> {
             scanline_buffer_pipeline_vertex_buffer,
             scanline_buffer_pipeline_num_vertices,
             scanline_buffer_bind_group,
-            bg_and_wd_tile_data_buffer: tile_data_buffer,
+            bg_and_wd_tile_data_buffer,
             background_tilemap_buffer,
             window_tilemap_buffer,
             bg_and_wd_viewport_buffer,
