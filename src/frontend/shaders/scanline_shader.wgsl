@@ -192,9 +192,8 @@ fn get_color_id_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: 
     // pixel
     var window_pixel = false;
     // A Window x position of 0 is 7 pixels to the left of the left border of the screen (a y position of 0 is exactly
-    // at the top of the screen). Therefore, we want to normalize the window position
-    let normalized_wd_viewport_position = vec2<u32>(bg_and_wd_viewport_position.z - 7, bg_and_wd_viewport_position.w);
-    if ((current_line_and_lcd_control_register.y & 0x20) != 0) && (normalized_wd_viewport_position.x <= x) && (normalized_wd_viewport_position.y <= y) {
+    // at the top of the screen). Therefore, we need to add 7 to x when comparing it to the window viewport position.
+    if ((current_line_and_lcd_control_register.y & 0x20) != 0) && (bg_and_wd_viewport_position.z <= x + 7) && (bg_and_wd_viewport_position.w <= y) {
         // The window is enabled and the pixel is within the window, therefore we need to use the window tilemap
         window_pixel = true;
     }
@@ -210,7 +209,7 @@ fn get_color_id_for_bg_or_wd_pixel(x: u32, y: u32, viewport_position_in_pixels: 
         pixel_coords = vec2<f32>(f32(x), f32(y)) + vec2<f32>(viewport_position_in_pixels);
     } else {
         // Window pixel
-        pixel_coords = vec2<f32>(f32(x), f32(y)) - vec2<f32>(normalized_wd_viewport_position);
+        pixel_coords = vec2<f32>(f32(x + 7), f32(y)) - vec2<f32>(f32(bg_and_wd_viewport_position.z), f32(bg_and_wd_viewport_position.w));
     }
 
     // Calculate the index (vector of x and y indeces) of the tile the pixel is in
