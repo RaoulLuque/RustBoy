@@ -2,6 +2,7 @@ use super::{
     GPU, TILE_DATA_BLOCK_0_START, TILE_DATA_BLOCK_1_START, TILE_DATA_BLOCK_2_START,
     TILE_DATA_BLOCK_SIZE, TILEMAP_ONE_START, TILEMAP_SIZE, TILEMAP_ZERO_START,
 };
+use crate::gpu::registers::LCDCRegister;
 use crate::memory_bus::VRAM_BEGIN;
 use crate::{MEMORY_SIZE, RustBoy};
 
@@ -99,12 +100,8 @@ impl GPU {
     /// Also sets flags in self.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn current_bg_and_wd_tile_data_changed(&mut self) -> bool {
-        if self
-            .gpu_registers
-            .lcd_control
-            .get_background_and_window_tile_data_flag()
-        {
+    pub fn current_bg_and_wd_tile_data_changed(&mut self, memory: &[u8; MEMORY_SIZE]) -> bool {
+        if LCDCRegister::get_background_and_window_tile_data_flag(memory) {
             self.memory_changed.tile_data_block_0_1_changed
         } else {
             self.memory_changed.tile_data_block_2_1_changed
@@ -117,12 +114,8 @@ impl GPU {
     /// Also sets flags in self.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn current_background_tile_map_changed(&mut self) -> bool {
-        if self
-            .gpu_registers
-            .lcd_control
-            .get_background_tile_map_flag()
-        {
+    pub fn current_background_tile_map_changed(&mut self, memory: &[u8; MEMORY_SIZE]) -> bool {
+        if LCDCRegister::get_background_tile_map_flag(memory) {
             self.memory_changed.tile_map_1_changed
         } else {
             self.memory_changed.tile_map_0_changed
@@ -135,8 +128,8 @@ impl GPU {
     /// Also sets flags in self.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn current_window_tile_map_changed(&mut self) -> bool {
-        if self.gpu_registers.lcd_control.get_window_tile_map_flag() {
+    pub fn current_window_tile_map_changed(&mut self, memory: &[u8; MEMORY_SIZE]) -> bool {
+        if LCDCRegister::get_window_tile_map_flag(memory) {
             self.memory_changed.tile_map_1_changed
         } else {
             self.memory_changed.tile_map_0_changed
@@ -146,7 +139,7 @@ impl GPU {
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically, according to LCDC bit 6 (window_tile_map).
     pub fn get_window_tile_map(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
-        if !self.gpu_registers.lcd_control.get_window_tile_map_flag() {
+        if !LCDCRegister::get_window_tile_map_flag(memory) {
             memory[TILEMAP_ZERO_START..TILEMAP_ZERO_START + TILEMAP_SIZE]
                 .try_into()
                 .expect("Slice should be of correct length, work with me here compiler")
@@ -160,11 +153,7 @@ impl GPU {
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically according to LCDC bit 4 (background_and_window_tile_data).
     pub fn get_background_and_window_tile_data(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 4096] {
-        if self
-            .gpu_registers
-            .lcd_control
-            .get_background_and_window_tile_data_flag()
-        {
+        if LCDCRegister::get_background_and_window_tile_data_flag(memory) {
             self.get_background_and_window_tile_data_block_0_and_1(memory)
         } else {
             self.get_background_and_window_tile_data_block_2_and_1(memory)
@@ -205,11 +194,7 @@ impl GPU {
     /// automatically according to LCDC bit 4 (background_and_window_tile_data) as tile structs.
     #[cfg(debug_assertions)]
     pub fn get_background_and_window_tile_data_debug(&self, rust_boy: &RustBoy) -> [Tile; 256] {
-        if self
-            .gpu_registers
-            .lcd_control
-            .get_background_and_window_tile_data_flag()
-        {
+        if LCDCRegister::get_background_and_window_tile_data_flag(&rust_boy.memory) {
             self.get_background_and_window_tile_data_block_0_and_1_debug(rust_boy)
         } else {
             self.get_background_and_window_tile_data_block_2_and_1_debug(rust_boy)
@@ -249,11 +234,7 @@ impl GPU {
     /// Returns the current tilemap for the background. Switches the addressing mode
     /// automatically according to LCDC bit 3 (background_tile_map).
     pub fn get_background_tile_map(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
-        if !self
-            .gpu_registers
-            .lcd_control
-            .get_background_tile_map_flag()
-        {
+        if !LCDCRegister::get_background_tile_map_flag(memory) {
             self.get_background_tile_map_zero(memory)
         } else {
             self.get_background_tile_map_one(memory)

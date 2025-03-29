@@ -4,6 +4,7 @@ use crate::cpu::is_bit_set;
 use crate::frontend::shader::{
     BgAndWdViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
 };
+use crate::gpu::registers::GPURegisters;
 
 /// Struct to keep track of the resources that are fetched during transfer (and OAMScan) mode which are then
 /// sent to the shader.
@@ -57,18 +58,18 @@ impl GPU {
 
         self.buffers_for_rendering.bg_and_wd_viewport_position = BgAndWdViewportPosition {
             pos: [
-                self.gpu_registers.get_bg_scroll_x() as u32,
-                self.gpu_registers.get_bg_scroll_y() as u32,
-                self.gpu_registers.get_window_x_position() as u32,
-                self.gpu_registers.get_window_y_position() as u32,
+                GPURegisters::get_bg_scroll_x(memory) as u32,
+                GPURegisters::get_bg_scroll_y(memory) as u32,
+                GPURegisters::get_window_x_position(memory) as u32,
+                GPURegisters::get_window_y_position(memory) as u32,
             ],
         };
 
         self.buffers_for_rendering.palettes = Palettes {
             values: [
-                self.gpu_registers.get_background_palette() as u32,
-                self.gpu_registers.get_object_palette_zero() as u32,
-                self.gpu_registers.get_object_palette_one() as u32,
+                GPURegisters::get_background_palette(memory) as u32,
+                GPURegisters::get_object_palette_zero(memory) as u32,
+                GPURegisters::get_object_palette_one(memory) as u32,
                 0,
             ],
         };
@@ -80,7 +81,7 @@ impl GPU {
             RenderingLinePositionAndObjectSize {
                 pos: [
                     current_scanline as u32,
-                    self.gpu_registers.get_lcd_control() as u32,
+                    GPURegisters::get_lcd_control(memory) as u32,
                     // We pass the info necessary for the window internal line counter
                     self.rendering_info.window_is_rendered_this_scanline as u32,
                     // By the documentation of the [window_internal_line_counter](super::RenderingInfo)
@@ -97,10 +98,10 @@ impl GPU {
         log::trace!(
             "Window rendered this scanline: {}, Current LCD control: {:<8b}, Current Scanline: {:<3}, Window position: {:<3}/{:<3}",
             self.rendering_info.window_is_rendered_this_scanline as u32,
-            self.gpu_registers.get_lcd_control(),
+            GPURegisters::get_lcd_control(memory),
             current_scanline,
-            self.gpu_registers.get_window_x_position(),
-            self.gpu_registers.get_window_y_position()
+            GPURegisters::get_window_x_position(memory),
+            GPURegisters::get_window_y_position(memory)
         );
     }
 
@@ -108,9 +109,13 @@ impl GPU {
     /// next scanline to be rendered using the scanline shader. This is buffered because the original
     /// RustBoy fetches it in mode 2 (OAMScan) and we only actually render it in mode 0 (HBlank).
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
-    pub(super) fn fetch_objects_in_scanline_to_rendering_buffer(&mut self, current_scanline: u8) {
+    pub(super) fn fetch_objects_in_scanline_to_rendering_buffer(
+        &mut self,
+        memory: &[u8; MEMORY_SIZE],
+        current_scanline: u8,
+    ) {
         self.buffers_for_rendering.objects_in_scanline_buffer =
-            self.get_objects_for_current_scanline(current_scanline);
+            self.get_objects_for_current_scanline(memory, current_scanline);
     }
 }
 

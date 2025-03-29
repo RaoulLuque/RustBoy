@@ -386,11 +386,11 @@ fn handle_redraw_requested_event(
                 // since we have just written a line to the framebuffer. If it was to render a frame,
                 // it has to stay as is, since we still need to render the frame
                 *current_rendering_task = RenderTask::None;
-                state.render_scanline(&mut rust_boy.gpu, current_scanline);
+                state.render_scanline(&mut rust_boy.gpu, &rust_boy.memory, current_scanline);
             } else {
                 // Otherwise, the current rendering task was to render a frame, and we still need to
                 // write the last line to the framebuffer
-                state.render_scanline(&mut rust_boy.gpu, 143);
+                state.render_scanline(&mut rust_boy.gpu, &rust_boy.memory, 143);
             }
         }
     }
@@ -454,7 +454,7 @@ fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
 
     // Check what has to be done for rendering and sync gpu with cpu with gpu_step()
     let new_rendering_task = rust_boy.gpu.gpu_step(
-        &rust_boy.memory,
+        &mut rust_boy.memory,
         &mut rust_boy.interrupt_flag_register,
         last_num_of_dots,
     );

@@ -4,6 +4,7 @@ use wasm_timer::Instant;
 
 use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
+use crate::gpu::registers::GPURegisters;
 use std::fs;
 use std::io::Write;
 
@@ -130,26 +131,23 @@ pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
             rust_boy.read_byte(rust_boy.sp.saturating_add(4)),
         ));
 
-        let ppu_mode_as_u8 = rust_boy.gpu.gpu_registers.get_gpu_mode().as_u8();
-        let ppu_mode_sign = if rust_boy.gpu.gpu_registers.get_lcd_control() & 0b1000_0000 != 0 {
+        let ppu_mode_as_u8 = GPURegisters::get_gpu_mode(&rust_boy.memory).as_u8();
+        let ppu_mode_sign = if GPURegisters::get_lcd_control(&rust_boy.memory) & 0b1000_0000 != 0 {
             "+"
         } else {
             "-"
         };
         data.push_str(&format!(" PPU:{}{}", ppu_mode_sign, ppu_mode_as_u8));
 
-        let stat_register = rust_boy.gpu.gpu_registers.get_lcd_status();
+        let stat_register = GPURegisters::get_lcd_status(&rust_boy.memory);
         data.push_str(&format!(" STAT:{:<08b}", stat_register));
 
-        let lyc = rust_boy.gpu.gpu_registers.get_scanline_compare();
+        let lyc = GPURegisters::get_scanline_compare(&rust_boy.memory);
         data.push_str(&format!(" LYC:{:<3}", lyc));
 
-        // We say we are calling from the gpu to bypass the doctor mode forcing the scanline
-        // to always output 0x90
-        let current_scanline = rust_boy
-            .gpu
-            .gpu_registers
-            .get_scanline(None, None, None, false, true);
+        // We use the get scanline internal function to get the current scanline immediately
+        // from the memory without any additional sync checks done for syncing GPU and CPU.
+        let current_scanline = GPURegisters::get_scanline_internal(&rust_boy.memory);
         data.push_str(&format!(" SCANLINE:{:<3}", current_scanline));
 
         data.push_str(&format!(" IME:{}", u8::from(rust_boy.ime)));

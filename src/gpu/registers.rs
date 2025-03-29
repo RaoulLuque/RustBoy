@@ -4,16 +4,32 @@ use super::{
 };
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
+use crate::MEMORY_SIZE;
 use crate::debugging::DebuggingFlagsWithoutFileHandles;
 use crate::gpu::information_for_shader::ChangesToPropagateToShader;
 use crate::interrupts::InterruptFlagRegister;
 
+// Addresses of the GPU registers
+const LCDC_REGISTER_ADDRESS: usize = 0xFF40;
+const LCD_STATUS_REGISTER_ADDRESS: usize = 0xFF41;
+const BG_SCROLL_Y_REGISTER_ADDRESS: usize = 0xFF42;
+const BG_SCROLL_X_REGISTER_ADDRESS: usize = 0xFF43;
+const SCANLINE_REGISTER_ADDRESS: usize = 0xFF44;
+const SCANLINE_COMPARE_REGISTER_ADDRESS: usize = 0xFF45;
+const BACKGROUND_PALETTE_REGISTER_ADDRESS: usize = 0xFF47;
+const OBJECT_PALETTE_ZERO_REGISTER_ADDRESS: usize = 0xFF48;
+const OBJECT_PALETTE_ONE_REGISTER_ADDRESS: usize = 0xFF49;
+const WINDOW_Y_POSITION_REGISTER_ADDRESS: usize = 0xFF4A;
+const WINDOW_X_POSITION_REGISTER_ADDRESS: usize = 0xFF4B;
+
+// Positions of the bits in the LCD Control register
 const LCD_ENABLE_BIT_POSITION: usize = 7;
 const WINDOW_TILE_MAP_BIT_POSITION: usize = 6;
 const BG_AND_WINDOW_TILE_DATA_BIT_POSITION: usize = 4;
 const BG_TILE_MAP_BIT_POSITION: usize = 3;
 const OBJ_SIZE_BIT_POSITION: usize = 2;
 
+// Positions of the bits in the LCD Status register
 const LYC_LY_COINCIDENCE_FLAG_BIT_POSITION: usize = 2;
 const MODE_0_INT_SELECT_BIT_POSITION: usize = 3;
 const MODE_1_INT_SELECT_BIT_POSITION: usize = 4;
@@ -21,6 +37,12 @@ const MODE_2_INT_SELECT_BIT_POSITION: usize = 5;
 const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 
 /// Represents the registers that control the GPU.
+///
+/// This struct is empty and has no fields. Instead it is just used to group the GPU registers and make
+/// the interface nicer. The actual registers are all held in the [MemoryBus](crate::MemoryBus).
+///
+/// TODO: Explain static function setup
+///
 /// The registers have the following address and function:
 /// - 0xFF40: LCDC - LCD Control Register
 /// - 0xFF41: STAT - LCD Status Register
@@ -34,21 +56,14 @@ const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 /// - 0xFF4A: WY - Window Y Position Register
 /// - 0xFF4B: WX - Window X Position Register
 pub struct GPURegisters {
-    pub(super) lcd_control: LCDCRegister,
-    pub(super) lcd_status: LCDStatusRegister,
-    bg_scroll_y: u8,
-    bg_scroll_x: u8,
-    current_scanline: u8,
-    scanline_compare: u8,
-    background_palette: u8,
-    object_palette_zero: u8,
-    object_palette_one: u8,
-    wd_pos_y: u8,
-    wd_pos_x: u8,
     pub(super) debugging_flags: DebuggingFlagsWithoutFileHandles,
 }
 
-/// Represents the LCDC register of the GPU.
+/// Represents the LCDC register of the GPU. This struct is empty and has no fields. Instead, it is
+/// just used to make the interface nicer and the actual register is held in the [MemoryBus](crate::MemoryBus).
+///
+/// TODO: Explain static function setup
+///
 /// The LCDC register is used to control the LCD.
 /// It is an 8-bit register with the following bits:
 /// - Bit 0: Background on/off (0 = off, 1 = on)
@@ -59,11 +74,13 @@ pub struct GPURegisters {
 /// - Bit 5: Window on/off (0 = off, 1 = on) - gets overridden by bit 0 on DMG
 /// - Bit 6: Window tilemap (0 = #0 (0x9800), 1 = #1 (0x9C00))
 /// - Bit 7: Display off/on (0 = off, 1 = on)
-pub struct LCDCRegister {
-    register: u8,
-}
+pub struct LCDCRegister {}
 
-/// Represents the LCD status register of the GPU.
+/// Represents the LCD status register of the GPU. This struct is empty and has no fields. Instead, it is
+/// just used to make the interface nicer and the actual register is held in the [MemoryBus](crate::MemoryBus).
+///
+/// TODO: Explain static function setup
+///
 /// The LCD status register is used to control the LCD status.
 /// It is an 8-bit register with the following bits (see https://gbdev.io/pandocs/STAT.html#ff41--stat-lcd-status)
 /// - Bit 0 and 1: PPU Mode (Rendering Mode of GPU)
@@ -73,30 +90,33 @@ pub struct LCDCRegister {
 /// - Bit 5: Mode 2 int select
 /// - Bit 6: LYC int select
 /// - Bit 7: None (Zero)
-pub struct LCDStatusRegister {
-    register: u8,
-}
+pub struct LCDStatusRegister {}
 
 impl GPU {
-    pub fn read_registers(&self, address: u16, cycles_current_instruction: u8) -> u8 {
+    pub fn read_registers(
+        &self,
+        memory: &[u8; MEMORY_SIZE],
+        address: u16,
+        cycles_current_instruction: u8,
+    ) -> u8 {
         match address {
-            0xFF40 => self.gpu_registers.get_lcd_control(),
-            0xFF41 => self.gpu_registers.get_lcd_status(),
-            0xFF42 => self.gpu_registers.get_bg_scroll_y(),
-            0xFF43 => self.gpu_registers.get_bg_scroll_x(),
+            0xFF40 => GPURegisters::get_lcd_control(memory),
+            0xFF41 => GPURegisters::get_lcd_status(memory),
+            0xFF42 => GPURegisters::get_bg_scroll_y(memory),
+            0xFF43 => GPURegisters::get_bg_scroll_x(memory),
             0xFF44 => self.gpu_registers.get_scanline(
+                memory,
                 Some(&self.rendering_info),
-                Some(self.gpu_registers.lcd_status.get_gpu_mode()),
+                Some(GPURegisters::get_gpu_mode(memory)),
                 Some(cycles_current_instruction),
                 true,
-                false,
             ),
-            0xFF45 => self.gpu_registers.get_scanline_compare(),
-            0xFF47 => self.gpu_registers.get_background_palette(),
-            0xFF48 => self.gpu_registers.get_object_palette_zero(),
-            0xFF49 => self.gpu_registers.get_object_palette_one(),
-            0xFF4A => self.gpu_registers.get_window_y_position(),
-            0xFF4B => self.gpu_registers.get_window_x_position(),
+            0xFF45 => GPURegisters::get_scanline_compare(memory),
+            0xFF47 => GPURegisters::get_background_palette(memory),
+            0xFF48 => GPURegisters::get_object_palette_zero(memory),
+            0xFF49 => GPURegisters::get_object_palette_one(memory),
+            0xFF4A => GPURegisters::get_window_y_position(memory),
+            0xFF4B => GPURegisters::get_window_x_position(memory),
             _ => panic!(
                 "Reading from invalid GPU register address: {:#04X}",
                 address
@@ -111,43 +131,26 @@ impl GPU {
     /// be requested.
     pub fn write_registers(
         &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         address: u16,
         value: u8,
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
         match address {
-            0xFF40 => self
-                .gpu_registers
-                .set_lcd_control(value, &mut self.memory_changed),
-            0xFF41 => self
-                .gpu_registers
-                .set_lcd_status(value, interrupt_flag_register),
-            0xFF42 => self
-                .gpu_registers
-                .set_bg_scroll_y(value, &mut self.memory_changed),
-            0xFF43 => self
-                .gpu_registers
-                .set_bg_scroll_x(value, &mut self.memory_changed),
+            0xFF40 => GPURegisters::set_lcd_control(memory, value, &mut self.memory_changed),
+            0xFF41 => GPURegisters::set_lcd_status(memory, value, interrupt_flag_register),
+            0xFF42 => GPURegisters::set_bg_scroll_y(memory, value, &mut self.memory_changed),
+            0xFF43 => GPURegisters::set_bg_scroll_x(memory, value, &mut self.memory_changed),
             // If the rom tries writing to the scanline register, it gets reset to 0
-            0xFF44 => self.gpu_registers.set_scanline(0, interrupt_flag_register),
-            0xFF45 => self
-                .gpu_registers
-                .set_scanline_compare(value, interrupt_flag_register),
-            0xFF47 => self
-                .gpu_registers
-                .set_background_palette(value, &mut self.memory_changed),
-            0xFF48 => self
-                .gpu_registers
-                .set_object_palette_zero(value, &mut self.memory_changed),
-            0xFF49 => self
-                .gpu_registers
-                .set_object_palette_one(value, &mut self.memory_changed),
-            0xFF4A => self
-                .gpu_registers
-                .set_window_y_position(value, &mut self.memory_changed),
-            0xFF4B => self
-                .gpu_registers
-                .set_window_x_position(value, &mut self.memory_changed),
+            0xFF44 => GPURegisters::set_scanline(memory, 0, interrupt_flag_register),
+            0xFF45 => GPURegisters::set_scanline_compare(memory, value, interrupt_flag_register),
+            0xFF47 => GPURegisters::set_background_palette(memory, value, &mut self.memory_changed),
+            0xFF48 => {
+                GPURegisters::set_object_palette_zero(memory, value, &mut self.memory_changed)
+            }
+            0xFF49 => GPURegisters::set_object_palette_one(memory, value, &mut self.memory_changed),
+            0xFF4A => GPURegisters::set_window_y_position(memory, value, &mut self.memory_changed),
+            0xFF4B => GPURegisters::set_window_x_position(memory, value, &mut self.memory_changed),
             _ => panic!("Writing to invalid GPU register address: {:#04X}", address),
         }
     }
@@ -157,20 +160,7 @@ impl GPURegisters {
     /// Creates a new instance of the GPURegisters struct with all registers set to their default
     /// startup values.
     pub fn new(debugging_flags: DebuggingFlagsWithoutFileHandles) -> Self {
-        Self {
-            lcd_control: LCDCRegister { register: 0 },
-            lcd_status: LCDStatusRegister { register: 0 },
-            bg_scroll_x: 0,
-            bg_scroll_y: 0,
-            current_scanline: 0,
-            scanline_compare: 0,
-            background_palette: 0,
-            object_palette_zero: 0,
-            object_palette_one: 0,
-            wd_pos_y: 0,
-            wd_pos_x: 0,
-            debugging_flags,
-        }
+        Self { debugging_flags }
     }
 
     /// Set the LCD Control register to the provided value.
@@ -178,12 +168,16 @@ impl GPURegisters {
     /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn set_lcd_control(&mut self, value: u8, memory_changed: &mut ChangesToPropagateToShader) {
-        let old_value = self.lcd_control.register;
-        self.lcd_control.register = value;
+    pub fn set_lcd_control(
+        memory: &mut [u8; MEMORY_SIZE],
+        value: u8,
+        memory_changed: &mut ChangesToPropagateToShader,
+    ) {
+        let old_value = GPURegisters::get_lcd_control(memory);
+        memory[LCDC_REGISTER_ADDRESS] = value;
         let distinct_bits = old_value ^ value;
         if is_bit_set(distinct_bits, LCD_ENABLE_BIT_POSITION as u8) {
-            if self.lcd_control.get_display_on_flag() {
+            if LCDCRegister::get_display_on_flag(memory) {
                 log::debug!("LCD is turned on");
             } else {
                 log::debug!("LCD is turned off");
@@ -209,13 +203,15 @@ impl GPURegisters {
     /// Needs a reference to the interrupt flag register, if the LYC=LY Coincidence Flag is set,
     /// in which case a stat interrupt might be requested.
     pub fn set_lcd_status(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
-        self.lcd_status = self.lcd_status.with_self_from_u8(&self, value);
-        self.set_lyc_ly_coincidence_flag(
-            self.current_scanline == self.scanline_compare,
+        memory[LCD_STATUS_REGISTER_ADDRESS] = LCDStatusRegister::with_self_from_u8(memory, value);
+        LCDStatusRegister::set_lyc_ly_coincidence_flag(
+            memory,
+            GPURegisters::get_scanline_internal(memory)
+                == GPURegisters::get_scanline_compare(memory),
             interrupt_flag_register,
         );
     }
@@ -225,8 +221,12 @@ impl GPURegisters {
     /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn set_bg_scroll_y(&mut self, value: u8, memory_changed: &mut ChangesToPropagateToShader) {
-        self.bg_scroll_y = value;
+    pub fn set_bg_scroll_y(
+        memory: &mut [u8; MEMORY_SIZE],
+        value: u8,
+        memory_changed: &mut ChangesToPropagateToShader,
+    ) {
+        memory[BG_SCROLL_Y_REGISTER_ADDRESS] = value;
         memory_changed.background_viewport_position_changed = true;
     }
 
@@ -235,8 +235,12 @@ impl GPURegisters {
     /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn set_bg_scroll_x(&mut self, value: u8, memory_changed: &mut ChangesToPropagateToShader) {
-        self.bg_scroll_x = value;
+    pub fn set_bg_scroll_x(
+        memory: &mut [u8; MEMORY_SIZE],
+        value: u8,
+        memory_changed: &mut ChangesToPropagateToShader,
+    ) {
+        memory[BG_SCROLL_X_REGISTER_ADDRESS] = value;
         memory_changed.background_viewport_position_changed = true;
     }
 
@@ -245,13 +249,15 @@ impl GPURegisters {
     /// Needs a reference to the interrupt flag register, if LY=LYC and a stat interrupt might be
     /// requested.
     pub(super) fn set_scanline(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
-        self.current_scanline = value;
-        self.set_lyc_ly_coincidence_flag(
-            self.current_scanline == self.scanline_compare,
+        memory[SCANLINE_REGISTER_ADDRESS] = value;
+        LCDStatusRegister::set_lyc_ly_coincidence_flag(
+            memory,
+            GPURegisters::get_scanline_internal(memory)
+                == GPURegisters::get_scanline_compare(memory),
             interrupt_flag_register,
         );
     }
@@ -261,32 +267,17 @@ impl GPURegisters {
     /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
     /// LY=LYC and the LYC int select is set.
     fn set_scanline_compare(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
-        self.scanline_compare = value;
-        self.set_lyc_ly_coincidence_flag(
-            self.current_scanline == self.scanline_compare,
+        memory[SCANLINE_COMPARE_REGISTER_ADDRESS] = value;
+        LCDStatusRegister::set_lyc_ly_coincidence_flag(
+            memory,
+            GPURegisters::get_scanline_internal(memory)
+                == GPURegisters::get_scanline_compare(memory),
             interrupt_flag_register,
         );
-    }
-
-    /// Set the LYC=LY Coincidence Flag to the provided value.
-    ///
-    /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
-    /// LY=LYC and the LYC int select is set.
-    fn set_lyc_ly_coincidence_flag(
-        &mut self,
-        value: bool,
-        interrupt_flag_register: &mut InterruptFlagRegister,
-    ) {
-        self.lcd_status.set_lyc_ly_coincidence_flag(value);
-        if value {
-            if self.lcd_status.get_lyc_int_select() {
-                interrupt_flag_register.lcd_stat = true;
-            }
-        }
     }
 
     /// Set the GPU/PPU Mode to the provided value.
@@ -294,24 +285,24 @@ impl GPURegisters {
     /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
     /// the corresponding mode int select flag is set to the provided mode which is being entered.
     pub(crate) fn set_ppu_mode(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         mode: RenderingMode,
         interrupt_flag_register: &mut InterruptFlagRegister,
     ) {
-        self.lcd_status.set_gpu_mode(mode);
+        LCDStatusRegister::set_gpu_mode(memory, mode);
         match mode {
             RenderingMode::HBlank0 => {
-                if self.lcd_status.get_mode_0_int_select() {
+                if LCDStatusRegister::get_mode_0_int_select(memory) {
                     interrupt_flag_register.lcd_stat = true;
                 }
             }
             RenderingMode::VBlank1 => {
-                if self.lcd_status.get_mode_1_int_select() {
+                if LCDStatusRegister::get_mode_1_int_select(memory) {
                     interrupt_flag_register.lcd_stat = true;
                 }
             }
             RenderingMode::OAMScan2 => {
-                if self.lcd_status.get_mode_2_int_select() {
+                if LCDStatusRegister::get_mode_2_int_select(memory) {
                     interrupt_flag_register.lcd_stat = true;
                 }
             }
@@ -325,14 +316,14 @@ impl GPURegisters {
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_background_palette(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         memory_changed: &mut ChangesToPropagateToShader,
     ) {
-        if self.background_palette != value {
+        if GPURegisters::get_background_palette(memory) != value {
             memory_changed.palette_changed = true;
+            memory[BACKGROUND_PALETTE_REGISTER_ADDRESS] = value;
         }
-        self.background_palette = value;
     }
 
     /// Set the object palette 0 register to the provided value.
@@ -341,14 +332,14 @@ impl GPURegisters {
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_object_palette_zero(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         memory_changed: &mut ChangesToPropagateToShader,
     ) {
-        if self.object_palette_zero != value {
+        if GPURegisters::get_object_palette_zero(memory) != value {
             memory_changed.palette_changed = true;
+            memory[OBJECT_PALETTE_ZERO_REGISTER_ADDRESS] = value;
         }
-        self.object_palette_zero = value;
     }
 
     /// Set the object palette 1 register to the provided value.
@@ -357,14 +348,14 @@ impl GPURegisters {
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_object_palette_one(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         memory_changed: &mut ChangesToPropagateToShader,
     ) {
-        if self.object_palette_one != value {
+        if GPURegisters::get_object_palette_one(memory) != value {
             memory_changed.palette_changed = true;
+            memory[OBJECT_PALETTE_ONE_REGISTER_ADDRESS] = value;
         }
-        self.object_palette_one = value;
     }
 
     /// Set the window Y position register to the provided value.
@@ -373,12 +364,14 @@ impl GPURegisters {
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_window_y_position(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         memory_changed: &mut ChangesToPropagateToShader,
     ) {
-        self.wd_pos_y = value;
-        memory_changed.window_viewport_position_changed = true;
+        if GPURegisters::get_window_y_position(memory) != value {
+            memory_changed.window_viewport_position_changed = true;
+            memory[WINDOW_Y_POSITION_REGISTER_ADDRESS] = value;
+        }
     }
 
     /// Set the window X position register to the provided value.
@@ -387,17 +380,19 @@ impl GPURegisters {
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_window_x_position(
-        &mut self,
+        memory: &mut [u8; MEMORY_SIZE],
         value: u8,
         memory_changed: &mut ChangesToPropagateToShader,
     ) {
-        self.wd_pos_x = value;
-        memory_changed.window_viewport_position_changed = true;
+        if GPURegisters::get_window_x_position(memory) != value {
+            memory_changed.window_viewport_position_changed = true;
+            memory[WINDOW_X_POSITION_REGISTER_ADDRESS] = value;
+        }
     }
 
     /// Get the LCD Control register.
-    pub fn get_lcd_control(&self) -> u8 {
-        self.lcd_control.register
+    pub fn get_lcd_control(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[LCDC_REGISTER_ADDRESS]
     }
 
     /// Get the LCD Status register.
@@ -405,9 +400,9 @@ impl GPURegisters {
     /// If the LCD is turned off, we return VBlank mode (0b01) as the current mode (lower two
     /// bits of the LCD status register), because the CPU might read this register before the
     /// GPU has a chance to update it.
-    pub fn get_lcd_status(&self) -> u8 {
-        let before_lcd_enable = self.lcd_status.register;
-        if self.lcd_control.get_display_on_flag() {
+    pub fn get_lcd_status(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        let before_lcd_enable = memory[LCD_STATUS_REGISTER_ADDRESS];
+        if LCDCRegister::get_display_on_flag(memory) {
             // If the LCD is turned off, we return VBlank mode (0b01) as the current mode (lower two
             // bits of the LCD status register)
             before_lcd_enable & (0b1111_1100 | GPU_MODE_WHILE_LCD_TURNED_OFF.as_u8())
@@ -417,13 +412,13 @@ impl GPURegisters {
     }
 
     /// Get the Background Scroll Y register.
-    pub fn get_bg_scroll_y(&self) -> u8 {
-        self.bg_scroll_y
+    pub fn get_bg_scroll_y(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[BG_SCROLL_Y_REGISTER_ADDRESS]
     }
 
     /// Get the Background Scroll X register.
-    pub fn get_bg_scroll_x(&self) -> u8 {
-        self.bg_scroll_x
+    pub fn get_bg_scroll_x(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[BG_SCROLL_X_REGISTER_ADDRESS]
     }
 
     /// Get the current scanline register.
@@ -439,13 +434,13 @@ impl GPURegisters {
     /// TODO: Change calling from parameters to an ENUM
     pub fn get_scanline(
         &self,
+        memory: &[u8; MEMORY_SIZE],
         rendering_info: Option<&RenderingInfo>,
         current_rendering_mode: Option<RenderingMode>,
         cycles_current_instruction: Option<u8>,
         calling_from_memory_bus: bool,
-        calling_from_gpu: bool,
     ) -> u8 {
-        if self.debugging_flags.doctor && !calling_from_gpu {
+        if self.debugging_flags.doctor {
             // Game Boy Doctor specifies that reading from the LY register (scanline) should always
             // return 0x90.
             0x90
@@ -466,141 +461,177 @@ impl GPURegisters {
                                     >= (DOTS_IN_HBLANK_PLUS_TRANSFER
                                         - rendering_info.dots_for_transfer)
                                 {
-                                    return self.current_scanline + 1;
+                                    return GPURegisters::get_scanline_internal(memory) + 1;
                                 }
                             } else if current_rendering_mode == RenderingMode::VBlank1 {
                                 if rendering_info.dots_clock + cycles_current_instruction as u32 * 4
                                     >= DOTS_IN_VBLANK / 10
                                 {
-                                    return self.current_scanline + 1;
+                                    return GPURegisters::get_scanline_internal(memory) + 1;
                                 }
                             }
                         }
                     }
                 }
             }
-            self.current_scanline
+            GPURegisters::get_scanline_internal(memory)
         }
     }
 
+    pub(crate) fn get_scanline_internal(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[SCANLINE_REGISTER_ADDRESS]
+    }
+
     /// Get the LY (Scanline) Compare register.
-    pub fn get_scanline_compare(&self) -> u8 {
-        self.scanline_compare
+    pub fn get_scanline_compare(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[SCANLINE_COMPARE_REGISTER_ADDRESS]
     }
 
     /// Get the background palette register.
-    pub fn get_background_palette(&self) -> u8 {
-        self.background_palette
+    pub fn get_background_palette(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[BACKGROUND_PALETTE_REGISTER_ADDRESS]
     }
 
     /// Get the object palette 0 register.
-    pub fn get_object_palette_zero(&self) -> u8 {
-        self.object_palette_zero
+    pub fn get_object_palette_zero(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[OBJECT_PALETTE_ZERO_REGISTER_ADDRESS]
     }
 
     /// Get the object palette 1 register.
-    pub fn get_object_palette_one(&self) -> u8 {
-        self.object_palette_one
+    pub fn get_object_palette_one(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[OBJECT_PALETTE_ONE_REGISTER_ADDRESS]
     }
 
     /// Get the window Y position register.
-    pub fn get_window_y_position(&self) -> u8 {
-        self.wd_pos_y
+    pub fn get_window_y_position(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[WINDOW_Y_POSITION_REGISTER_ADDRESS]
     }
 
     /// Get the window X position register.
-    pub fn get_window_x_position(&self) -> u8 {
-        self.wd_pos_x
+    pub fn get_window_x_position(memory: &[u8; MEMORY_SIZE]) -> u8 {
+        memory[WINDOW_X_POSITION_REGISTER_ADDRESS]
     }
 
     /// Get the GPU Mode
-    pub fn get_gpu_mode(&self) -> RenderingMode {
-        self.lcd_status.get_gpu_mode()
-    }
-
-    /// Get the state of the sprite/object size flag (sprite size)
-    pub fn get_sprite_size_flag(&self) -> bool {
-        self.lcd_control.get_sprite_size_flag()
+    pub fn get_gpu_mode(memory: &[u8; MEMORY_SIZE]) -> RenderingMode {
+        RenderingMode::from_u8(memory[LCD_STATUS_REGISTER_ADDRESS] & 0b0000_0011)
     }
 }
 
 impl LCDCRegister {
     /// Returns the state of the sprite size flag.
-    pub fn get_sprite_size_flag(&self) -> bool {
-        is_bit_set(self.register, OBJ_SIZE_BIT_POSITION as u8)
+    pub fn get_sprite_size_flag(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(memory[LCDC_REGISTER_ADDRESS], OBJ_SIZE_BIT_POSITION as u8)
     }
 
     /// Returns the state of the background tilemap flag.
-    pub fn get_background_tile_map_flag(&self) -> bool {
-        is_bit_set(self.register, BG_TILE_MAP_BIT_POSITION as u8)
+    pub fn get_background_tile_map_flag(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(
+            memory[LCDC_REGISTER_ADDRESS],
+            BG_TILE_MAP_BIT_POSITION as u8,
+        )
     }
 
     /// Returns the state of the background and window tile data flag.
-    pub fn get_background_and_window_tile_data_flag(&self) -> bool {
-        is_bit_set(self.register, BG_AND_WINDOW_TILE_DATA_BIT_POSITION as u8)
+    pub fn get_background_and_window_tile_data_flag(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(
+            memory[LCDC_REGISTER_ADDRESS],
+            BG_AND_WINDOW_TILE_DATA_BIT_POSITION as u8,
+        )
     }
 
     /// Returns the state of the window tilemap flag.
-    pub fn get_window_tile_map_flag(&self) -> bool {
-        is_bit_set(self.register, WINDOW_TILE_MAP_BIT_POSITION as u8)
+    pub fn get_window_tile_map_flag(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(
+            memory[LCDC_REGISTER_ADDRESS],
+            WINDOW_TILE_MAP_BIT_POSITION as u8,
+        )
     }
 
     /// Returns the state of the lcd/display enable flag.
-    pub fn get_display_on_flag(&self) -> bool {
-        is_bit_set(self.register, LCD_ENABLE_BIT_POSITION as u8)
+    pub fn get_display_on_flag(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(memory[LCDC_REGISTER_ADDRESS], LCD_ENABLE_BIT_POSITION as u8)
     }
 }
 
 impl LCDStatusRegister {
     /// Returns the GPU mode as a [super::RenderingMode] enum.
-    fn get_gpu_mode(&self) -> RenderingMode {
-        RenderingMode::from_u8(self.register & 0b0000_0011)
+    fn get_gpu_mode(memory: &[u8; MEMORY_SIZE]) -> RenderingMode {
+        RenderingMode::from_u8(memory[LCD_STATUS_REGISTER_ADDRESS] & 0b0000_0011)
     }
 
     /// Returns the state of the mode 0 interrupt select flag.
-    fn get_mode_0_int_select(&self) -> bool {
-        is_bit_set(self.register, MODE_0_INT_SELECT_BIT_POSITION as u8)
+    fn get_mode_0_int_select(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(
+            memory[LCD_STATUS_REGISTER_ADDRESS],
+            MODE_0_INT_SELECT_BIT_POSITION as u8,
+        )
     }
 
     /// Returns the state of the mode 1 interrupt select flag.
-    fn get_mode_1_int_select(&self) -> bool {
-        is_bit_set(self.register, MODE_1_INT_SELECT_BIT_POSITION as u8)
+    fn get_mode_1_int_select(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(
+            memory[LCD_STATUS_REGISTER_ADDRESS],
+            MODE_1_INT_SELECT_BIT_POSITION as u8,
+        )
     }
 
     /// Returns the state of the mode 2 interrupt select flag.
-    fn get_mode_2_int_select(&self) -> bool {
-        is_bit_set(self.register, MODE_2_INT_SELECT_BIT_POSITION as u8)
+    fn get_mode_2_int_select(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(
+            memory[LCD_STATUS_REGISTER_ADDRESS],
+            MODE_2_INT_SELECT_BIT_POSITION as u8,
+        )
     }
 
     /// Returns the state of the LYC interrupt select flag.
-    fn get_lyc_int_select(&self) -> bool {
-        is_bit_set(self.register, LYC_INT_SELECT_BIT_POSITION as u8)
+    fn get_lyc_int_select(memory: &[u8; MEMORY_SIZE]) -> bool {
+        is_bit_set(
+            memory[LCD_STATUS_REGISTER_ADDRESS],
+            LYC_INT_SELECT_BIT_POSITION as u8,
+        )
     }
 
     /// Sets the gpu/ppu mode to the provided value.
-    fn set_gpu_mode(&mut self, mode: RenderingMode) {
-        self.register = (self.register & 0b1111_1100) | mode.as_u8();
+    fn set_gpu_mode(memory: &mut [u8; MEMORY_SIZE], mode: RenderingMode) {
+        memory[LCD_STATUS_REGISTER_ADDRESS] =
+            (memory[LCD_STATUS_REGISTER_ADDRESS] & 0b1111_1100) | mode.as_u8();
     }
 
     /// Sets the LYC = LY Coincidence Flag to the provided value.
-    fn set_lyc_ly_coincidence_flag(&mut self, value: bool) {
-        self.register = if value {
-            set_bit(self.register, LYC_LY_COINCIDENCE_FLAG_BIT_POSITION as u8)
+    fn set_lyc_ly_coincidence_flag(
+        memory: &mut [u8; MEMORY_SIZE],
+        value: bool,
+        interrupt_flag_register: &mut InterruptFlagRegister,
+    ) {
+        memory[LCD_STATUS_REGISTER_ADDRESS] = if value {
+            set_bit(
+                memory[LCD_STATUS_REGISTER_ADDRESS],
+                LYC_LY_COINCIDENCE_FLAG_BIT_POSITION as u8,
+            )
         } else {
-            clear_bit(self.register, LYC_LY_COINCIDENCE_FLAG_BIT_POSITION as u8)
+            clear_bit(
+                memory[LCD_STATUS_REGISTER_ADDRESS],
+                LYC_LY_COINCIDENCE_FLAG_BIT_POSITION as u8,
+            )
         };
+        if value {
+            if LCDStatusRegister::get_lyc_int_select(memory) {
+                interrupt_flag_register.lcd_stat = true;
+            }
+        }
     }
 
-    /// Returns a new instance of the LCDStatusRegister struct with the fields set according to
+    /// Returns a new u8 containing the new LCDStatusRegister value with the fields set according to
     /// the provided value except for PPU Mode and LYC=LY Coincidence Flag. So only the bits
     /// 3 to 6 are set according to the provided value.
-    /// Needs a reference to the GPURegisters to get the value of the LYC=LY Coincidence Flag.
-    fn with_self_from_u8(&self, gpu_registers: &GPURegisters, value: u8) -> Self {
+    fn with_self_from_u8(memory: &[u8; MEMORY_SIZE], value: u8) -> u8 {
         let mut register = value & 0b0111_1000;
-        if gpu_registers.scanline_compare == gpu_registers.current_scanline {
+        if GPURegisters::get_scanline_compare(memory) == GPURegisters::get_scanline_internal(memory)
+        {
             register |= 1 << LYC_LY_COINCIDENCE_FLAG_BIT_POSITION;
         }
-        register |= self.register & 0b11;
-        LCDStatusRegister { register }
+        register |= memory[LCD_STATUS_REGISTER_ADDRESS] & 0b11;
+        register
     }
 }

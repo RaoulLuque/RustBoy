@@ -3,7 +3,7 @@ pub(crate) mod shader;
 use winit::event::WindowEvent;
 use winit::window::Window;
 
-use super::ORIGINAL_SCREEN_WIDTH;
+use super::{MEMORY_SIZE, ORIGINAL_SCREEN_WIDTH};
 use crate::frontend::shader::{
     BgAndWdViewportPosition, ObjectsInScanline, Palettes, RenderingLinePositionAndObjectSize,
     TileData, TilemapUniform, setup_render_shader_pipeline, setup_scanline_shader_pipeline,
@@ -318,7 +318,12 @@ impl<'a> State<'a> {
     /// Render the provided `current_scanline` scanline to the framebuffer texture.
     /// This function is called once per frame to render the current scanline to the screen using
     /// the scanline shader pipeline.
-    pub fn render_scanline(&mut self, rust_boy_gpu: &mut GPU, current_scanline: u8) {
+    pub fn render_scanline(
+        &mut self,
+        rust_boy_gpu: &mut GPU,
+        memory: &[u8; MEMORY_SIZE],
+        current_scanline: u8,
+    ) {
         // Create a view of the offscreen texture.
         let framebuffer_view = self
             .framebuffer_texture
@@ -361,7 +366,7 @@ impl<'a> State<'a> {
 
         // Update the background tilemap if the tilemap currently in use changed or if we switched
         // the tilemap we are using since the last scanline
-        if rust_boy_gpu.current_background_tile_map_changed()
+        if rust_boy_gpu.current_background_tile_map_changed(memory)
             | rust_boy_gpu.memory_changed.background_tile_map_flag_changed
         {
             // trace!("Updating tilemap");
@@ -387,7 +392,7 @@ impl<'a> State<'a> {
 
         // Update the background tilemap if the tilemap currently in use changed or if we switched
         // the tilemap we are using since the last scanline
-        if rust_boy_gpu.current_window_tile_map_changed()
+        if rust_boy_gpu.current_window_tile_map_changed(memory)
             | rust_boy_gpu.memory_changed.window_tile_map_flag_changed
         {
             // Update tilemap and tile atlas (e.g., VRAM changes)
@@ -402,7 +407,7 @@ impl<'a> State<'a> {
 
         // Update the tile data if the tile data currently in use changed or if we switched
         // the tilemap we are using since the last scanline
-        if rust_boy_gpu.current_bg_and_wd_tile_data_changed()
+        if rust_boy_gpu.current_bg_and_wd_tile_data_changed(memory)
             | rust_boy_gpu.memory_changed.tile_data_flag_changed
         {
             // DEBUG

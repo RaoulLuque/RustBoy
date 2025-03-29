@@ -1,4 +1,6 @@
 use super::GPU;
+use crate::MEMORY_SIZE;
+use crate::gpu::registers::LCDCRegister;
 use crate::memory_bus::OAM_START;
 
 /// Represents an object/sprite in the GPU's object attribute memory. These structs are used to
@@ -78,7 +80,11 @@ impl GPU {
     }
 
     /// TODO: Write docstring
-    pub fn get_objects_for_current_scanline(&self, scanline: u8) -> [[u32; 4]; 10] {
+    pub fn get_objects_for_current_scanline(
+        &self,
+        memory: &[u8; MEMORY_SIZE],
+        scanline: u8,
+    ) -> [[u32; 4]; 10] {
         let mut objects: [[u32; 4]; 10] = Default::default();
         let mut count = 0;
         let adjusted_scanline = scanline + 16; // Adjust for y_position = 0 being 16 pixels above the top of the screen
@@ -86,7 +92,7 @@ impl GPU {
         for i in 0..self.oam.len() {
             let object = self.oam[i];
             // Set object height according to the flag in the LCD control register
-            let object_height = if self.gpu_registers.lcd_control.get_sprite_size_flag() {
+            let object_height = if LCDCRegister::get_sprite_size_flag(memory) {
                 16
             } else {
                 8

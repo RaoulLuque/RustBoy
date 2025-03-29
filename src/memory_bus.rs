@@ -57,6 +57,7 @@ impl RustBoy {
             // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49
             | 0xFF4A | 0xFF4B => self.gpu.read_registers(
+                &self.memory,
                 address,
                 self.cycles_current_instruction
                     .expect("Cycles for the current instruction should already be set"),
@@ -87,8 +88,12 @@ impl RustBoy {
             // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49
             | 0xFF4A | 0xFF4B => {
-                self.gpu
-                    .write_registers(address, value, &mut self.interrupt_flag_register);
+                self.gpu.write_registers(
+                    &mut self.memory,
+                    address,
+                    value,
+                    &mut self.interrupt_flag_register,
+                );
             }
 
             // DMA transfer register
