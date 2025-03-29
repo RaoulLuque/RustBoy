@@ -5,9 +5,8 @@ use winit::window::Window;
 
 use super::ORIGINAL_SCREEN_WIDTH;
 use crate::frontend::shader::{
-    ATLAS_COLS, BgAndWdViewportPosition, ObjectsInScanline, Palettes,
-    RenderingLinePositionAndObjectSize, TILE_SIZE, TileData, TilemapUniform,
-    setup_render_shader_pipeline, setup_scanline_buffer_pipeline,
+    BgAndWdViewportPosition, ObjectsInScanline, Palettes, RenderingLinePositionAndObjectSize,
+    TileData, TilemapUniform, setup_render_shader_pipeline, setup_scanline_shader_pipeline,
 };
 use crate::gpu::GPU;
 use crate::gpu::information_for_shader::ChangesToPropagateToShader;
@@ -192,7 +191,7 @@ impl<'a> State<'a> {
             rendering_line_lcd_control_and_window_internal_line_info_buffer,
             object_tile_data_buffer,
             objects_in_scanline_buffer,
-        ) = setup_scanline_buffer_pipeline(&device);
+        ) = setup_scanline_shader_pipeline(&device);
 
         let (
             render_pipeline,

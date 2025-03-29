@@ -3,9 +3,7 @@ use bytemuck::cast;
 use wgpu::util::DeviceExt;
 use wgpu::{Device, SurfaceConfiguration};
 
-pub(super) const TILE_SIZE: u32 = 8;
-pub(super) const ATLAS_COLS: u32 = 16;
-
+/// Struct to represent vertices for the vertex buffers of the shader pipelines.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub(super) struct Vertex {
@@ -13,6 +11,8 @@ pub(super) struct Vertex {
     color: [f32; 3],
 }
 
+/// The vertices of a rectangle consisting of two triangles. This is used to render the framebuffer
+/// texture to the screen.
 pub(super) const VERTICES: &[Vertex] = &[
     Vertex {
         position: [-1.0, 1.0, 0.0],
@@ -41,6 +41,7 @@ pub(super) const VERTICES: &[Vertex] = &[
 ];
 
 impl Vertex {
+    /// Returns the vertex buffer layout for the vertex buffer of the shader pipeline.
     pub fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: size_of::<Vertex>() as wgpu::BufferAddress,
@@ -61,27 +62,33 @@ impl Vertex {
     }
 }
 
+/// A struct to pass the tile data to the scanline shader.  Each tile consists of 8 x 8 pixels.
+/// Each pixel is represented by 2 bits, therefore each tile consists of 8 x 8 * 2 = 128 bits =
+/// 16 bytes = 4 u32s. Furthermore, there are 16 x 16 = 256 tiles in the tilemap.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub(super) struct TileData {
-    // Each tile consists of 8 x 8 pixels. Each pixel is represented by 2 bits, therefore each tile
-    // consists of 8 x 8 * 2 = 128 bits = 16 bytes = 4 u32s. Furthermore, there are 16 x 16 = 256
-    // tiles in the tilemap. Therefore, the size of the tiles array is 256 * 4 * 4 = 4096 bytes.
     pub tiles: [[u32; 4]; 256],
 }
 
+/// A struct to pack the tilemap data and then pass it to the scanline shader. We pass the tilemap as a list of
+/// [PackedTilemapData] instances because the alignment has to be a multiple of 4 bytes.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PackedTilemapData {
     pub indices: [u32; 4],
 }
 
+/// A struct to pass the tilemap data to the scanline shader. The tilemap consists of 32 x 32 = 256
+/// tiles.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub(super) struct TilemapUniform {
     pub(super) tiles: [PackedTilemapData; 256], // 32x32 grid
 }
 
+/// Stores the objects that are in the current scanline in a format that can be passed to the
+/// scanline shader.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub(super) struct ObjectsInScanline {
@@ -160,10 +167,15 @@ pub struct Palettes {
 /// It uses very simple vertex and fragment shaders. The vertex shader simply creates two triangles
 /// which form a rectangle of the desired size. The fragment shader simply takes the color of the
 /// pixel from the framebuffer texture and writes it to the screen.
-/// The framebuffer texture has to be provided as a parameter. It is created in the compute
-/// shader pipeline and is used to buffer the rendered lines.
 ///
-/// TODO: Add more docstring describing return values
+/// The return values are as follows:
+/// - `wgpu::RenderPipeline` The render pipeline.
+/// - `wgpu::Buffer` The vertex buffer.
+/// - `wgpu::Buffer` The screensize buffer.
+/// - `u32` The number of vertices.
+/// - `wgpu::BindGroup` The bind group.
+///
+/// For their details, see the documentation of the fields of [crate::frontend::State] struct.
 pub fn setup_render_shader_pipeline(
     device: &Device,
     config: &SurfaceConfiguration,
@@ -175,7 +187,7 @@ pub fn setup_render_shader_pipeline(
     u32,
     wgpu::BindGroup,
 ) {
-    // Configuration for the sampler
+    // Configuration for the sampler that is used to sample the framebuffer texture.
     let framebuffer_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("Framebuffer Sampler"),
         address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -185,8 +197,8 @@ pub fn setup_render_shader_pipeline(
         ..Default::default()
     });
 
-    // Sets the screensize for the rendering shader. Is a list of 4 elements for alignment purposes,
-    // the first and two entries represent the width and height of the emulator window.
+    // Sets the screensize for the rendering shader. See the [screensize_buffer] field of the
+    // [crate::frontend::State] struct for more details.
     let initial_screensize = CurrentScreensize {
         size: [ORIGINAL_SCREEN_WIDTH, ORIGINAL_SCREEN_HEIGHT, 0, 0],
     };
@@ -197,9 +209,9 @@ pub fn setup_render_shader_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Create bind group layout for the framebuffer
+    // Create bind group layout for the render pipeline
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Framebuffer Bind Group Layout"),
+        label: Some("Render Pipeline Bind Group Layout"),
         entries: &[
             // Framebuffer Texture (binding 0)
             wgpu::BindGroupLayoutEntry {
@@ -235,7 +247,7 @@ pub fn setup_render_shader_pipeline(
 
     // Create bind group for the framebuffer
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("Framebuffer Bind Group"),
+        label: Some("Render Pipeline Bind Group"),
         layout: &bind_group_layout,
         entries: &[
             wgpu::BindGroupEntry {
@@ -324,8 +336,27 @@ pub fn setup_render_shader_pipeline(
     )
 }
 
-/// TODO: Add docstring
-pub fn setup_scanline_buffer_pipeline(
+/// Sets up the scanline shader pipeline.
+/// This pipeline is used to render scanline by scanline to the buffer texture. It is called in the
+/// after each HBlank period of the RustBoy, that is, when a scanline is finished.
+///
+/// The return values are as follows:
+/// - `wgpu::RenderPipeline` The render pipeline.
+/// - `wgpu::Buffer` The vertex buffer.
+/// - `u32` The number of vertices.
+/// - `wgpu::BindGroup` The bind group.
+/// - `wgpu::Buffer` The tile data buffer.
+/// - `wgpu::Buffer` The background tilemap buffer.
+/// - `wgpu::Buffer` The window tilemap buffer.
+/// - `wgpu::Buffer` The background and window viewport position buffer.
+/// - `wgpu::Buffer` The palette buffer.
+/// - `wgpu::Texture` The framebuffer texture.
+/// - `wgpu::Buffer` The rendering line and object size buffer.
+/// - `wgpu::Buffer` The object tile data buffer.
+/// - `wgpu::Buffer` The objects in scanline buffer.
+///
+/// For their details, see the documentation of the fields of [crate::frontend::State] struct.
+pub fn setup_scanline_shader_pipeline(
     device: &Device,
 ) -> (
     wgpu::RenderPipeline,
@@ -342,7 +373,8 @@ pub fn setup_scanline_buffer_pipeline(
     wgpu::Buffer,
     wgpu::Buffer,
 ) {
-    // This holds the background and window tiles (16x16 tiles, 16 bytes for each tile)
+    // This holds the background and window tiles. 
+    // For more details see the [bg_and_wd_tile_data_buffer] field of the [crate::frontend::State] struct.
     let initial_tile_data_buffer_plain = [0u8; 16 * 16 * 16];
     let initial_tile_data_buffer = TileData::from_array(initial_tile_data_buffer_plain);
     let bg_and_wd_tile_data_buffer: wgpu::Buffer =
@@ -352,8 +384,8 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Represents which background tiles are displayed where (Rust Boy: 32x32 tile grid)
-    // Initialize blank tilemap (0th tile always)
+    // Represents which background tiles are displayed where.
+    // For more details see the [background_tilemap_buffer] field of the [crate::frontend::State] struct.
     let initial_background_tilemap_plain = [0u8; 32 * 32];
     let initial_background_tilemap = TilemapUniform::from_array(&initial_background_tilemap_plain);
     let background_tilemap_buffer: wgpu::Buffer =
@@ -363,8 +395,8 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Represents which window tiles are displayed where (Rust Boy: 32x32 tile grid)
-    // Initialize blank tilemap (0th tile always)
+    // Represents which window tiles are displayed where.
+    // For more details see the [window_tilemap_buffer] field of the [crate::frontend::State] struct.
     let initial_window_tilemap_plain = [0u8; 32 * 32];
     let initial_window_tilemap = TilemapUniform::from_array(&initial_window_tilemap_plain);
     let window_tilemap_buffer: wgpu::Buffer =
@@ -374,9 +406,8 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Sets the positions from where the background and the window are drawn. Used for scrolling.
-    // Is given as pixel shift-values in the tilemap. The first two are the x and y position of the
-    // background and the last two are the x and y position of the window. The values are in pixels.
+    // Sets the positions from where the background and the window are drawn.
+    // For more details see the [bg_and_wd_viewport_buffer] field of the [crate::frontend::State] struct.
     let initial_bg_and_wd_viewport_position = BgAndWdViewportPosition { pos: [0, 0, 0, 0] };
     let bg_and_wd_viewport_buffer: wgpu::Buffer =
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -385,8 +416,8 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Setup framebuffer texture. This buffers the frame to be sent to the fragment shader
-    // which will transfer it to the screen. Therefore, it is as big as the screen.
+    // Setup framebuffer texture.
+    // For more details see the [framebuffer_texture] field of the [crate::frontend::State] struct.
     let framebuffer_texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("Framebuffer"),
         size: wgpu::Extent3d {
@@ -403,7 +434,8 @@ pub fn setup_scanline_buffer_pipeline(
     });
 
     // Buffer to hold the current line to be rendered, the lcd control register and some
-    // window internal line counter information
+    // window internal line counter information.
+    // For more details see the [rendering_line_lcd_control_and_window_internal_line_info_buffer] field of the [crate::frontend::State] struct.
     let initial_rendering_line_lcd_control_and_window_internal_line_info =
         RenderingLinePositionAndObjectSize { pos: [0, 0, 0, 0] };
     let rendering_line_lcd_control_and_window_internal_line_info_buffer: wgpu::Buffer = device
@@ -415,6 +447,8 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
+    // This holds the palettes used for the background, window and objects.
+    // For more details see the [palette_buffer] field of the [crate::frontend::State] struct.
     let initial_palette = Palettes {
         values: [0, 0, 0, 0],
     };
@@ -425,7 +459,8 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // This holds the background and window tiles (16x16 tiles, 16 bytes for each tile)
+    // This holds the object tile data.
+    // For more details see the [object_tile_data_buffer] field of the [crate::frontend::State] struct.
     let object_tile_data_buffer = [0u8; 16 * 16 * 16];
     let initial_object_tile_data_buffer = TileData::from_array(object_tile_data_buffer);
     let object_tile_data_buffer: wgpu::Buffer =
@@ -435,7 +470,8 @@ pub fn setup_scanline_buffer_pipeline(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
-    // Represents the objects that
+    // Represents the objects that are visible in the current scanline.
+    // For more details see the [objects_in_scanline_buffer] field of the [crate::frontend::State] struct.
     let initial_objects_in_scanline = ObjectsInScanline {
         objects: [[0; 4]; 10],
     };
@@ -448,7 +484,7 @@ pub fn setup_scanline_buffer_pipeline(
 
     // Create the bind group layout
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("Compute Shader Bind Group Layout"),
+        label: Some("Scanline Shader Bind Group Layout"),
         entries: &[
             // BG/Window Tile Data Buffer
             wgpu::BindGroupLayoutEntry {
