@@ -373,7 +373,7 @@ pub fn setup_scanline_shader_pipeline(
     wgpu::Buffer,
     wgpu::Buffer,
 ) {
-    // This holds the background and window tiles. 
+    // This holds the background and window tiles.
     // For more details see the [bg_and_wd_tile_data_buffer] field of the [crate::frontend::State] struct.
     let initial_tile_data_buffer_plain = [0u8; 16 * 16 * 16];
     let initial_tile_data_buffer = TileData::from_array(initial_tile_data_buffer_plain);
