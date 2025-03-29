@@ -1,4 +1,5 @@
 use crate::RustBoy;
+use crate::gpu::GPU;
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
@@ -43,7 +44,7 @@ impl RustBoy {
                 }
             }
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
-            VRAM_BEGIN..VRAM_END => self.gpu.read_vram(address),
+            VRAM_BEGIN..VRAM_END => self.memory[address as usize],
             OAM_START..OAM_END => self.gpu.read_oam(address),
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
                 // When trying to read from unusable RAM, we return 0xFF
@@ -74,7 +75,7 @@ impl RustBoy {
     /// Write a byte to the memory at the given address.
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            VRAM_BEGIN..VRAM_END => self.gpu.write_vram(address, value),
+            VRAM_BEGIN..VRAM_END => GPU::write_vram(self, address, value),
             OAM_START..OAM_END => self.gpu.write_oam(address, value),
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
                 // When trying to write to unusable RAM, we just do nothing

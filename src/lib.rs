@@ -33,6 +33,7 @@ use input::{handle_key_pressed_event, handle_key_released_event};
 use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use timer::TimerInfo;
 
+use crate::gpu::tile_handling::{Tile, empty_tile};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::{
     dpi::PhysicalSize,
@@ -94,12 +95,13 @@ pub struct RustBoy {
     ime_to_be_set: bool,
     halted: bool,
     just_entered_halt: bool,
-    starting_up: bool,
 
     // Memory
     memory: [u8; MEMORY_SIZE],
     bios: [u8; 0x0100],
     being_initialized: bool,
+    starting_up: bool,
+    pub tile_set: [Tile; 384],
 
     // GPU
     gpu: GPU,
@@ -137,6 +139,7 @@ impl RustBoy {
             bios: [0; 0x0100],
             starting_up: true,
             being_initialized: true,
+            tile_set: [empty_tile(); 384],
             ime: false,
             ime_to_be_set: false,
             halted: false,
@@ -450,9 +453,11 @@ fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
     let last_num_of_dots = last_num_of_cycles as u32 * 4;
 
     // Check what has to be done for rendering and sync gpu with cpu with gpu_step()
-    let new_rendering_task = rust_boy
-        .gpu
-        .gpu_step(&mut rust_boy.interrupt_flag_register, last_num_of_dots);
+    let new_rendering_task = rust_boy.gpu.gpu_step(
+        &rust_boy.memory,
+        &mut rust_boy.interrupt_flag_register,
+        last_num_of_dots,
+    );
 
     // Reset the cycles of the current instruction
     rust_boy.cycles_current_instruction = None;

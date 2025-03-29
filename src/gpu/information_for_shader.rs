@@ -1,4 +1,5 @@
 use super::GPU;
+use crate::MEMORY_SIZE;
 use crate::cpu::is_bit_set;
 use crate::frontend::shader::{
     BgAndWdViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
@@ -42,12 +43,17 @@ impl GPU {
     /// next scanline to be rendered using the scanline shader. This data is buffered because the original
     /// RustBoy fetches it in mode 3 (Transfer) and we only actually render it in mode 0 (HBlank).
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
-    pub(super) fn fetch_rendering_information_to_rendering_buffer(&mut self, current_scanline: u8) {
-        self.buffers_for_rendering.background_tile_map = *self.get_background_tile_map();
+    pub(super) fn fetch_rendering_information_to_rendering_buffer(
+        &mut self,
+        memory: &[u8; MEMORY_SIZE],
+        current_scanline: u8,
+    ) {
+        self.buffers_for_rendering.background_tile_map = self.get_background_tile_map(memory);
 
-        self.buffers_for_rendering.window_tile_map = *self.get_window_tile_map();
+        self.buffers_for_rendering.window_tile_map = self.get_window_tile_map(memory);
 
-        self.buffers_for_rendering.bg_and_wd_tile_data = self.get_background_and_window_tile_data();
+        self.buffers_for_rendering.bg_and_wd_tile_data =
+            self.get_background_and_window_tile_data(memory);
 
         self.buffers_for_rendering.bg_and_wd_viewport_position = BgAndWdViewportPosition {
             pos: [
@@ -67,7 +73,7 @@ impl GPU {
             ],
         };
 
-        self.buffers_for_rendering.object_tile_data = self.get_object_tile_data();
+        self.buffers_for_rendering.object_tile_data = self.get_object_tile_data(memory);
 
         self.buffers_for_rendering
             .rendering_line_lcd_control_and_window_internal_line_info =

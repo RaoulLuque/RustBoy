@@ -3,13 +3,12 @@ pub(crate) mod object_handling;
 mod registers;
 pub(crate) mod tile_handling;
 
-use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
-use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
-use std::thread::current;
-
 use crate::cpu::is_bit_set;
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::interrupts::InterruptFlagRegister;
+use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
+use crate::{MEMORY_SIZE, RustBoy};
+use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
 use object_handling::Object;
 use registers::GPURegisters;
 use tile_handling::Tile;
@@ -46,8 +45,6 @@ pub(crate) const GPU_MODE_WHILE_LCD_TURNED_OFF: RenderingMode = RenderingMode::H
 ///
 /// Also has a tile_data_changed flag to indicate if the tile data has changed.
 pub struct GPU {
-    vram: [u8; VRAM_END as usize - VRAM_BEGIN as usize + 1],
-    pub tile_set: [Tile; 384],
     pub(crate) rendering_info: RenderingInfo,
     pub(crate) buffers_for_rendering: BuffersForRendering,
     pub gpu_registers: GPURegisters,
@@ -118,6 +115,7 @@ impl GPU {
     /// when HBlank is exited, the flag for a VBlank interrupt is set.
     pub fn gpu_step(
         &mut self,
+        memory: &[u8; MEMORY_SIZE],
         interrupt_flags: &mut InterruptFlagRegister,
         dots: u32,
     ) -> RenderTask {
@@ -277,7 +275,10 @@ impl GPU {
                             current_scanline,
                             &self.gpu_registers,
                         );
-                        self.fetch_rendering_information_to_rendering_buffer(current_scanline);
+                        self.fetch_rendering_information_to_rendering_buffer(
+                            memory,
+                            current_scanline,
+                        );
 
                         self.gpu_registers
                             .set_ppu_mode(RenderingMode::HBlank0, interrupt_flags);
@@ -288,41 +289,31 @@ impl GPU {
         }
     }
 
-    /// Reads a byte from the VRAM at the given address.
-    /// Since the address is the absolute address in the grand scheme of the total Rust Boy's
-    /// memory, we have to convert it to the relative address in terms of the VRAM. That is the
-    /// absolute address 0x8000 would be the relative address 0x0000.
-    pub fn read_vram(&self, address: u16) -> u8 {
-        self.vram[(address - VRAM_BEGIN) as usize]
-    }
-
     /// Writes a byte to the VRAM at the given address.
-    /// Since the address is the absolute address in the grand scheme of the total Rust Boy's
-    /// memory, we have to convert it to the relative address in terms of the VRAM. That is the
-    /// absolute address 0x8000 would be the relative address 0x0000.
     ///
     /// Also sets flags in self.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn write_vram(&mut self, address: u16, value: u8) {
-        let normalized_address = address - VRAM_BEGIN;
-        self.vram[normalized_address as usize] = value;
+    ///
+    /// TODO: Make this a non static method and pass in memory bus?
+    pub fn write_vram(rust_boy: &mut RustBoy, address: u16, value: u8) {
+        rust_boy.memory[address as usize] = value;
 
         // If our index is greater than or equal to 0x1800, we are not writing to the tile set storage
         // so we can simply return
-        if normalized_address >= 0x1800 {
+        if address >= 0x9800 {
             if address < 0x9C00 {
                 // We are writing to tilemap 0. Therefore, we set the changed flag to make sure
                 // the GPU receives the new tilemap later in rendering.
-                self.memory_changed.tile_map_0_changed = true;
+                rust_boy.gpu.memory_changed.tile_map_0_changed = true;
             } else {
                 // We are writing to tilemap 1. Therefore, we set the changed flag to make sure
                 // the GPU receives the new tilemap later in rendering.
-                self.memory_changed.tile_map_1_changed = true;
+                rust_boy.gpu.memory_changed.tile_map_1_changed = true;
             }
             return;
         } else {
-            self.handle_tile_data_change(normalized_address);
+            GPU::handle_tile_data_change(rust_boy, address);
         }
     }
 
@@ -345,8 +336,6 @@ impl GPU {
         let debugging_flags =
             DebuggingFlagsWithoutFileHandles::from_debugging_flags(debugging_flags);
         Self {
-            vram: [0; VRAM_END as usize - VRAM_BEGIN as usize + 1],
-            tile_set: [tile_handling::empty_tile(); 384],
             rendering_info: RenderingInfo::new_initial_state(),
             buffers_for_rendering: BuffersForRendering::new_empty(),
             gpu_registers: GPURegisters::new(debugging_flags),
