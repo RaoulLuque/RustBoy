@@ -2,7 +2,7 @@ use super::GPU;
 use crate::MEMORY_SIZE;
 use crate::gpu::registers::LCDCRegister;
 use crate::memory_bus::{OAM_END, OAM_START};
-use bytemuck::{cast, cast_ref, cast_slice};
+use bytemuck::cast_ref;
 
 /// Represents an object/sprite in the GPU's object attribute memory. These structs are used to
 /// more accessibly represent the data in the OAM (Object Attribute Memory).

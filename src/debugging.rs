@@ -4,7 +4,9 @@ use wasm_timer::Instant;
 
 use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
-use crate::gpu::registers::GPURegisters;
+use crate::gpu::GPU;
+use crate::gpu::registers::{GPURegisters, LCDCRegister};
+use crate::gpu::tile_handling::{Tile, TilePixelValue};
 use std::fs;
 use std::io::Write;
 
@@ -36,6 +38,7 @@ pub struct DebugInfo {
     pub sb_to_terminal: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct DebuggingFlagsWithoutFileHandles {
     pub doctor: bool,
@@ -361,4 +364,129 @@ fn push_match_interrupt_location_to_interrupt_name(interrupt_location: u16) -> O
         0x0060 => Some("JOYPAD".to_string()),
         _ => None,
     }
+}
+
+impl GPU {
+    /// Returns the current tile set for the background and window. Switches the addressing mode
+    /// automatically according to LCDC bit 4 (background_and_window_tile_data) as tile structs.
+    #[allow(dead_code)]
+    #[cfg(debug_assertions)]
+    pub fn get_background_and_window_tile_data_debug(&self, rust_boy: &RustBoy) -> [Tile; 256] {
+        if LCDCRegister::get_background_and_window_tile_data_flag(&rust_boy.memory) {
+            self.get_background_and_window_tile_data_block_0_and_1_debug(rust_boy)
+        } else {
+            self.get_background_and_window_tile_data_block_2_and_1_debug(rust_boy)
+        }
+    }
+
+    /// Returns the current tile set for the objects. That is, the tile set in
+    /// Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
+    #[allow(dead_code)]
+    #[cfg(debug_assertions)]
+    pub fn get_object_tile_data_debug(&self, rust_boy: &RustBoy) -> [Tile; 256] {
+        self.get_background_and_window_tile_data_block_0_and_1_debug(rust_boy)
+    }
+
+    /// Returns the tile data in Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
+    #[allow(dead_code)]
+    #[cfg(debug_assertions)]
+    pub fn get_background_and_window_tile_data_block_0_and_1_debug(
+        &self,
+        rust_boy: &RustBoy,
+    ) -> [Tile; 256] {
+        rust_boy.tile_set[0..256].try_into().expect(
+            "Slice should be of correct length, work with me here compiler:\
+                0 ... 256 = 256 (Tiles)",
+        )
+    }
+
+    /// Returns the tile data in Block 2 (0x9000 - 0x97FF) and Block 1 (0x8800 - 0x8FFF).
+    #[allow(dead_code)]
+    #[cfg(debug_assertions)]
+    pub fn get_background_and_window_tile_data_block_2_and_1_debug(
+        &self,
+        rust_boy: &RustBoy,
+    ) -> [Tile; 256] {
+        [&rust_boy.tile_set[256..384], &rust_boy.tile_set[128..256]]
+            .concat()
+            .try_into()
+            .expect(
+                "Slice should be of correct length, work with me here compiler:\
+                256 ... 384 + 128 ... 256 = 128 + 128 = 256 (Tiles)",
+            )
+    }
+}
+
+#[allow(dead_code)]
+pub fn tile_to_string(tile: &Tile) -> String {
+    let mut string = String::new();
+    for row in tile {
+        for pixel in row {
+            string.push_str(&convert_pixel_to_string(pixel));
+            string.push_str(" ");
+        }
+        string.push('\n');
+    }
+    string
+}
+
+#[allow(dead_code)]
+pub fn tile_data_to_string(tile_data: &[Tile; 256]) -> String {
+    let mut res_string = String::new();
+    for tile_row in 0..16 {
+        for in_tile_row in 0..8 {
+            for tile_column in 0..16 {
+                for in_tile_column in 0..8 {
+                    if in_tile_row == 0 && tile_column == 0 && in_tile_column == 0 {
+                        let tile_index_for_printing: usize = tile_row * 16 + tile_column;
+                        for i in 0..16 {
+                            res_string.push_str(&format!(
+                                "{:<17}",
+                                tile_n_string(tile_index_for_printing + i),
+                            ));
+                        }
+                        res_string.push_str("\n");
+                    }
+                    let tile_index = tile_row * 16 + tile_column;
+                    let tile: Tile = tile_data[tile_index];
+                    let pixel_value = tile[in_tile_row][in_tile_column];
+                    res_string.push_str(&convert_pixel_to_string(&pixel_value));
+                    res_string.push_str(" ");
+                }
+                res_string.push_str(" ");
+            }
+            res_string.push('\n');
+        }
+        res_string.push('\n');
+    }
+    res_string
+}
+
+#[allow(dead_code)]
+fn tile_n_string(tile_index: usize) -> String {
+    format!("Tile {}:", tile_index)
+}
+
+#[allow(dead_code)]
+pub fn convert_pixel_to_string(pixel: &TilePixelValue) -> String {
+    match pixel {
+        TilePixelValue::Zero => "▫".to_string(),
+        TilePixelValue::One => "▪".to_string(),
+        TilePixelValue::Two => "□".to_string(),
+        TilePixelValue::Three => "■".to_string(),
+    }
+}
+
+#[allow(dead_code)]
+pub fn tile_map_to_string(tile_map: &[u8; 1024]) -> String {
+    let mut string = String::new();
+    for row in 0..32 {
+        for column in 0..32 {
+            let tile_index = (row * 32 + column) as usize;
+            let tile_value = tile_map[tile_index];
+            string.push_str(&format!("{} ", tile_value));
+        }
+        string.push('\n');
+    }
+    string
 }

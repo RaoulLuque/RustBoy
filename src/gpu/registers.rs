@@ -514,7 +514,7 @@ impl GPURegisters {
 
     /// Get the GPU Mode
     pub fn get_gpu_mode(memory: &[u8; MEMORY_SIZE]) -> RenderingMode {
-        RenderingMode::from_u8(memory[LCD_STATUS_REGISTER_ADDRESS] & 0b0000_0011)
+        LCDStatusRegister::get_gpu_mode(memory)
     }
 }
 

@@ -1,6 +1,5 @@
 use super::GPU;
 use crate::MEMORY_SIZE;
-use crate::cpu::is_bit_set;
 use crate::frontend::shader::{
     BgAndWdViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
 };

@@ -5,8 +5,8 @@ use winit::window::Window;
 
 use super::{MEMORY_SIZE, ORIGINAL_SCREEN_WIDTH};
 use crate::frontend::shader::{
-    BgAndWdViewportPosition, ObjectsInScanline, Palettes, RenderingLinePositionAndObjectSize,
-    TileData, TilemapUniform, setup_render_shader_pipeline, setup_scanline_shader_pipeline,
+    ObjectsInScanline, TileData, TilemapUniform, setup_render_shader_pipeline,
+    setup_scanline_shader_pipeline,
 };
 use crate::gpu::GPU;
 use crate::gpu::information_for_shader::ChangesToPropagateToShader;

@@ -9,7 +9,6 @@ use crate::gpu::registers::LCDCRegister;
 use crate::interrupts::InterruptFlagRegister;
 use crate::{MEMORY_SIZE, RustBoy};
 use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
-use object_handling::Object;
 use registers::GPURegisters;
 
 const TILE_DATA_BLOCK_0_START: usize = 0x8000;
@@ -47,13 +46,8 @@ pub struct GPU {
     pub(crate) rendering_info: RenderingInfo,
     pub(crate) buffers_for_rendering: BuffersForRendering,
     pub gpu_registers: GPURegisters,
-    background_viewport_changed: bool,
-
-    pub(crate) oam: [Object; 40],
 
     pub memory_changed: ChangesToPropagateToShader,
-
-    debugging_flags: DebuggingFlagsWithoutFileHandles,
 }
 
 /// Struct to collect the information about the current rendering state of the GPU.
@@ -324,12 +318,8 @@ impl GPU {
             rendering_info: RenderingInfo::new_initial_state(),
             buffers_for_rendering: BuffersForRendering::new_empty(),
             gpu_registers: GPURegisters::new(debugging_flags),
-            background_viewport_changed: true,
-            oam: [Object::default(); 40],
 
             memory_changed: ChangesToPropagateToShader::new_true(),
-
-            debugging_flags,
         }
     }
 }
