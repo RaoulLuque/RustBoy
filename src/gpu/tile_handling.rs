@@ -142,11 +142,17 @@ impl GPU {
         if !LCDCRegister::get_window_tile_map_flag(memory) {
             memory[TILEMAP_ZERO_START..TILEMAP_ZERO_START + TILEMAP_SIZE]
                 .try_into()
-                .expect("Slice should be of correct length, work with me here compiler")
+                .expect(
+                    "Slice should be of correct length, work with me here compiler:\
+                0x9800 ... (0x9800 + 1024) = 1024 (bytes)",
+                )
         } else {
             memory[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
                 .try_into()
-                .expect("Slice should be of correct length, work with me here compiler")
+                .expect(
+                    "Slice should be of correct length, work with me here compiler:\
+                0x9C00 ... (0x9C00 + 1024) = 1024 (bytes)",
+                )
         }
     }
 
@@ -173,7 +179,10 @@ impl GPU {
     ) -> [u8; 4096] {
         memory[TILE_DATA_BLOCK_0_START..TILE_DATA_BLOCK_1_START + TILE_DATA_BLOCK_SIZE]
             .try_into()
-            .expect("Slice should be of correct length, work with me here compiler")
+            .expect(
+                "Slice should be of correct length, work with me here compiler:\
+                0x8000 ... (0x8800 + 2048) = 4096 (bytes)",
+            )
     }
 
     /// Returns the tile data in Block 2 (0x9000 - 0x97FF) and Block 1 (0x8800 - 0x8FFF).
@@ -187,7 +196,10 @@ impl GPU {
         ]
         .concat()
         .try_into()
-        .expect("Slice should be of correct length, work with me here compiler")
+        .expect(
+            "Slice should be of correct length, work with me here compiler:\
+                0x9000 ... (0x9000 + 2048) + 0x8800 ... (0x8800 + 2048) = 4096 (bytes)",
+        )
     }
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
@@ -214,9 +226,10 @@ impl GPU {
         &self,
         rust_boy: &RustBoy,
     ) -> [Tile; 256] {
-        rust_boy.tile_set[0..256]
-            .try_into()
-            .expect("Slice should be of correct length, work with me here compiler")
+        rust_boy.tile_set[0..256].try_into().expect(
+            "Slice should be of correct length, work with me here compiler:\
+                0 ... 256 = 256 (Tiles)",
+        )
     }
 
     /// Returns the tile data in Block 2 (0x9000 - 0x97FF) and Block 1 (0x8800 - 0x8FFF).
@@ -228,7 +241,10 @@ impl GPU {
         [&rust_boy.tile_set[256..384], &rust_boy.tile_set[128..256]]
             .concat()
             .try_into()
-            .expect("Slice should be of correct length, work with me here compiler")
+            .expect(
+                "Slice should be of correct length, work with me here compiler:\
+                256 ... 384 + 128 ... 256 = 128 + 128 = 256 (Tiles)",
+            )
     }
 
     /// Returns the current tilemap for the background. Switches the addressing mode
@@ -245,14 +261,20 @@ impl GPU {
     pub fn get_background_tile_map_zero(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
         memory[TILEMAP_ZERO_START..TILEMAP_ZERO_START + TILEMAP_SIZE]
             .try_into()
-            .expect("Slice should be of correct length, work with me here compiler")
+            .expect(
+                "Slice should be of correct length, work with me here compiler:\
+                0x9800 ... (0x9800 + 1024) = 1024 (bytes)",
+            )
     }
 
     /// Returns the first tilemap (0x9C00 - 0x9FFF).
     pub fn get_background_tile_map_one(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
         memory[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
             .try_into()
-            .expect("Slice should be of correct length, work with me here compiler")
+            .expect(
+                "Slice should be of correct length, work with me here compiler:\
+                0x9C00 ... (0x9C00 + 1024) = 1024 (bytes)",
+            )
     }
 }
 
