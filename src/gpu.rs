@@ -7,7 +7,6 @@ use crate::cpu::is_bit_set;
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::gpu::registers::LCDCRegister;
 use crate::interrupts::InterruptFlagRegister;
-use crate::memory_bus::{VRAM_BEGIN, VRAM_END};
 use crate::{MEMORY_SIZE, RustBoy};
 use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
 use object_handling::Object;
@@ -311,16 +310,6 @@ impl GPU {
         } else {
             GPU::handle_tile_data_change(rust_boy, address);
         }
-    }
-
-    /// Reads from the OAM (Object Attribute Memory) at the given address. Valid addresses are 0xFE00 - 0xFE9F.
-    pub fn read_oam(&self, address: u16) -> u8 {
-        self.handle_oam_read(address)
-    }
-
-    /// Writes to the OAM (Object Attribute Memory) at the given address. Valid addresses are 0xFE00 - 0xFE9F.
-    pub fn write_oam(&mut self, address: u16, value: u8) {
-        self.handle_oam_write(address, value)
     }
 
     /// Returns a new GPU with empty tile set and empty VRAM.

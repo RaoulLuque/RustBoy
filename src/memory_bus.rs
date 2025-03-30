@@ -45,7 +45,7 @@ impl RustBoy {
             }
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
             VRAM_BEGIN..VRAM_END => self.memory[address as usize],
-            OAM_START..OAM_END => self.gpu.read_oam(address),
+            OAM_START..OAM_END => self.memory[address as usize],
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
                 // When trying to read from unusable RAM, we return 0xFF
                 0xFF
@@ -77,7 +77,7 @@ impl RustBoy {
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             VRAM_BEGIN..VRAM_END => GPU::write_vram(self, address, value),
-            OAM_START..OAM_END => self.gpu.write_oam(address, value),
+            OAM_START..OAM_END => self.memory[address as usize] = value,
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
                 // When trying to write to unusable RAM, we just do nothing
             }
