@@ -1,5 +1,9 @@
-use crate::RustBoy;
+use crate::memory_bus::JOYPAD_REGISTER;
+use crate::{MEMORY_SIZE, RustBoy};
 use winit::keyboard::{KeyCode, PhysicalKey};
+
+const SELECT_DIRECTION_BUTTON_BIT: u8 = 4;
+const SELECT_ACTION_BUTTON_BIT: u8 = 5;
 
 /// Struct to represent the joypad state. The joypad state is represented by a single register
 /// in the real RustBoy. The register has two flags which can be selected, depending on which
@@ -8,11 +12,10 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 ///
 /// We emulate this by having two separate states for the action and direction buttons, and always
 /// writing to these whenever one of these buttons is pressed. The joypad_register keeps track of
-/// which of the two states is currently selected. Using the [Joypad::read_joypad_register] and
-/// [Joypad::write_joypad_register] methods, one can then read and write to the joypad. This class then
-/// handles the logic of which button state is supposed to be returned.
+/// which of the two states is currently selected. Using the [Joypad::get_joypad_register] and
+/// [Joypad::write_joypad_register] methods, one can then read and write to the joypad register.
+/// class then handles the logic of which button state is supposed to be returned.
 pub struct Joypad {
-    joypad_register: JoypadRegister,
     action_button_state: ButtonState,
     direction_button_state: ButtonState,
 }
@@ -26,19 +29,6 @@ struct ButtonState {
     select_or_up: bool,
     b_or_left: bool,
     a_or_right: bool,
-}
-
-/// Struct to represent the joypad register. The register has two flags which can be selected,
-/// depending on which the rest of it represents the state of the action or direction buttons.
-/// The register in the real RustBoy contains more bits, but we outsourced these into the
-/// ButtonState struct, see [Joypad]. Note that, rather unconventionally, true indicates that the respective
-/// button type is NOT being read and false indicates that it IS being read. If both flags are
-/// set to true, the joypad register will return 0xF for the lower nibble, indicating that no
-/// buttons are pressed.
-#[derive(Debug)]
-struct JoypadRegister {
-    select_action_buttons: bool,
-    select_directional_buttons: bool,
 }
 
 /// Enum to represent the buttons on the joypad. The enum is used to identify which button is
@@ -73,12 +63,11 @@ impl Joypad {
     /// We set the upper two bits
     /// to 1 by default, whereas in the real RustBoy they have no purpose. Otherwise, this register
     /// 0xFF00 behaves as described in the [Pan Docs](https://gbdev.io/pandocs/Joypad_Input.html).
-    pub fn read_joypad_register(&self) -> u8 {
-        let value: u8 = 0b1100_0000 | self.joypad_register.as_u8();
-        match (
-            !self.joypad_register.select_action_buttons,
-            !self.joypad_register.select_directional_buttons,
-        ) {
+    pub fn get_joypad_register(&self, memory: &[u8; MEMORY_SIZE]) -> u8 {
+        let value: u8 = (memory[JOYPAD_REGISTER as usize] & 0b0011_0000) | 0b1100_0000;
+        let select_action_button_flag = (value & (1 << SELECT_ACTION_BUTTON_BIT)) != 0;
+        let select_direction_button_flag = (value & (1 << SELECT_DIRECTION_BUTTON_BIT)) != 0;
+        match (!select_action_button_flag, !select_direction_button_flag) {
             (true, true) => {
                 value | (self.action_button_state.as_u8() & self.direction_button_state.as_u8())
             }
@@ -92,9 +81,9 @@ impl Joypad {
     ///
     /// Since bits 7,6 and the lower nibble are all not writable,
     /// only bits 5 and 4 of value will actually be considered.
-    pub fn write_joypad_register(&mut self, value: u8) {
-        self.joypad_register.select_action_buttons = (value & 0b0010_0000) != 0;
-        self.joypad_register.select_directional_buttons = (value & 0b0001_0000) != 0;
+    pub fn write_joypad_register(memory: &mut [u8; MEMORY_SIZE], value: u8) {
+        let value = value & 0b0011_0000;
+        memory[JOYPAD_REGISTER as usize] = value;
     }
 
     /// Handles the button press event by setting the corresponding button state to false (pressed).
@@ -131,7 +120,6 @@ impl Joypad {
     /// being pressed and when the RustBoy boots up.
     pub fn new_blank() -> Self {
         Joypad {
-            joypad_register: JoypadRegister::new_nothing_selected(),
             action_button_state: ButtonState::new_nothing_pressed(),
             direction_button_state: ButtonState::new_nothing_pressed(),
         }
@@ -163,29 +151,6 @@ impl ButtonState {
         }
         if self.a_or_right {
             value |= 0b0000_0001;
-        }
-        value
-    }
-}
-
-impl JoypadRegister {
-    /// Creates a new instance of the JoypadRegister struct such that currently neither the action
-    /// nor directional buttons are being read. Note that this means that both flags are set to
-    /// true.
-    pub fn new_nothing_selected() -> Self {
-        JoypadRegister {
-            select_action_buttons: true,
-            select_directional_buttons: true,
-        }
-    }
-
-    fn as_u8(&self) -> u8 {
-        let mut value: u8 = 0;
-        if self.select_action_buttons {
-            value |= 0b0010_0000;
-        }
-        if self.select_directional_buttons {
-            value |= 0b0001_0000;
         }
         value
     }

@@ -1,5 +1,6 @@
 use crate::RustBoy;
 use crate::gpu::GPU;
+use crate::input::Joypad;
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
@@ -14,6 +15,7 @@ pub const OAM_START: u16 = 0xFE00;
 pub const OAM_END: u16 = 0xFEA0;
 const UNUSABLE_RAM_BEGIN: u16 = 0xFEA0;
 const UNUSABLE_RAM_END: u16 = 0xFF00;
+pub(crate) const JOYPAD_REGISTER: u16 = 0xFF00;
 
 impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
@@ -52,7 +54,7 @@ impl RustBoy {
             }
 
             // Joypad register
-            0xFF00 => self.joypad.read_joypad_register(),
+            JOYPAD_REGISTER => self.joypad.get_joypad_register(&self.memory),
 
             // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49
@@ -83,7 +85,7 @@ impl RustBoy {
             }
 
             // Joypad register
-            0xFF00 => self.joypad.write_joypad_register(value),
+            0xFF00 => Joypad::write_joypad_register(&mut self.memory, value),
 
             // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49
