@@ -3,11 +3,10 @@ pub(crate) mod object_handling;
 pub mod registers;
 pub(crate) mod tile_handling;
 
+use crate::MemoryBus;
 use crate::cpu::is_bit_set;
-use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::interrupts::{Interrupt, InterruptFlagRegister};
 use crate::ppu::registers::LCDCRegister;
-use crate::MemoryBus;
 use information_for_shader::BuffersForRendering;
 use registers::PPURegisters;
 
@@ -45,7 +44,6 @@ pub(crate) const PPU_MODE_WHILE_LCD_TURNED_OFF: RenderingMode = RenderingMode::H
 pub struct PPU {
     pub(crate) rendering_info: RenderingInfo,
     pub(crate) buffers_for_rendering: BuffersForRendering,
-    pub ppu_registers: PPURegisters,
 }
 
 /// Struct to collect the information about the current rendering state of the GPU.
@@ -291,13 +289,10 @@ impl PPU {
     /// The lcd_was_turned_off flag is set to
     /// true, so the GPU starts off in HBlank mode instead of OAMScan, which is the supposed
     /// behavior after the LCD was turned on (for the first time or after being turned off).
-    pub fn new_empty(debugging_flags: &DebugInfo) -> Self {
-        let debugging_flags =
-            DebuggingFlagsWithoutFileHandles::from_debugging_flags(debugging_flags);
+    pub fn new_empty() -> Self {
         Self {
             rendering_info: RenderingInfo::new_initial_state(),
             buffers_for_rendering: BuffersForRendering::new_empty(),
-            ppu_registers: PPURegisters::new(debugging_flags),
         }
     }
 }

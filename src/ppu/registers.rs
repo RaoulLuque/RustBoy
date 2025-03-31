@@ -1,11 +1,8 @@
-use super::{
-    PPU, PPU_MODE_WHILE_LCD_TURNED_OFF, RenderingMode,
-};
+use super::{PPU, PPU_MODE_WHILE_LCD_TURNED_OFF, RenderingMode};
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
-use crate::debugging::DebuggingFlagsWithoutFileHandles;
-use crate::interrupts::{Interrupt, InterruptFlagRegister};
 use crate::MemoryBus;
+use crate::interrupts::{Interrupt, InterruptFlagRegister};
 
 // Addresses of the GPU registers
 const LCDC_REGISTER_ADDRESS: usize = 0xFF40;
@@ -37,7 +34,7 @@ const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 /// Represents the registers that control the GPU.
 ///
 /// This struct is empty and has no fields. Instead it is just used to group the GPU registers and make
-/// the interface nicer. The actual data of the registers is held in the [MemoryBus](crate::MemoryBus).
+/// the interface nicer. The actual data of the registers is held in the [MemoryBus](MemoryBus).
 ///
 /// TODO: Explain static function setup
 ///
@@ -53,12 +50,10 @@ const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 /// - 0xFF49: OBP1 - Object Palette 1 Data Register
 /// - 0xFF4A: WY - Window Y Position Register
 /// - 0xFF4B: WX - Window X Position Register
-pub struct PPURegisters {
-    pub(super) debugging_flags: DebuggingFlagsWithoutFileHandles,
-}
+pub struct PPURegisters {}
 
 /// Represents the LCDC register of the GPU. This struct is empty and has no fields. Instead, it is
-/// just used to make the interface nicer and the actual register is held in the [MemoryBus](crate::MemoryBus).
+/// just used to make the interface nicer and the actual register is held in the [MemoryBus](MemoryBus).
 ///
 /// TODO: Explain static function setup
 ///
@@ -75,7 +70,7 @@ pub struct PPURegisters {
 pub struct LCDCRegister {}
 
 /// Represents the LCD status register of the GPU. This struct is empty and has no fields. Instead, it is
-/// just used to make the interface nicer and the actual register is held in the [MemoryBus](crate::MemoryBus).
+/// just used to make the interface nicer and the actual register is held in the [MemoryBus](MemoryBus).
 ///
 /// TODO: Explain static function setup
 ///
@@ -136,12 +131,6 @@ impl PPU {
 }
 
 impl PPURegisters {
-    /// Creates a new instance of the GPURegisters struct with all registers set to their default
-    /// startup values.
-    pub fn new(debugging_flags: DebuggingFlagsWithoutFileHandles) -> Self {
-        Self { debugging_flags }
-    }
-
     /// Set the LCD Control register to the provided value.
     ///
     /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
@@ -457,7 +446,7 @@ impl LCDCRegister {
 }
 
 impl LCDStatusRegister {
-    /// Returns the GPU mode as a [super::RenderingMode] enum.
+    /// Returns the GPU mode as a [RenderingMode] enum.
     fn get_ppu_mode(memory_bus: &MemoryBus) -> RenderingMode {
         RenderingMode::from_u8(memory_bus.memory[LCD_STATUS_REGISTER_ADDRESS] & 0b0000_0011)
     }

@@ -138,19 +138,6 @@ impl InterruptEnableRegister {
         let interrupt_enable = InterruptEnableRegister::get_interrupt_enable_register(memory_bus);
         interrupt.is_set(interrupt_enable)
     }
-
-    /// Sets the value of the provided [Interrupt] in the interrupt enable register to the provided
-    /// value.
-    pub fn set_flag(memory_bus: &mut MemoryBus, interrupt: Interrupt, value: bool) {
-        let mut interrupt_enable =
-            InterruptEnableRegister::get_interrupt_enable_register(memory_bus);
-        interrupt_enable = if value {
-            interrupt.set(interrupt_enable)
-        } else {
-            interrupt.clear(interrupt_enable)
-        };
-        InterruptEnableRegister::set_interrupt_enable_register(memory_bus, interrupt_enable);
-    }
 }
 
 impl InterruptFlagRegister {

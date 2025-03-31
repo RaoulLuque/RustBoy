@@ -104,7 +104,7 @@ impl RustBoy {
     pub fn new_before_boot(debugging_flags: DebugInfo) -> RustBoy {
         RustBoy {
             memory_bus: MemoryBus::new_before_boot(&debugging_flags),
-            ppu: PPU::new_empty(&debugging_flags),
+            ppu: PPU::new_empty(),
             timer_info: TimerInfo::new(),
             cpu: CPU::new_before_boot_rom(debugging_flags),
         }
