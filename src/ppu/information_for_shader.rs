@@ -1,9 +1,9 @@
 use super::PPU;
+use crate::MemoryBus;
 use crate::frontend::shader::{
     BgAndWdViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
 };
 use crate::ppu::registers::PPURegisters;
-use crate::MemoryBus;
 
 /// Struct to keep track of the resources that are fetched during transfer (and OAMScan) mode which are then
 /// sent to the shader.

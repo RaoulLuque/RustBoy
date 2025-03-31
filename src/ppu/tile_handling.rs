@@ -2,9 +2,9 @@ use super::{
     PPU, TILE_DATA_BLOCK_0_START, TILE_DATA_BLOCK_1_START, TILE_DATA_BLOCK_2_START,
     TILE_DATA_BLOCK_SIZE, TILEMAP_ONE_START, TILEMAP_SIZE, TILEMAP_ZERO_START,
 };
+use crate::MemoryBus;
 use crate::memory_bus::VRAM_BEGIN;
 use crate::ppu::registers::LCDCRegister;
-use crate::MemoryBus;
 
 /// Represents the possible values of a tile pixel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
