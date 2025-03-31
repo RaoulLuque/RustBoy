@@ -66,7 +66,8 @@ impl GPU {
 
         let mut objects: [[u32; 4]; 10] = Default::default();
         let mut count = 0;
-        let adjusted_scanline = scanline + 16; // Adjust for y_position = 0 being 16 pixels above the top of the screen
+        // Adjust for y_position = 0 being 16 pixels above the top of the screen
+        let adjusted_scanline = scanline + 16;
 
         for i in 0..oam_as_objects.len() {
             let object = oam_as_objects[i];
