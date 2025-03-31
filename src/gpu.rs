@@ -6,7 +6,7 @@ pub(crate) mod tile_handling;
 use crate::cpu::is_bit_set;
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::gpu::registers::LCDCRegister;
-use crate::interrupts::InterruptFlagRegister;
+use crate::interrupts::{Interrupt, InterruptFlagRegister};
 use crate::{MEMORY_SIZE, RustBoy};
 use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
 use registers::GPURegisters;
@@ -106,12 +106,7 @@ impl GPU {
     ///
     /// The GPU steps through four different [RenderingMode]s. When VBlank is entered, or rather,
     /// when HBlank is exited, the flag for a VBlank interrupt is set.
-    pub fn gpu_step(
-        &mut self,
-        memory: &mut [u8; MEMORY_SIZE],
-        interrupt_flags: &mut InterruptFlagRegister,
-        dots: u32,
-    ) -> RenderTask {
+    pub fn gpu_step(&mut self, memory: &mut [u8; MEMORY_SIZE], dots: u32) -> RenderTask {
         // Always increment total dots (for debugging purposes)
         self.rendering_info.total_dots += dots as u128;
 
@@ -121,8 +116,8 @@ impl GPU {
                 // to its initial state. We only do this once when the LCD is turned off.
                 self.rendering_info.dots_clock = 0;
                 self.rendering_info.dots_for_transfer = 0;
-                GPURegisters::set_ppu_mode(memory, GPU_MODE_WHILE_LCD_TURNED_OFF, interrupt_flags);
-                GPURegisters::set_scanline(memory, 0, interrupt_flags);
+                GPURegisters::set_ppu_mode(memory, GPU_MODE_WHILE_LCD_TURNED_OFF);
+                GPURegisters::set_scanline(memory, 0);
                 self.rendering_info.lcd_was_turned_off = true;
             }
             RenderTask::None
@@ -136,7 +131,7 @@ impl GPU {
                 // flag.
                 // TODO: Possibly handle that first frame after turning on the LCD is not actually
                 // sent to the screen, but rather just a blank screen.
-                GPURegisters::set_ppu_mode(memory, RenderingMode::HBlank0, interrupt_flags);
+                GPURegisters::set_ppu_mode(memory, RenderingMode::HBlank0);
                 self.rendering_info.first_scanline_after_lcd_was_turned_on = true;
                 self.rendering_info.lcd_was_turned_off = false;
             }
@@ -148,11 +143,7 @@ impl GPU {
                         // lasts [DOTS_IN_OAM_SCAN] dots and then enters Transfer mode.
                         if self.rendering_info.dots_clock >= DOTS_IN_OAM_SCAN {
                             self.rendering_info.dots_clock -= DOTS_IN_OAM_SCAN;
-                            GPURegisters::set_ppu_mode(
-                                memory,
-                                RenderingMode::Transfer3,
-                                interrupt_flags,
-                            );
+                            GPURegisters::set_ppu_mode(memory, RenderingMode::Transfer3);
                             // We can now set the first_scanline_after_lcd_was_turned_on flag to
                             // false, since after this we are in Transfer mode and then regular
                             // HBlank mode, so the GPU can return to normal operation.
@@ -167,18 +158,13 @@ impl GPU {
                             GPURegisters::set_scanline(
                                 memory,
                                 GPURegisters::get_scanline_internal(memory) + 1,
-                                interrupt_flags,
                             );
                             if GPURegisters::get_scanline_internal(memory) == 144 {
                                 // We are entering VBlank, so we need to set the VBlank flag
                                 // and set the GPU mode to VBlank. Also, we send a render frame request to
                                 // the GPU, which renders the framebuffer to the screen.
-                                GPURegisters::set_ppu_mode(
-                                    memory,
-                                    RenderingMode::VBlank1,
-                                    interrupt_flags,
-                                );
-                                interrupt_flags.vblank = true;
+                                GPURegisters::set_ppu_mode(memory, RenderingMode::VBlank1);
+                                InterruptFlagRegister::set_flag(memory, Interrupt::VBlank, true);
                                 return RenderTask::RenderFrame;
                             } else {
                                 // We are still in HBlank, so we need to set the GPU mode to OAMScan2.
@@ -186,11 +172,7 @@ impl GPU {
                                 // framebuffer
                                 // We need to return current scanline - 1, since we are already in the next
                                 // scanline.
-                                GPURegisters::set_ppu_mode(
-                                    memory,
-                                    RenderingMode::OAMScan2,
-                                    interrupt_flags,
-                                );
+                                GPURegisters::set_ppu_mode(memory, RenderingMode::OAMScan2);
                                 let next_scanline = GPURegisters::get_scanline_internal(memory);
 
                                 // Since we are now entering OAMScan2, we want to check whether
@@ -211,7 +193,6 @@ impl GPU {
                         GPURegisters::set_scanline(
                             memory,
                             GPURegisters::get_scanline_internal(memory) + 1,
-                            interrupt_flags,
                         );
                         if GPURegisters::get_scanline_internal(memory) == 154 {
                             // On exiting VBlank, we update (reset) the window internal line counter
@@ -225,18 +206,14 @@ impl GPU {
                             self.rendering_info.wy_condition_was_met_this_frame = false;
                             self.rendering_info.window_is_rendered_this_scanline = false;
 
-                            GPURegisters::set_scanline(memory, 0, interrupt_flags);
+                            GPURegisters::set_scanline(memory, 0);
 
                             // Since we are now entering OAMScan2, we want to check whether
                             // the WY condition is met
                             self.rendering_info
                                 .check_wy_condition(0, GPURegisters::get_window_y_position(memory));
 
-                            GPURegisters::set_ppu_mode(
-                                memory,
-                                RenderingMode::OAMScan2,
-                                interrupt_flags,
-                            );
+                            GPURegisters::set_ppu_mode(memory, RenderingMode::OAMScan2);
                         }
                     }
                 }
@@ -248,11 +225,7 @@ impl GPU {
                             GPURegisters::get_scanline_internal(memory),
                         );
 
-                        GPURegisters::set_ppu_mode(
-                            memory,
-                            RenderingMode::Transfer3,
-                            interrupt_flags,
-                        );
+                        GPURegisters::set_ppu_mode(memory, RenderingMode::Transfer3);
                     }
                 }
                 RenderingMode::Transfer3 => {
@@ -270,7 +243,7 @@ impl GPU {
                             current_scanline,
                         );
 
-                        GPURegisters::set_ppu_mode(memory, RenderingMode::HBlank0, interrupt_flags);
+                        GPURegisters::set_ppu_mode(memory, RenderingMode::HBlank0);
                     }
                 }
             }

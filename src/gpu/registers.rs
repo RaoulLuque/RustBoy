@@ -7,7 +7,7 @@ use crate::cpu::{clear_bit, is_bit_set, set_bit};
 use crate::MEMORY_SIZE;
 use crate::debugging::DebuggingFlagsWithoutFileHandles;
 use crate::gpu::information_for_shader::ChangesToPropagateToShader;
-use crate::interrupts::InterruptFlagRegister;
+use crate::interrupts::{Interrupt, InterruptFlagRegister};
 
 // Addresses of the GPU registers
 const LCDC_REGISTER_ADDRESS: usize = 0xFF40;
@@ -39,7 +39,7 @@ const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 /// Represents the registers that control the GPU.
 ///
 /// This struct is empty and has no fields. Instead it is just used to group the GPU registers and make
-/// the interface nicer. The actual registers are all held in the [MemoryBus](crate::MemoryBus).
+/// the interface nicer. The actual data of the registers is held in the [MemoryBus](crate::MemoryBus).
 ///
 /// TODO: Explain static function setup
 ///
@@ -129,21 +129,15 @@ impl GPU {
     /// Needs a reference to the interrupt flag register, if a write
     /// to the scanline register is made and LY=LYC is set, in which case a stat interrupt might
     /// be requested.
-    pub fn write_registers(
-        &mut self,
-        memory: &mut [u8; MEMORY_SIZE],
-        address: u16,
-        value: u8,
-        interrupt_flag_register: &mut InterruptFlagRegister,
-    ) {
+    pub fn write_registers(&mut self, memory: &mut [u8; MEMORY_SIZE], address: u16, value: u8) {
         match address {
             0xFF40 => GPURegisters::set_lcd_control(memory, value, &mut self.memory_changed),
-            0xFF41 => GPURegisters::set_lcd_status(memory, value, interrupt_flag_register),
+            0xFF41 => GPURegisters::set_lcd_status(memory, value),
             0xFF42 => GPURegisters::set_bg_scroll_y(memory, value, &mut self.memory_changed),
             0xFF43 => GPURegisters::set_bg_scroll_x(memory, value, &mut self.memory_changed),
             // If the rom tries writing to the scanline register, it gets reset to 0
-            0xFF44 => GPURegisters::set_scanline(memory, 0, interrupt_flag_register),
-            0xFF45 => GPURegisters::set_scanline_compare(memory, value, interrupt_flag_register),
+            0xFF44 => GPURegisters::set_scanline(memory, 0),
+            0xFF45 => GPURegisters::set_scanline_compare(memory, value),
             0xFF47 => GPURegisters::set_background_palette(memory, value, &mut self.memory_changed),
             0xFF48 => {
                 GPURegisters::set_object_palette_zero(memory, value, &mut self.memory_changed)
@@ -202,17 +196,12 @@ impl GPURegisters {
     ///
     /// Needs a reference to the interrupt flag register, if the LYC=LY Coincidence Flag is set,
     /// in which case a stat interrupt might be requested.
-    pub fn set_lcd_status(
-        memory: &mut [u8; MEMORY_SIZE],
-        value: u8,
-        interrupt_flag_register: &mut InterruptFlagRegister,
-    ) {
+    pub fn set_lcd_status(memory: &mut [u8; MEMORY_SIZE], value: u8) {
         memory[LCD_STATUS_REGISTER_ADDRESS] = LCDStatusRegister::with_self_from_u8(memory, value);
         LCDStatusRegister::set_lyc_ly_coincidence_flag(
             memory,
             GPURegisters::get_scanline_internal(memory)
                 == GPURegisters::get_scanline_compare(memory),
-            interrupt_flag_register,
         );
     }
 
@@ -248,17 +237,12 @@ impl GPURegisters {
     ///
     /// Needs a reference to the interrupt flag register, if LY=LYC and a stat interrupt might be
     /// requested.
-    pub(super) fn set_scanline(
-        memory: &mut [u8; MEMORY_SIZE],
-        value: u8,
-        interrupt_flag_register: &mut InterruptFlagRegister,
-    ) {
+    pub(super) fn set_scanline(memory: &mut [u8; MEMORY_SIZE], value: u8) {
         memory[SCANLINE_REGISTER_ADDRESS] = value;
         LCDStatusRegister::set_lyc_ly_coincidence_flag(
             memory,
             GPURegisters::get_scanline_internal(memory)
                 == GPURegisters::get_scanline_compare(memory),
-            interrupt_flag_register,
         );
     }
 
@@ -266,17 +250,12 @@ impl GPURegisters {
     ///
     /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
     /// LY=LYC and the LYC int select is set.
-    fn set_scanline_compare(
-        memory: &mut [u8; MEMORY_SIZE],
-        value: u8,
-        interrupt_flag_register: &mut InterruptFlagRegister,
-    ) {
+    fn set_scanline_compare(memory: &mut [u8; MEMORY_SIZE], value: u8) {
         memory[SCANLINE_COMPARE_REGISTER_ADDRESS] = value;
         LCDStatusRegister::set_lyc_ly_coincidence_flag(
             memory,
             GPURegisters::get_scanline_internal(memory)
                 == GPURegisters::get_scanline_compare(memory),
-            interrupt_flag_register,
         );
     }
 
@@ -284,26 +263,22 @@ impl GPURegisters {
     ///
     /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
     /// the corresponding mode int select flag is set to the provided mode which is being entered.
-    pub(crate) fn set_ppu_mode(
-        memory: &mut [u8; MEMORY_SIZE],
-        mode: RenderingMode,
-        interrupt_flag_register: &mut InterruptFlagRegister,
-    ) {
+    pub(crate) fn set_ppu_mode(memory: &mut [u8; MEMORY_SIZE], mode: RenderingMode) {
         LCDStatusRegister::set_gpu_mode(memory, mode);
         match mode {
             RenderingMode::HBlank0 => {
                 if LCDStatusRegister::get_mode_0_int_select(memory) {
-                    interrupt_flag_register.lcd_stat = true;
+                    InterruptFlagRegister::set_flag(memory, Interrupt::LcdStat, true);
                 }
             }
             RenderingMode::VBlank1 => {
                 if LCDStatusRegister::get_mode_1_int_select(memory) {
-                    interrupt_flag_register.lcd_stat = true;
+                    InterruptFlagRegister::set_flag(memory, Interrupt::LcdStat, true);
                 }
             }
             RenderingMode::OAMScan2 => {
                 if LCDStatusRegister::get_mode_2_int_select(memory) {
-                    interrupt_flag_register.lcd_stat = true;
+                    InterruptFlagRegister::set_flag(memory, Interrupt::LcdStat, true);
                 }
             }
             RenderingMode::Transfer3 => {}
@@ -599,11 +574,7 @@ impl LCDStatusRegister {
     }
 
     /// Sets the LYC = LY Coincidence Flag to the provided value.
-    fn set_lyc_ly_coincidence_flag(
-        memory: &mut [u8; MEMORY_SIZE],
-        value: bool,
-        interrupt_flag_register: &mut InterruptFlagRegister,
-    ) {
+    fn set_lyc_ly_coincidence_flag(memory: &mut [u8; MEMORY_SIZE], value: bool) {
         memory[LCD_STATUS_REGISTER_ADDRESS] = if value {
             set_bit(
                 memory[LCD_STATUS_REGISTER_ADDRESS],
@@ -617,7 +588,7 @@ impl LCDStatusRegister {
         };
         if value {
             if LCDStatusRegister::get_lyc_int_select(memory) {
-                interrupt_flag_register.lcd_stat = true;
+                InterruptFlagRegister::set_flag(memory, Interrupt::LcdStat, true);
             }
         }
     }

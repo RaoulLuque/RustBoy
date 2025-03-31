@@ -1,3 +1,4 @@
+use crate::interrupts::{Interrupt, InterruptFlagRegister};
 use crate::{M_CYCLES_PER_SECOND, RustBoy};
 
 const DIVIDER_REGISTER_FREQUENCY: u32 = 16_384;
@@ -83,7 +84,7 @@ impl RustBoy {
             // https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff06--tma-timer-modulo
             self.write_byte(TIMER_ADDRESS, self.get_timer_wraparound_value());
             // Request a timer interrupt
-            self.interrupt_flag_register.timer = true;
+            InterruptFlagRegister::set_flag(&mut self.memory, Interrupt::Timer, true);
         } else {
             self.write_byte(TIMER_ADDRESS, current_timer_value.wrapping_add(1));
         }

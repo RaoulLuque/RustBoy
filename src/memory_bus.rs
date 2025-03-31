@@ -16,6 +16,8 @@ pub const OAM_END: u16 = 0xFEA0;
 const UNUSABLE_RAM_BEGIN: u16 = 0xFEA0;
 const UNUSABLE_RAM_END: u16 = 0xFF00;
 pub(crate) const JOYPAD_REGISTER: u16 = 0xFF00;
+pub(crate) const INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
+pub(crate) const INTERRUPT_ENABLE_REGISTER: u16 = 0xFFFF;
 
 impl RustBoy {
     /// Reads the instruction byte from the memory at the given address. Used separately to check
@@ -46,6 +48,7 @@ impl RustBoy {
                 }
             }
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
+
             VRAM_BEGIN..VRAM_END => self.memory[address as usize],
             OAM_START..OAM_END => self.memory[address as usize],
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
@@ -66,10 +69,10 @@ impl RustBoy {
             ),
 
             // Interrupt flag register
-            0xFF0F => u8::from(&self.interrupt_flag_register),
+            0xFF0F => InterruptFlagRegister::get_interrupt_flag_register(&self.memory),
 
             // Interrupt enable register
-            0xFFFF => u8::from(&self.interrupt_enable_register),
+            0xFFFF => InterruptEnableRegister::get_interrupt_enable_register(&self.memory),
 
             _ => self.memory[address as usize],
         }
@@ -78,6 +81,14 @@ impl RustBoy {
     /// Write a byte to the memory at the given address.
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
         match address {
+            // TODO: Add Memory bank controller
+            ROM_BANK_0_BEGIN..ROM_BANK_0_END => {
+                // When trying to write to ROM, we just do nothing (for now)
+            }
+            ROM_BANK_1_BEGIN..ROM_BANK_1_END => {
+                // When trying to write to ROM, we just do nothing (for now)
+            }
+
             VRAM_BEGIN..VRAM_END => GPU::write_vram(self, address, value),
             OAM_START..OAM_END => self.memory[address as usize] = value,
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
@@ -90,12 +101,7 @@ impl RustBoy {
             // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49
             | 0xFF4A | 0xFF4B => {
-                self.gpu.write_registers(
-                    &mut self.memory,
-                    address,
-                    value,
-                    &mut self.interrupt_flag_register,
-                );
+                self.gpu.write_registers(&mut self.memory, address, value);
             }
 
             // DMA transfer register
@@ -137,13 +143,13 @@ impl RustBoy {
             }
 
             // Interrupt flag register
-            0xFF0F => {
-                self.interrupt_flag_register = InterruptFlagRegister::from(value);
+            INTERRUPT_FLAG_REGISTER => {
+                InterruptFlagRegister::set_interrupt_flag_register(&mut self.memory, value);
             }
 
             // Interrupt enable register
-            0xFFFF => {
-                self.interrupt_enable_register = InterruptEnableRegister::from(value);
+            INTERRUPT_ENABLE_REGISTER => {
+                InterruptEnableRegister::set_interrupt_enable_register(&mut self.memory, value);
             }
 
             _ => {
@@ -167,10 +173,10 @@ impl RustBoy {
         self.read_word_little_endian(pc + 1)
     }
 
-    /// Writes data to the memory at the given address.
+    /// Writes data immediately to the memory at the given address.
     pub(super) fn load(&mut self, address: u16, data: &[u8]) {
         for (i, &byte) in data.iter().enumerate() {
-            self.write_byte(address + i as u16, byte);
+            self.memory[address as usize + i] = byte;
         }
     }
 

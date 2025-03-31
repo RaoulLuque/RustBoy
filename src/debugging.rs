@@ -7,6 +7,7 @@ use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::gpu::GPU;
 use crate::gpu::registers::{GPURegisters, LCDCRegister};
 use crate::gpu::tile_handling::{Tile, TilePixelValue};
+use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use std::fs;
 use std::io::Write;
 
@@ -156,11 +157,11 @@ pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
         data.push_str(&format!(" IME:{}", u8::from(rust_boy.ime)));
         data.push_str(&format!(
             " IF:{:02X}",
-            u8::from(&rust_boy.interrupt_flag_register)
+            InterruptFlagRegister::get_interrupt_flag_register(&rust_boy.memory)
         ));
         data.push_str(&format!(
             " IE:{:02X}",
-            u8::from(&rust_boy.interrupt_enable_register)
+            InterruptEnableRegister::get_interrupt_enable_register(&rust_boy.memory)
         ));
 
         let cycles_in_dots: u32 = rust_boy.gpu.rendering_info.dots_clock;

@@ -1,3 +1,4 @@
+use crate::cpu::is_bit_set;
 use crate::memory_bus::JOYPAD_REGISTER;
 use crate::{MEMORY_SIZE, RustBoy};
 use winit::keyboard::{KeyCode, PhysicalKey};
@@ -65,8 +66,8 @@ impl Joypad {
     /// 0xFF00 behaves as described in the [Pan Docs](https://gbdev.io/pandocs/Joypad_Input.html).
     pub fn get_joypad_register(&self, memory: &[u8; MEMORY_SIZE]) -> u8 {
         let value: u8 = (memory[JOYPAD_REGISTER as usize] & 0b0011_0000) | 0b1100_0000;
-        let select_action_button_flag = (value & (1 << SELECT_ACTION_BUTTON_BIT)) != 0;
-        let select_direction_button_flag = (value & (1 << SELECT_DIRECTION_BUTTON_BIT)) != 0;
+        let select_action_button_flag = is_bit_set(value, SELECT_ACTION_BUTTON_BIT);
+        let select_direction_button_flag = is_bit_set(value, SELECT_DIRECTION_BUTTON_BIT);
         match (!select_action_button_flag, !select_direction_button_flag) {
             (true, true) => {
                 value | (self.action_button_state.as_u8() & self.direction_button_state.as_u8())

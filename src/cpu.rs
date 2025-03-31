@@ -10,6 +10,7 @@ use crate::RustBoy;
 use crate::debugging::LOG_FILE_NAME;
 #[cfg(debug_assertions)]
 use crate::debugging::{doctor_log, instruction_log};
+use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::memory_bus::{OAM_END, OAM_START};
 use instructions::Instruction;
 
@@ -92,7 +93,8 @@ impl RustBoy {
 
         if self.halted {
             // Check if an interrupt is requested. If so, go out of halt mode.
-            if u8::from(&self.interrupt_flag_register) & u8::from(&self.interrupt_enable_register)
+            if InterruptFlagRegister::get_interrupt_flag_register(&self.memory)
+                & InterruptEnableRegister::get_interrupt_enable_register(&self.memory)
                 != 0
                 || interrupt_requested
             {
