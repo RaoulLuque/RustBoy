@@ -1,5 +1,5 @@
-use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
+use crate::{CPU, MemoryBus};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AddWordTarget {
@@ -16,14 +16,18 @@ pub enum AddWordSource {
     E8,
 }
 
-impl RustBoy {
+impl CPU {
     /// Handles the add instruction for the given [Register] if it adds bytes. For all of these
     /// instructions it also holds that these add to the A register.
     ///
     /// The ADD instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_add_byte_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_add_byte_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         let new_value = self.add(value, false);
         self.registers.a = new_value;
         new_pc
@@ -79,6 +83,7 @@ impl RustBoy {
     /// These Instructions take 2 cycles if the target is HL and 4 otherwise.
     pub fn handle_add_word_instruction(
         &mut self,
+        memory_bus: &MemoryBus,
         type_of_word_add: (AddWordTarget, AddWordSource),
     ) -> u16 {
         let (target, source) = type_of_word_add;
@@ -107,8 +112,8 @@ impl RustBoy {
                 self.pc.wrapping_add(1)
             }
             AddWordTarget::SP => {
-                let value = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
-                let value_u8 = self.read_byte(self.pc.wrapping_add(1));
+                let value = (memory_bus.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
+                let value_u8 = memory_bus.read_byte(self.pc.wrapping_add(1));
                 let new_sp = self.sp.wrapping_add_signed(value);
                 // Set flags by calling add Instruction, discarding result and overwriting zero flag
                 self.add_not_to_a(self.sp as u8, value_u8);
@@ -148,9 +153,13 @@ impl RustBoy {
     /// Does the same as [handle_add_instruction] but adds the carry flag to the value.
     ///
     /// The ADC instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_adc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_adc_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         let new_value = self.add(value, self.registers.f.get_carry_flag());
         self.registers.a = new_value;
         new_pc

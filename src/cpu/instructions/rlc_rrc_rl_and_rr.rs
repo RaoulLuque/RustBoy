@@ -1,18 +1,22 @@
 use super::SixteenBitInstructionTarget;
-use crate::RustBoy;
+use crate::{CPU, MemoryBus};
 
-impl RustBoy {
+impl CPU {
     /// Handles the RLC instruction for the given [super::SixteenBitInstructionTarget].
     ///
     /// The RLC instruction takes 2 cycles if the target is a register and 4 otherwise.
-    pub fn handle_rlc_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+    pub fn handle_rlc_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: SixteenBitInstructionTarget,
+    ) -> u16 {
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
-        let value = target.get_value(&self);
+        let value = target.get_value(memory_bus, &self);
         let new_value = self.rlc(value);
-        target.set_value(self, new_value);
+        target.set_value(memory_bus, self, new_value);
         self.pc.wrapping_add(2)
     }
 
@@ -31,14 +35,18 @@ impl RustBoy {
     /// Handles the RRC instruction for the given [super::SixteenBitInstructionTarget].
     ///
     /// The RRC instruction takes 2 cycles if the target is a register and 4 otherwise.
-    pub fn handle_rrc_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+    pub fn handle_rrc_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: SixteenBitInstructionTarget,
+    ) -> u16 {
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
-        let value = target.get_value(&self);
+        let value = target.get_value(memory_bus, &self);
         let new_value = self.rrc(value);
-        target.set_value(self, new_value);
+        target.set_value(memory_bus, self, new_value);
         self.pc.wrapping_add(2)
     }
 
@@ -57,14 +65,18 @@ impl RustBoy {
     /// Handles the RL instruction for the given [super::SixteenBitInstructionTarget].
     ///
     /// The RL instruction takes 2 cycles if the target is a register and 4 otherwise.
-    pub fn handle_rl_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+    pub fn handle_rl_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: SixteenBitInstructionTarget,
+    ) -> u16 {
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
-        let value = target.get_value(&self);
+        let value = target.get_value(memory_bus, &self);
         let new_value = self.rl(value);
-        target.set_value(self, new_value);
+        target.set_value(memory_bus, self, new_value);
         self.pc.wrapping_add(2)
     }
 
@@ -82,14 +94,18 @@ impl RustBoy {
     /// Handles the RR instruction for the given [super::SixteenBitInstructionTarget].
     ///
     /// The RR instruction takes 2 cycles if the target is a register and 4 otherwise.
-    pub fn handle_rr_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+    pub fn handle_rr_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: SixteenBitInstructionTarget,
+    ) -> u16 {
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
-        let value = target.get_value(&self);
+        let value = target.get_value(memory_bus, &self);
         let new_value = self.rr(value);
-        target.set_value(self, new_value);
+        target.set_value(memory_bus, self, new_value);
         self.pc.wrapping_add(2)
     }
 

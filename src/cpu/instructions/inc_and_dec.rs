@@ -1,5 +1,5 @@
 use super::Register;
-use crate::RustBoy;
+use crate::{CPU, MemoryBus};
 
 /// Represents the possible targets for an inc or dec instruction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -12,12 +12,16 @@ pub enum IncDecTarget {
     SP,
 }
 
-impl RustBoy {
+impl CPU {
     /// Handles the inc instruction for the given [IncDecTarget].
     ///
     /// The INC instruction takes 1 cycle if the target is a register, 3 if it is HLRef
     /// and 2 if it is BC, DE, HL or SP.
-    pub fn handle_inc_instruction(&mut self, target: IncDecTarget) -> u16 {
+    pub fn handle_inc_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: IncDecTarget,
+    ) -> u16 {
         match target {
             IncDecTarget::Register(register) => {
                 self.increment_cycle_counter(1);
@@ -27,9 +31,9 @@ impl RustBoy {
             IncDecTarget::HLRef => {
                 self.increment_cycle_counter(3);
                 let address = self.registers.get_hl();
-                let value = self.read_byte(address);
+                let value = memory_bus.read_byte(address);
                 let new_value = self.inc(value);
-                self.write_byte(address, new_value);
+                memory_bus.write_byte(address, new_value);
             }
             IncDecTarget::BC => {
                 self.increment_cycle_counter(2);
@@ -71,7 +75,11 @@ impl RustBoy {
     /// Handles the dec instruction for the given [IncDecTarget].
     /// The DEC instruction takes 1 cycle if the target is a register, 3 if it is HLRef
     /// and 2 if it is BC, DE, HL or SP.
-    pub fn handle_dec_instruction(&mut self, target: IncDecTarget) -> u16 {
+    pub fn handle_dec_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: IncDecTarget,
+    ) -> u16 {
         match target {
             IncDecTarget::Register(register) => {
                 self.increment_cycle_counter(1);
@@ -81,9 +89,9 @@ impl RustBoy {
             IncDecTarget::HLRef => {
                 self.increment_cycle_counter(3);
                 let address = self.registers.get_hl();
-                let value = self.read_byte(address);
+                let value = memory_bus.read_byte(address);
                 let new_value = self.dec(value);
-                self.write_byte(address, new_value);
+                memory_bus.write_byte(address, new_value);
             }
             IncDecTarget::BC => {
                 self.increment_cycle_counter(2);

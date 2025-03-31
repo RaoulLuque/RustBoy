@@ -1,9 +1,9 @@
-use super::GPU;
-use crate::MEMORY_SIZE;
+use super::PPU;
 use crate::frontend::shader::{
     BgAndWdViewportPosition, Palettes, RenderingLinePositionAndObjectSize,
 };
-use crate::gpu::registers::GPURegisters;
+use crate::ppu::registers::PPURegisters;
+use crate::{MEMORY_SIZE, MemoryBus};
 
 /// Struct to keep track of the resources that are fetched during transfer (and OAMScan) mode which are then
 /// sent to the shader.
@@ -38,49 +38,49 @@ impl BuffersForRendering {
     }
 }
 
-impl GPU {
+impl PPU {
     /// Fetches the tile data, tilemap, viewport position, palettes and other data needed for the
     /// next scanline to be rendered using the scanline shader. This data is buffered because the original
     /// RustBoy fetches it in mode 3 (Transfer) and we only actually render it in mode 0 (HBlank).
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
     pub(super) fn fetch_rendering_information_to_rendering_buffer(
         &mut self,
-        memory: &[u8; MEMORY_SIZE],
+        memory_bus: &MemoryBus,
         current_scanline: u8,
     ) {
-        self.buffers_for_rendering.background_tile_map = self.get_background_tile_map(memory);
+        self.buffers_for_rendering.background_tile_map = PPU::get_background_tile_map(memory_bus);
 
-        self.buffers_for_rendering.window_tile_map = self.get_window_tile_map(memory);
+        self.buffers_for_rendering.window_tile_map = PPU::get_window_tile_map(memory_bus);
 
         self.buffers_for_rendering.bg_and_wd_tile_data =
-            self.get_background_and_window_tile_data(memory);
+            PPU::get_background_and_window_tile_data(memory_bus);
 
         self.buffers_for_rendering.bg_and_wd_viewport_position = BgAndWdViewportPosition {
             pos: [
-                GPURegisters::get_bg_scroll_x(memory) as u32,
-                GPURegisters::get_bg_scroll_y(memory) as u32,
-                GPURegisters::get_window_x_position(memory) as u32,
-                GPURegisters::get_window_y_position(memory) as u32,
+                PPURegisters::get_bg_scroll_x(memory_bus) as u32,
+                PPURegisters::get_bg_scroll_y(memory_bus) as u32,
+                PPURegisters::get_window_x_position(memory_bus) as u32,
+                PPURegisters::get_window_y_position(memory_bus) as u32,
             ],
         };
 
         self.buffers_for_rendering.palettes = Palettes {
             values: [
-                GPURegisters::get_background_palette(memory) as u32,
-                GPURegisters::get_object_palette_zero(memory) as u32,
-                GPURegisters::get_object_palette_one(memory) as u32,
+                PPURegisters::get_background_palette(memory_bus) as u32,
+                PPURegisters::get_object_palette_zero(memory_bus) as u32,
+                PPURegisters::get_object_palette_one(memory_bus) as u32,
                 0,
             ],
         };
 
-        self.buffers_for_rendering.object_tile_data = self.get_object_tile_data(memory);
+        self.buffers_for_rendering.object_tile_data = PPU::get_object_tile_data(memory_bus);
 
         self.buffers_for_rendering
             .rendering_line_lcd_control_and_window_internal_line_info =
             RenderingLinePositionAndObjectSize {
                 pos: [
                     current_scanline as u32,
-                    GPURegisters::get_lcd_control(memory) as u32,
+                    PPURegisters::get_lcd_control(memory_bus) as u32,
                     // We pass the info necessary for the window internal line counter
                     self.rendering_info.window_is_rendered_this_scanline as u32,
                     // By the documentation of the [window_internal_line_counter](super::RenderingInfo)
@@ -97,10 +97,10 @@ impl GPU {
         log::trace!(
             "Window rendered this scanline: {}, Current LCD control: {:<8b}, Current Scanline: {:<3}, Window position: {:<3}/{:<3}",
             self.rendering_info.window_is_rendered_this_scanline as u32,
-            GPURegisters::get_lcd_control(memory),
+            PPURegisters::get_lcd_control(memory_bus),
             current_scanline,
-            GPURegisters::get_window_x_position(memory),
-            GPURegisters::get_window_y_position(memory)
+            PPURegisters::get_window_x_position(memory_bus),
+            PPURegisters::get_window_y_position(memory_bus)
         );
     }
 
@@ -110,11 +110,11 @@ impl GPU {
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
     pub(super) fn fetch_objects_in_scanline_to_rendering_buffer(
         &mut self,
-        memory: &[u8; MEMORY_SIZE],
+        memory_bus: &MemoryBus,
         current_scanline: u8,
     ) {
         self.buffers_for_rendering.objects_in_scanline_buffer =
-            self.get_objects_for_current_scanline(memory, current_scanline);
+            self.get_objects_for_current_scanline(memory_bus, current_scanline);
     }
 }
 

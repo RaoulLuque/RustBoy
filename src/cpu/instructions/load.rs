@@ -1,5 +1,5 @@
-use crate::RustBoy;
 use crate::cpu::instructions::Register;
+use crate::{CPU, MemoryBus};
 
 /// Represents the possible targets for a byte load instruction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -52,18 +52,22 @@ pub enum LoadType {
     Word(LoadWordTarget, LoadWordSource),
 }
 
-impl RustBoy {
+impl CPU {
     /// Handles the load instruction for the given [LoadType].
     ///
     /// The LD instruction takes 1 cycle if the source and targets are registers.
     /// It takes an additional cycle if the source if a reference or immediate operand like
     /// HLRef, HLRefIncrement, HLRefDecrement or D8.
-    pub fn handle_load_instruction(&mut self, type_of_load: LoadType) -> u16 {
+    pub fn handle_load_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        type_of_load: LoadType,
+    ) -> u16 {
         // The LD instruction takes 1 cycle by default.
         self.increment_cycle_counter(1);
         match type_of_load {
             LoadType::Byte(target, source) => {
-                let value = self.get_value_from_load_byte_source(source);
+                let value = self.get_value_from_load_byte_source(memory_bus, source);
                 // Increment the cycle counter if the source is a reference or immediate operand.
                 match target {
                     LoadByteTarget::REGISTER(register) => {
@@ -71,32 +75,32 @@ impl RustBoy {
                     }
                     LoadByteTarget::HLRef => {
                         self.increment_cycle_counter(1);
-                        self.write_byte(self.registers.get_hl(), value);
+                        memory_bus.write_byte(self.registers.get_hl(), value);
                     }
                     LoadByteTarget::HLRefIncrement => {
                         self.increment_cycle_counter(1);
-                        self.write_byte(self.registers.get_hl(), value);
+                        memory_bus.write_byte(self.registers.get_hl(), value);
                         self.registers
                             .set_hl(self.registers.get_hl().wrapping_add(1));
                     }
                     LoadByteTarget::HLRefDecrement => {
                         self.increment_cycle_counter(1);
-                        self.write_byte(self.registers.get_hl(), value);
+                        memory_bus.write_byte(self.registers.get_hl(), value);
                         self.registers
                             .set_hl(self.registers.get_hl().wrapping_sub(1));
                     }
                     LoadByteTarget::BCRef => {
                         self.increment_cycle_counter(1);
-                        self.write_byte(self.registers.get_bc(), value);
+                        memory_bus.write_byte(self.registers.get_bc(), value);
                     }
                     LoadByteTarget::DERef => {
                         self.increment_cycle_counter(1);
-                        self.write_byte(self.registers.get_de(), value);
+                        memory_bus.write_byte(self.registers.get_de(), value);
                     }
                     LoadByteTarget::A16Ref => {
                         self.increment_cycle_counter(3);
-                        let address = self.read_next_word_little_endian(self.pc);
-                        self.write_byte(address, value);
+                        let address = memory_bus.read_next_word_little_endian(self.pc);
+                        memory_bus.write_byte(address, value);
                     }
                 }
                 match (source, target) {
@@ -114,7 +118,7 @@ impl RustBoy {
                     (LoadWordTarget::SP, LoadWordSource::HL) => self.increment_cycle_counter(1),
                     _ => self.increment_cycle_counter(2),
                 };
-                let value = self.get_value_from_load_word_source(source);
+                let value = self.get_value_from_load_word_source(memory_bus, source);
                 match target {
                     LoadWordTarget::BC => {
                         self.registers.set_bc(value);
@@ -130,9 +134,10 @@ impl RustBoy {
                     }
                     LoadWordTarget::A16Ref => {
                         self.increment_cycle_counter(2);
-                        let address_to_store_to = self.read_next_word_little_endian(self.pc);
-                        self.write_byte(address_to_store_to, value as u8);
-                        self.write_byte(address_to_store_to.wrapping_add(1), (value >> 8) as u8);
+                        let address_to_store_to = memory_bus.read_next_word_little_endian(self.pc);
+                        memory_bus.write_byte(address_to_store_to, value as u8);
+                        memory_bus
+                            .write_byte(address_to_store_to.wrapping_add(1), (value >> 8) as u8);
                     }
                 }
                 match (target, source) {
@@ -148,57 +153,65 @@ impl RustBoy {
     ///
     /// The function also increments the cycle counter if the source is an immediate operand or
     /// a reference.
-    fn get_value_from_load_byte_source(&mut self, source: LoadByteSource) -> u8 {
+    fn get_value_from_load_byte_source(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: LoadByteSource,
+    ) -> u8 {
         match source {
             LoadByteSource::REGISTER(register) => register.get_register(&self.registers),
             LoadByteSource::D8 => {
                 self.increment_cycle_counter(1);
-                self.read_byte(self.pc.wrapping_add(1))
+                memory_bus.read_byte(self.pc.wrapping_add(1))
             }
             LoadByteSource::HLRef => {
                 self.increment_cycle_counter(1);
-                self.read_byte(self.registers.get_hl())
+                memory_bus.read_byte(self.registers.get_hl())
             }
             LoadByteSource::HLRefIncrement => {
                 self.increment_cycle_counter(1);
                 let hl = self.registers.get_hl();
-                let value = self.read_byte(hl);
+                let value = memory_bus.read_byte(hl);
                 self.registers.set_hl(hl.wrapping_add(1));
                 value
             }
             LoadByteSource::HLRefDecrement => {
                 self.increment_cycle_counter(1);
                 let hl = self.registers.get_hl();
-                let value = self.read_byte(hl);
+                let value = memory_bus.read_byte(hl);
                 self.registers.set_hl(hl.wrapping_sub(1));
                 value
             }
             LoadByteSource::BCRef => {
                 self.increment_cycle_counter(1);
-                self.read_byte(self.registers.get_bc())
+                memory_bus.read_byte(self.registers.get_bc())
             }
             LoadByteSource::DERef => {
                 self.increment_cycle_counter(1);
-                self.read_byte(self.registers.get_de())
+                memory_bus.read_byte(self.registers.get_de())
             }
             LoadByteSource::A16Ref => {
                 self.increment_cycle_counter(3);
-                let address = self.read_next_word_little_endian(self.pc);
-                self.read_byte(address)
+                let address = memory_bus.read_next_word_little_endian(self.pc);
+                memory_bus.read_byte(address)
             }
         }
     }
 
     /// Returns the value from the given [LoadWordSource].
-    fn get_value_from_load_word_source(&mut self, source: LoadWordSource) -> u16 {
+    fn get_value_from_load_word_source(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: LoadWordSource,
+    ) -> u16 {
         match source {
-            LoadWordSource::D16 => self.read_next_word_little_endian(self.pc),
+            LoadWordSource::D16 => memory_bus.read_next_word_little_endian(self.pc),
             LoadWordSource::SP => self.sp,
             LoadWordSource::HL => self.registers.get_hl(),
             LoadWordSource::SPPlusE8 => {
-                let value = (self.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
+                let value = (memory_bus.read_byte(self.pc.wrapping_add(1)) as i8) as i16;
                 // Set flags by calling add Instruction, discarding result and overwriting zero flag
-                self.add_not_to_a(self.sp as u8, self.read_byte(self.pc.wrapping_add(1)));
+                self.add_not_to_a(self.sp as u8, memory_bus.read_byte(self.pc.wrapping_add(1)));
                 self.registers.f.set_zero_flag(false);
                 (self.sp).wrapping_add_signed(value)
             }

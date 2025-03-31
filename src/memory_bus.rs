@@ -1,7 +1,11 @@
-use crate::RustBoy;
-use crate::gpu::GPU;
-use crate::input::Joypad;
+use crate::cpu::registers::CPURegisters;
+use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
+use crate::input::{ButtonState, Joypad};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
+use crate::ppu::information_for_shader::ChangesToPropagateToShader;
+use crate::ppu::registers::PPURegisters;
+use crate::ppu::tile_handling::{Tile, empty_tile};
+use crate::{MEMORY_SIZE, PPU, RustBoy};
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
 const ROM_BANK_0_END: u16 = 0x4000;
@@ -19,7 +23,31 @@ pub(crate) const JOYPAD_REGISTER: u16 = 0xFF00;
 pub(crate) const INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
 pub(crate) const INTERRUPT_ENABLE_REGISTER: u16 = 0xFFFF;
 
-impl RustBoy {
+pub struct MemoryBus {
+    pub memory: [u8; MEMORY_SIZE],
+    bios: [u8; 0x0100],
+    pub(crate) being_initialized: bool,
+    pub(crate) starting_up: bool,
+
+    pub(crate) debugging_flags_without_file_handles: DebuggingFlagsWithoutFileHandles,
+
+    pub(crate) memory_changed: ChangesToPropagateToShader,
+
+    // The following should be tried to get rid of
+    pub tile_set: [Tile; 384],
+
+    pub(crate) dma_happened: bool,
+
+    pub(crate) action_button_state: ButtonState,
+    pub(crate) direction_button_state: ButtonState,
+}
+
+impl MemoryBus {
+    /// Loads a program into the memory bus at address 0x0000.
+    pub fn load_program(&mut self, rom_data: &[u8]) {
+        self.load(0x0000, &rom_data);
+    }
+
     /// Reads the instruction byte from the memory at the given address. Used separately to check
     /// if the CPU is starting up.
     ///
@@ -57,22 +85,17 @@ impl RustBoy {
             }
 
             // Joypad register
-            JOYPAD_REGISTER => self.joypad.get_joypad_register(&self.memory),
+            JOYPAD_REGISTER => Joypad::get_joypad_register(&self),
 
             // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49
-            | 0xFF4A | 0xFF4B => self.gpu.read_registers(
-                &self.memory,
-                address,
-                self.cycles_current_instruction
-                    .expect("Cycles for the current instruction should already be set"),
-            ),
+            | 0xFF4A | 0xFF4B => PPU::read_registers(&self, address),
 
             // Interrupt flag register
-            0xFF0F => InterruptFlagRegister::get_interrupt_flag_register(&self.memory),
+            0xFF0F => InterruptFlagRegister::get_interrupt_flag_register(&self),
 
             // Interrupt enable register
-            0xFFFF => InterruptEnableRegister::get_interrupt_enable_register(&self.memory),
+            0xFFFF => InterruptEnableRegister::get_interrupt_enable_register(&self),
 
             _ => self.memory[address as usize],
         }
@@ -89,19 +112,19 @@ impl RustBoy {
                 // When trying to write to ROM, we just do nothing (for now)
             }
 
-            VRAM_BEGIN..VRAM_END => GPU::write_vram(self, address, value),
+            VRAM_BEGIN..VRAM_END => PPU::write_vram(self, address, value),
             OAM_START..OAM_END => self.memory[address as usize] = value,
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
                 // When trying to write to unusable RAM, we just do nothing
             }
 
             // Joypad register
-            0xFF00 => Joypad::write_joypad_register(&mut self.memory, value),
+            0xFF00 => Joypad::write_joypad_register(self, value),
 
             // GPU registers
             0xFF40 | 0xFF41 | 0xFF42 | 0xFF43 | 0xFF44 | 0xFF45 | 0xFF47 | 0xFF48 | 0xFF49
             | 0xFF4A | 0xFF4B => {
-                self.gpu.write_registers(&mut self.memory, address, value);
+                PPU::write_registers(self, address, value);
             }
 
             // DMA transfer register
@@ -117,11 +140,11 @@ impl RustBoy {
 
             // Serial transfer register
             0xFF01 => {
-                if self.debugging_flags.timing_mode {
+                if self.debugging_flags_without_file_handles.timing_mode {
                     if value as char == 'P' {
                         println!(
                             "Run took: {} seconds",
-                            self.debugging_flags
+                            self.debugging_flags_without_file_handles
                                 .start_time
                                 .expect("Start time should be set")
                                 .elapsed()
@@ -130,7 +153,7 @@ impl RustBoy {
                         );
                     }
                 }
-                if self.debugging_flags.sb_to_terminal {
+                if self.debugging_flags_without_file_handles.sb_to_terminal {
                     println!("Write to SB: {}", value as char);
                 }
                 self.memory[address as usize] = value;
@@ -144,12 +167,12 @@ impl RustBoy {
 
             // Interrupt flag register
             INTERRUPT_FLAG_REGISTER => {
-                InterruptFlagRegister::set_interrupt_flag_register(&mut self.memory, value);
+                InterruptFlagRegister::set_interrupt_flag_register(self, value);
             }
 
             // Interrupt enable register
             INTERRUPT_ENABLE_REGISTER => {
-                InterruptEnableRegister::set_interrupt_enable_register(&mut self.memory, value);
+                InterruptEnableRegister::set_interrupt_enable_register(self, value);
             }
 
             _ => {
@@ -177,6 +200,45 @@ impl RustBoy {
     pub(super) fn load(&mut self, address: u16, data: &[u8]) {
         for (i, &byte) in data.iter().enumerate() {
             self.memory[address as usize + i] = byte;
+        }
+    }
+
+    /// The DMA transfer is started by writing to the DMA register at 0xFF46. The value written
+    /// is the starting address of the transfer divided by 0x100 (= 256). The transfer takes 160
+    /// cycles.
+    ///
+    /// TODO: Possibly split the copy instruction into 40 individual writes each taking 4 cycles
+    /// to simulate the transfer speed of the DMG.
+    pub(crate) fn handle_dma(&mut self, address: u8) {
+        if !self.debugging_flags_without_file_handles.binjgb_mode {
+            // In the binjgb emulator, the DMA transfer does not seem to increment the cycle counter
+            self.dma_happened = true;
+        }
+        let address = (address as u16) << 8;
+        for i in 0..(OAM_END - OAM_START) + 1 {
+            let value = self.read_byte(address + i);
+            self.write_byte(OAM_START + i, value);
+        }
+    }
+
+    pub fn new_before_boot(debug_info: &DebugInfo) -> Self {
+        MemoryBus {
+            memory: [0; 65536],
+            bios: [0; 0x0100],
+            starting_up: true,
+            being_initialized: true,
+
+            debugging_flags_without_file_handles:
+                DebuggingFlagsWithoutFileHandles::from_debugging_flags(debug_info),
+
+            memory_changed: ChangesToPropagateToShader::new_true(),
+
+            tile_set: [empty_tile(); 384],
+
+            dma_happened: false,
+
+            action_button_state: ButtonState::new_nothing_pressed(),
+            direction_button_state: ButtonState::new_nothing_pressed(),
         }
     }
 

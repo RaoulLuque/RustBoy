@@ -1,6 +1,6 @@
-use crate::RustBoy;
+use crate::CPU;
 
-impl RustBoy {
+impl CPU {
     /// Handles the halt instruction.
     ///
     /// Takes 1 cycle to execute.

@@ -1,5 +1,5 @@
 use super::{BitTarget, SixteenBitInstructionTarget};
-use crate::RustBoy;
+use crate::{CPU, MemoryBus};
 
 /// Represents the possible types of bit instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -7,12 +7,16 @@ pub enum BitInstructionType {
     Bit(SixteenBitInstructionTarget, BitTarget),
 }
 
-impl RustBoy {
+impl CPU {
     /// Handles the bit instruction for the given [BitInstructionType].
     ///
     /// The BIT instruction takes 2 cycles if the target is a register and 3 if it is the memory
     /// where HL points to.
-    pub fn handle_bit_instruction(&mut self, bit_instruction_type: BitInstructionType) -> u16 {
+    pub fn handle_bit_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        bit_instruction_type: BitInstructionType,
+    ) -> u16 {
         match bit_instruction_type {
             BitInstructionType::Bit(target, bit_to_check) => {
                 match target {
@@ -23,7 +27,7 @@ impl RustBoy {
                         self.increment_cycle_counter(2);
                     }
                 }
-                let value = target.get_value(&self);
+                let value = target.get_value(memory_bus, &self);
                 self.bit(value, bit_to_check);
                 self.pc.wrapping_add(2)
             }

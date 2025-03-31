@@ -6,20 +6,31 @@ pub(crate) mod instructions;
 mod memory_bus;
 pub mod registers;
 
-use crate::RustBoy;
-use crate::debugging::LOG_FILE_NAME;
+use crate::cpu::registers::CPURegisters;
+use crate::debugging::{DebugInfo, LOG_FILE_NAME};
 #[cfg(debug_assertions)]
 use crate::debugging::{doctor_log, instruction_log};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::memory_bus::{OAM_END, OAM_START};
+use crate::{MemoryBus, PPU, RustBoy};
 use instructions::Instruction;
 
-impl RustBoy {
-    /// Loads a program into the memory bus at address 0x0000.
-    pub fn load_program(&mut self, rom_data: &[u8]) {
-        self.load(0x0000, &rom_data);
-    }
+pub struct CPU {
+    pub registers: CPURegisters,
+    pub pc: u16,
+    pub sp: u16,
+    cycle_counter: u64,
+    pub(crate) cycles_current_instruction: Option<u8>,
+    pub(crate) ime: bool,
+    ime_to_be_set: bool,
+    halted: bool,
+    just_entered_halt: bool,
 
+    // Debugging Flags
+    pub(crate) debugging_flags: DebugInfo,
+}
+
+impl CPU {
     /// Sets the stackpointer (SP) to the provided value.
     fn set_sp(&mut self, value: u16) {
         self.sp = value;
@@ -36,7 +47,7 @@ impl RustBoy {
 
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
-    pub fn cpu_step(&mut self) {
+    pub fn cpu_step(&mut self, memory_bus: &mut MemoryBus, ppu: &PPU) {
         // Log the current state of the registers if in debug mode. Don't want all this in release
         // builds, which is why we use the cfg conditional compilation feature.
         #[cfg(debug_assertions)]
@@ -45,10 +56,10 @@ impl RustBoy {
             // have to log the state of the registers if we are in halt mode.
             // TODO: Make this more compact by calling a function to handle the logging
             if self.debugging_flags.doctor {
-                doctor_log(self, "doctor");
+                doctor_log(self, memory_bus, ppu, "doctor");
             }
             if self.debugging_flags.file_logs {
-                doctor_log(self, LOG_FILE_NAME)
+                doctor_log(self, memory_bus, ppu, LOG_FILE_NAME)
             }
         }
 
@@ -60,13 +71,13 @@ impl RustBoy {
         // interrupt location. If no interrupt is requested, None is returned.
         // If an interrupt is requested, the corresponding bit in the interrupt flag register
         // and the IME (Interrupt Master Enable) flag are set to 0.
-        if let Some(interrupt_location) = self.check_if_interrupt_is_requested() {
+        if let Some(interrupt_location) = self.check_if_interrupt_is_requested(memory_bus) {
             // The flag register and IME (Interrupt Master Enable) flag are already set to 0 by
             // the check_if_interrupt_is_requested function, so we don't need to do it again here.
 
             // Push the current program counter (PC) onto the stack and set the program counter to
             // the interrupt location.
-            self.push(self.pc);
+            self.push(memory_bus, self.pc);
             self.pc = interrupt_location;
             self.increment_cycle_counter(5);
 
@@ -76,7 +87,13 @@ impl RustBoy {
             // Log the interrupt if in debug mode
             #[cfg(debug_assertions)]
             if self.debugging_flags.file_logs {
-                instruction_log(&self, LOG_FILE_NAME, None, Some(interrupt_location));
+                instruction_log(
+                    &self,
+                    memory_bus,
+                    LOG_FILE_NAME,
+                    None,
+                    Some(interrupt_location),
+                );
             }
         }
 
@@ -93,8 +110,8 @@ impl RustBoy {
 
         if self.halted {
             // Check if an interrupt is requested. If so, go out of halt mode.
-            if InterruptFlagRegister::get_interrupt_flag_register(&self.memory)
-                & InterruptEnableRegister::get_interrupt_enable_register(&self.memory)
+            if InterruptFlagRegister::get_interrupt_flag_register(memory_bus)
+                & InterruptEnableRegister::get_interrupt_enable_register(memory_bus)
                 != 0
                 || interrupt_requested
             {
@@ -113,10 +130,10 @@ impl RustBoy {
                 {
                     // We are leaving halt mode, so we log the current state of the registers
                     if self.debugging_flags.doctor {
-                        doctor_log(self, "doctor");
+                        doctor_log(self, memory_bus, ppu, "doctor");
                     }
                     if self.debugging_flags.file_logs {
-                        doctor_log(self, LOG_FILE_NAME)
+                        doctor_log(self, memory_bus, ppu, LOG_FILE_NAME)
                     }
                 }
             } else {
@@ -131,12 +148,12 @@ impl RustBoy {
             }
         }
 
-        let mut instruction_byte = self.read_instruction_byte(self.pc);
+        let mut instruction_byte = memory_bus.read_instruction_byte(self.pc);
 
         // Check if the instruction is a CB instruction (prefix)
         let prefixed = instruction_byte == 0xCB;
         if prefixed {
-            instruction_byte = self.read_byte(self.pc.wrapping_add(1));
+            instruction_byte = memory_bus.read_byte(self.pc.wrapping_add(1));
         }
 
         let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
@@ -144,10 +161,10 @@ impl RustBoy {
             // Log the instruction byte if in debug mode.
             #[cfg(debug_assertions)]
             if self.debugging_flags.file_logs {
-                instruction_log(&self, LOG_FILE_NAME, Some(instruction), None);
+                instruction_log(&self, memory_bus, LOG_FILE_NAME, Some(instruction), None);
             }
 
-            self.execute(instruction)
+            self.execute(memory_bus, instruction)
         } else {
             let panic_description = format!(
                 "0x{}{:02x}",
@@ -157,71 +174,73 @@ impl RustBoy {
             panic!("Invalid instruction found for: {}", panic_description);
         };
 
+        if memory_bus.dma_happened && !self.debugging_flags.binjgb_mode {
+            self.increment_cycle_counter(160);
+            memory_bus.dma_happened = false;
+        }
+
         if !halt_bug {
             self.pc = next_pc;
         }
     }
 
-    /// Initializes the hardware registers to their default values after the boot rom ran.
-    /// See [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
-    pub(crate) fn initialize_hardware_registers(&mut self) {
-        self.write_byte(0xFF00, 0xCF);
-        self.write_byte(0xFF01, 0x00);
-        self.write_byte(0xFF02, 0x7E);
-        self.write_byte(0xFF04, 0xAB);
-        self.write_byte(0xFF05, 0x00);
-        self.write_byte(0xFF06, 0x00);
-        self.write_byte(0xFF07, 0xF8);
-        self.write_byte(0xFF0F, 0xE1);
-        self.write_byte(0xFF10, 0x80);
-        self.write_byte(0xFF11, 0xBF);
-        self.write_byte(0xFF12, 0xF3);
-        self.write_byte(0xFF13, 0xFF);
-        self.write_byte(0xFF14, 0xBF);
-        self.write_byte(0xFF16, 0x3F);
-        self.write_byte(0xFF17, 0x00);
-        self.write_byte(0xFF19, 0xBF);
-        self.write_byte(0xFF1A, 0x7F);
-        self.write_byte(0xFF1B, 0xFF);
-        self.write_byte(0xFF1C, 0x9F);
-        self.write_byte(0xFF1D, 0xFF);
-        self.write_byte(0xFF1E, 0xBF);
-        self.write_byte(0xFF20, 0xFF);
-        self.write_byte(0xFF21, 0x00);
-        self.write_byte(0xFF22, 0x00);
-        self.write_byte(0xFF23, 0xBF);
-        self.write_byte(0xFF24, 0x77);
-        self.write_byte(0xFF25, 0xF3);
-        self.write_byte(0xFF26, 0xF1);
-        self.write_byte(0xFF40, 0x91);
-        self.write_byte(0xFF41, 0x85);
-        self.write_byte(0xFF42, 0x00);
-        self.write_byte(0xFF43, 0x00);
-        self.write_byte(0xFF44, 0x00);
-        self.write_byte(0xFF45, 0x00);
-        self.write_byte(0xFF46, 0xFF);
-        self.write_byte(0xFF47, 0xFC);
-        self.write_byte(0xFF4A, 0x00);
-        self.write_byte(0xFF4B, 0x00);
-        self.write_byte(0xFFFF, 0x00);
+    pub fn new_before_boot_rom(debugging_flags: DebugInfo) -> Self {
+        CPU {
+            registers: CPURegisters::new_zero(),
+            pc: 0x0000,
+            sp: 0xFFFE,
+            cycle_counter: 0,
+            cycles_current_instruction: None,
+            ime: false,
+            ime_to_be_set: false,
+            halted: false,
+            just_entered_halt: false,
+            debugging_flags,
+        }
     }
 
-    /// The DMA transfer is started by writing to the DMA register at 0xFF46. The value written
-    /// is the starting address of the transfer divided by 0x100 (= 256). The transfer takes 160
-    /// cycles.
-    ///
-    /// TODO: Possibly split the copy instruction into 40 individual writes each taking 4 cycles
-    /// to simulate the transfer speed of the DMG.
-    pub(crate) fn handle_dma(&mut self, address: u8) {
-        if !self.debugging_flags.binjgb_mode {
-            // In the binjgb emulator, the DMA transfer does not seem to increment the cycle counter
-            self.increment_cycle_counter(160);
-        }
-        let address = (address as u16) << 8;
-        for i in 0..(OAM_END - OAM_START) + 1 {
-            let value = self.read_byte(address + i);
-            self.write_byte(OAM_START + i, value);
-        }
+    /// Initializes the hardware registers to their default values after the boot rom ran.
+    /// See [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
+    pub(crate) fn initialize_hardware_registers(memory_bus: &mut MemoryBus) {
+        memory_bus.write_byte(0xFF00, 0xCF);
+        memory_bus.write_byte(0xFF01, 0x00);
+        memory_bus.write_byte(0xFF02, 0x7E);
+        memory_bus.write_byte(0xFF04, 0xAB);
+        memory_bus.write_byte(0xFF05, 0x00);
+        memory_bus.write_byte(0xFF06, 0x00);
+        memory_bus.write_byte(0xFF07, 0xF8);
+        memory_bus.write_byte(0xFF0F, 0xE1);
+        memory_bus.write_byte(0xFF10, 0x80);
+        memory_bus.write_byte(0xFF11, 0xBF);
+        memory_bus.write_byte(0xFF12, 0xF3);
+        memory_bus.write_byte(0xFF13, 0xFF);
+        memory_bus.write_byte(0xFF14, 0xBF);
+        memory_bus.write_byte(0xFF16, 0x3F);
+        memory_bus.write_byte(0xFF17, 0x00);
+        memory_bus.write_byte(0xFF19, 0xBF);
+        memory_bus.write_byte(0xFF1A, 0x7F);
+        memory_bus.write_byte(0xFF1B, 0xFF);
+        memory_bus.write_byte(0xFF1C, 0x9F);
+        memory_bus.write_byte(0xFF1D, 0xFF);
+        memory_bus.write_byte(0xFF1E, 0xBF);
+        memory_bus.write_byte(0xFF20, 0xFF);
+        memory_bus.write_byte(0xFF21, 0x00);
+        memory_bus.write_byte(0xFF22, 0x00);
+        memory_bus.write_byte(0xFF23, 0xBF);
+        memory_bus.write_byte(0xFF24, 0x77);
+        memory_bus.write_byte(0xFF25, 0xF3);
+        memory_bus.write_byte(0xFF26, 0xF1);
+        memory_bus.write_byte(0xFF40, 0x91);
+        memory_bus.write_byte(0xFF41, 0x85);
+        memory_bus.write_byte(0xFF42, 0x00);
+        memory_bus.write_byte(0xFF43, 0x00);
+        memory_bus.write_byte(0xFF44, 0x00);
+        memory_bus.write_byte(0xFF45, 0x00);
+        memory_bus.write_byte(0xFF46, 0xFF);
+        memory_bus.write_byte(0xFF47, 0xFC);
+        memory_bus.write_byte(0xFF4A, 0x00);
+        memory_bus.write_byte(0xFF4B, 0x00);
+        memory_bus.write_byte(0xFFFF, 0x00);
     }
 }
 

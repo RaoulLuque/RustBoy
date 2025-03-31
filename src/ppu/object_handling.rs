@@ -1,7 +1,7 @@
-use super::GPU;
-use crate::MEMORY_SIZE;
-use crate::gpu::registers::LCDCRegister;
+use crate::PPU;
 use crate::memory_bus::{OAM_END, OAM_START};
+use crate::ppu::registers::LCDCRegister;
+use crate::{MEMORY_SIZE, MemoryBus};
 use bytemuck::cast_ref;
 
 /// Represents an object/sprite in the GPU's object attribute memory. These structs are used to
@@ -46,16 +46,16 @@ impl Object {
     }
 }
 
-impl GPU {
+impl PPU {
     /// TODO: Write docstring
     pub fn get_objects_for_current_scanline(
         &self,
-        memory: &[u8; MEMORY_SIZE],
+        memory_bus: &MemoryBus,
         scanline: u8,
     ) -> [[u32; 4]; 10] {
         let oam_as_objects: &[Object; 40] =
             cast_ref::<[u8; (OAM_END - OAM_START) as usize], [Object; 40]>(
-                memory[OAM_START as usize..OAM_END as usize]
+                memory_bus.memory[OAM_START as usize..OAM_END as usize]
                     .as_ref()
                     .try_into()
                     .expect(
@@ -72,7 +72,7 @@ impl GPU {
         for i in 0..oam_as_objects.len() {
             let object = oam_as_objects[i];
             // Set object height according to the flag in the LCD control register
-            let object_height = if LCDCRegister::get_sprite_size_flag(memory) {
+            let object_height = if LCDCRegister::get_sprite_size_flag(memory_bus) {
                 16
             } else {
                 8

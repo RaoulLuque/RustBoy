@@ -1,18 +1,22 @@
 use super::SixteenBitInstructionTarget;
-use crate::RustBoy;
+use crate::{CPU, MemoryBus};
 
-impl RustBoy {
+impl CPU {
     /// Handles the SLA instruction for the given [super::SixteenBitInstructionTarget].
     ///
     /// The SLA instruction takes 2 cycles if the target is a register and 4 otherwise.
-    pub fn handle_sla_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+    pub fn handle_sla_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: SixteenBitInstructionTarget,
+    ) -> u16 {
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
-        let value = target.get_value(&self);
+        let value = target.get_value(memory_bus, &self);
         let new_value = self.sla(value);
-        target.set_value(self, new_value);
+        target.set_value(memory_bus, self, new_value);
         self.pc.wrapping_add(2)
     }
 
@@ -31,14 +35,18 @@ impl RustBoy {
     /// Handles the SRA instruction for the given [super::SixteenBitInstructionTarget].
     ///
     /// The SRA instruction takes 2 cycles if the target is a register and 4 otherwise.
-    pub fn handle_sra_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+    pub fn handle_sra_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: SixteenBitInstructionTarget,
+    ) -> u16 {
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
-        let value = target.get_value(&self);
+        let value = target.get_value(memory_bus, &self);
         let new_value = self.sra(value);
-        target.set_value(self, new_value);
+        target.set_value(memory_bus, self, new_value);
         self.pc.wrapping_add(2)
     }
 
@@ -57,14 +65,18 @@ impl RustBoy {
     /// Handles the SRL instruction for the given [super::SixteenBitInstructionTarget].
     ///
     /// The SRL instruction takes 2 cycles if the target is a register and 4 otherwise.
-    pub fn handle_srl_instruction(&mut self, target: SixteenBitInstructionTarget) -> u16 {
+    pub fn handle_srl_instruction(
+        &mut self,
+        memory_bus: &mut MemoryBus,
+        target: SixteenBitInstructionTarget,
+    ) -> u16 {
         match target {
             SixteenBitInstructionTarget::HLRef => self.increment_cycle_counter(4),
             _ => self.increment_cycle_counter(2),
         }
-        let value = target.get_value(&self);
+        let value = target.get_value(memory_bus, &self);
         let new_value = self.srl(value);
-        target.set_value(self, new_value);
+        target.set_value(memory_bus, self, new_value);
         self.pc.wrapping_add(2)
     }
 

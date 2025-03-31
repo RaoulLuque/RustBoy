@@ -1,6 +1,6 @@
-use crate::RustBoy;
+use crate::CPU;
 
-impl RustBoy {
+impl CPU {
     /// Handles the DAA instruction.
     ///
     /// The DAA instruction takes 1 cycle.

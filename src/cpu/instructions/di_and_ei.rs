@@ -1,6 +1,6 @@
-use crate::RustBoy;
+use crate::CPU;
 
-impl RustBoy {
+impl CPU {
     /// Handles the di instruction
     ///
     /// Disables interrupts. Takes 1 cycle.

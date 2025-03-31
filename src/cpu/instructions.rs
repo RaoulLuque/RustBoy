@@ -32,8 +32,8 @@ mod sla_sra_and_srl;
 mod sub_and_sbc;
 mod swap;
 
-use crate::RustBoy;
 use crate::cpu::registers::{CPURegisters, FlagsRegister};
+use crate::{CPU, MemoryBus};
 use add_and_adc::{AddWordSource, AddWordTarget};
 use bit::BitInstructionType;
 use inc_and_dec::IncDecTarget;
@@ -194,9 +194,9 @@ impl Instruction {
     }
 }
 
-impl RustBoy {
+impl CPU {
     /// Executes the instruction on the CPU.
-    pub fn execute(&mut self, instruction: Instruction) -> u16 {
+    pub fn execute(&mut self, memory_bus: &mut MemoryBus, instruction: Instruction) -> u16 {
         use Instruction::*;
         let next_pc = match instruction {
             // 8 Bit Opcodes
@@ -204,33 +204,35 @@ impl RustBoy {
                 self.increment_cycle_counter(1);
                 self.pc.wrapping_add(1)
             }
-            ADDByte(source) => self.handle_add_byte_instruction(source),
-            ADDWord(target, source) => self.handle_add_word_instruction((target, source)),
-            ADC(source) => self.handle_adc_instruction(source),
-            SUB(source) => self.handle_sub_instruction(source),
-            SBC(source) => self.handle_sbc_instruction(source),
-            AND(source) => self.handle_and_instruction(source),
-            OR(source) => self.handle_or_instruction(source),
-            XOR(source) => self.handle_xor_instruction(source),
-            CP(source) => self.handle_cp_instruction(source),
-            JP(type_of_jump) => self.handle_jump_instruction(type_of_jump),
-            LD(type_of_load) => self.handle_load_instruction(type_of_load),
-            LDH(type_of_ldh) => self.handle_ldh_instruction(type_of_ldh),
-            INC(target) => self.handle_inc_instruction(target),
-            DEC(target) => self.handle_dec_instruction(target),
-            CALL(condition) => self.handle_call_instruction(condition),
-            RET(condition) => self.handle_ret_instruction(condition),
-            PUSH(source) => self.handle_push_instruction(source),
-            POP(target) => self.handle_pop_instruction(target),
-            RST(address) => self.handle_rst_instruction(address),
-            JR(condition) => self.handle_jr_instruction(condition),
+            ADDByte(source) => self.handle_add_byte_instruction(memory_bus, source),
+            ADDWord(target, source) => {
+                self.handle_add_word_instruction(memory_bus, (target, source))
+            }
+            ADC(source) => self.handle_adc_instruction(memory_bus, source),
+            SUB(source) => self.handle_sub_instruction(memory_bus, source),
+            SBC(source) => self.handle_sbc_instruction(memory_bus, source),
+            AND(source) => self.handle_and_instruction(memory_bus, source),
+            OR(source) => self.handle_or_instruction(memory_bus, source),
+            XOR(source) => self.handle_xor_instruction(memory_bus, source),
+            CP(source) => self.handle_cp_instruction(memory_bus, source),
+            JP(type_of_jump) => self.handle_jump_instruction(memory_bus, type_of_jump),
+            LD(type_of_load) => self.handle_load_instruction(memory_bus, type_of_load),
+            LDH(type_of_ldh) => self.handle_ldh_instruction(memory_bus, type_of_ldh),
+            INC(target) => self.handle_inc_instruction(memory_bus, target),
+            DEC(target) => self.handle_dec_instruction(memory_bus, target),
+            CALL(condition) => self.handle_call_instruction(memory_bus, condition),
+            RET(condition) => self.handle_ret_instruction(memory_bus, condition),
+            PUSH(source) => self.handle_push_instruction(memory_bus, source),
+            POP(target) => self.handle_pop_instruction(memory_bus, target),
+            RST(address) => self.handle_rst_instruction(memory_bus, address),
+            JR(condition) => self.handle_jr_instruction(memory_bus, condition),
             DAA => self.handle_daa_instruction(),
             SCF => self.handle_scf_instruction(),
             CPL => self.handle_cpl_instruction(),
             CCF => self.handle_ccf_instruction(),
             DI => self.handle_di_instruction(),
             EI => self.handle_ei_instruction(),
-            RETI => self.handle_reti_instruction(),
+            RETI => self.handle_reti_instruction(memory_bus),
             RLCA => self.handle_rlca_instruction(),
             RRCA => self.handle_rrca_instruction(),
             RLA => self.handle_rla_instruction(),
@@ -238,17 +240,19 @@ impl RustBoy {
             HALT => self.handle_halt_instruction(),
 
             // 16-bit Opcodes
-            RLC(target) => self.handle_rlc_instruction(target),
-            RRC(target) => self.handle_rrc_instruction(target),
-            RL(target) => self.handle_rl_instruction(target),
-            RR(target) => self.handle_rr_instruction(target),
-            SLA(target) => self.handle_sla_instruction(target),
-            SRA(target) => self.handle_sra_instruction(target),
-            SWAP(target) => self.handle_swap_instruction(target),
-            SRL(target) => self.handle_srl_instruction(target),
-            BIT(type_of_bit_instruction) => self.handle_bit_instruction(type_of_bit_instruction),
-            RES(type_of_res) => self.handle_res_instruction(type_of_res),
-            SET(type_of_set) => self.handle_set_instruction(type_of_set),
+            RLC(target) => self.handle_rlc_instruction(memory_bus, target),
+            RRC(target) => self.handle_rrc_instruction(memory_bus, target),
+            RL(target) => self.handle_rl_instruction(memory_bus, target),
+            RR(target) => self.handle_rr_instruction(memory_bus, target),
+            SLA(target) => self.handle_sla_instruction(memory_bus, target),
+            SRA(target) => self.handle_sra_instruction(memory_bus, target),
+            SWAP(target) => self.handle_swap_instruction(memory_bus, target),
+            SRL(target) => self.handle_srl_instruction(memory_bus, target),
+            BIT(type_of_bit_instruction) => {
+                self.handle_bit_instruction(memory_bus, type_of_bit_instruction)
+            }
+            RES(type_of_res) => self.handle_res_instruction(memory_bus, type_of_res),
+            SET(type_of_set) => self.handle_set_instruction(memory_bus, type_of_set),
         };
 
         if instruction != EI && self.ime_to_be_set {
@@ -290,28 +294,28 @@ impl Register {
 
 impl ArithmeticOrLogicalSource {
     /// Returns the value of the source corresponding to the enum variant.
-    fn get_value(&self, registers: &CPURegisters, rust_boy: &RustBoy, pc: u16) -> u8 {
+    fn get_value(&self, memory_bus: &MemoryBus, registers: &CPURegisters, pc: u16) -> u8 {
         match &self {
             ArithmeticOrLogicalSource::Register(register) => register.get_register(registers),
-            ArithmeticOrLogicalSource::D8 => rust_boy.read_byte(pc + 1),
-            ArithmeticOrLogicalSource::HLRef => rust_boy.read_byte(registers.get_hl()),
+            ArithmeticOrLogicalSource::D8 => memory_bus.read_byte(pc + 1),
+            ArithmeticOrLogicalSource::HLRef => memory_bus.read_byte(registers.get_hl()),
         }
     }
 
     /// Returns the next program counter value and increments the cycle counter according to the source
-    fn increment_pc_and_cycle(self, rust_boy: &mut RustBoy) -> u16 {
+    fn increment_pc_and_cycle(self, cpu: &mut CPU) -> u16 {
         match self {
             ArithmeticOrLogicalSource::D8 => {
-                rust_boy.increment_cycle_counter(2);
-                rust_boy.pc.wrapping_add(2)
+                cpu.increment_cycle_counter(2);
+                cpu.pc.wrapping_add(2)
             }
             ArithmeticOrLogicalSource::HLRef => {
-                rust_boy.increment_cycle_counter(2);
-                rust_boy.pc.wrapping_add(1)
+                cpu.increment_cycle_counter(2);
+                cpu.pc.wrapping_add(1)
             }
             _ => {
-                rust_boy.increment_cycle_counter(1);
-                rust_boy.pc.wrapping_add(1)
+                cpu.increment_cycle_counter(1);
+                cpu.pc.wrapping_add(1)
             }
         }
     }
@@ -319,31 +323,31 @@ impl ArithmeticOrLogicalSource {
 
 impl SixteenBitInstructionTarget {
     /// Returns the value of the target register.
-    pub fn get_value(&self, rust_boy: &RustBoy) -> u8 {
+    pub fn get_value(&self, memory_bus: &MemoryBus, cpu: &CPU) -> u8 {
         match self {
-            SixteenBitInstructionTarget::A => rust_boy.registers.a,
-            SixteenBitInstructionTarget::B => rust_boy.registers.b,
-            SixteenBitInstructionTarget::C => rust_boy.registers.c,
-            SixteenBitInstructionTarget::D => rust_boy.registers.d,
-            SixteenBitInstructionTarget::E => rust_boy.registers.e,
-            SixteenBitInstructionTarget::H => rust_boy.registers.h,
-            SixteenBitInstructionTarget::L => rust_boy.registers.l,
-            SixteenBitInstructionTarget::HLRef => rust_boy.read_byte(rust_boy.registers.get_hl()),
+            SixteenBitInstructionTarget::A => cpu.registers.a,
+            SixteenBitInstructionTarget::B => cpu.registers.b,
+            SixteenBitInstructionTarget::C => cpu.registers.c,
+            SixteenBitInstructionTarget::D => cpu.registers.d,
+            SixteenBitInstructionTarget::E => cpu.registers.e,
+            SixteenBitInstructionTarget::H => cpu.registers.h,
+            SixteenBitInstructionTarget::L => cpu.registers.l,
+            SixteenBitInstructionTarget::HLRef => memory_bus.read_byte(cpu.registers.get_hl()),
         }
     }
 
     /// Sets the value of the target register.
-    pub fn set_value(&self, rust_boy: &mut RustBoy, value: u8) {
+    pub fn set_value(&self, memory_bus: &mut MemoryBus, cpu: &mut CPU, value: u8) {
         match self {
-            SixteenBitInstructionTarget::A => rust_boy.registers.a = value,
-            SixteenBitInstructionTarget::B => rust_boy.registers.b = value,
-            SixteenBitInstructionTarget::C => rust_boy.registers.c = value,
-            SixteenBitInstructionTarget::D => rust_boy.registers.d = value,
-            SixteenBitInstructionTarget::E => rust_boy.registers.e = value,
-            SixteenBitInstructionTarget::H => rust_boy.registers.h = value,
-            SixteenBitInstructionTarget::L => rust_boy.registers.l = value,
+            SixteenBitInstructionTarget::A => cpu.registers.a = value,
+            SixteenBitInstructionTarget::B => cpu.registers.b = value,
+            SixteenBitInstructionTarget::C => cpu.registers.c = value,
+            SixteenBitInstructionTarget::D => cpu.registers.d = value,
+            SixteenBitInstructionTarget::E => cpu.registers.e = value,
+            SixteenBitInstructionTarget::H => cpu.registers.h = value,
+            SixteenBitInstructionTarget::L => cpu.registers.l = value,
             SixteenBitInstructionTarget::HLRef => {
-                rust_boy.write_byte(rust_boy.registers.get_hl(), value)
+                memory_bus.write_byte(cpu.registers.get_hl(), value)
             }
         }
     }

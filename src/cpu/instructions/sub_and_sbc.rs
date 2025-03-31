@@ -1,13 +1,17 @@
 use super::ArithmeticOrLogicalSource;
-use crate::RustBoy;
+use crate::{CPU, MemoryBus};
 
-impl RustBoy {
+impl CPU {
     /// Handles the sub instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The SUB instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_sub_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_sub_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         let new_value = self.sub(value, false);
         self.registers.a = new_value;
         new_pc
@@ -41,9 +45,13 @@ impl RustBoy {
     /// Handles the sbc instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The SBC instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_sbc_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_sbc_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         let new_value = self.sub(value, self.registers.f.get_carry_flag());
         self.registers.a = new_value;
         new_pc

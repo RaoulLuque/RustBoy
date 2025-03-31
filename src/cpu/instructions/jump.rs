@@ -1,5 +1,5 @@
 use super::{InstructionCondition, check_instruction_condition};
-use crate::RustBoy;
+use crate::{CPU, MemoryBus};
 
 /// Represents the possible targets for the jump instruction.
 ///
@@ -10,12 +10,12 @@ pub enum JumpType {
     JumpToHL,
 }
 
-impl RustBoy {
+impl CPU {
     /// Handles the jump instruction for the given [InstructionCondition].
     ///
     /// The JP instruction takes 4 cycles if the jump is taken and 3 cycles if it is not if the
     /// target is an immediate operand. If the target is HL, it takes 1 cycle.
-    pub fn handle_jump_instruction(&mut self, jump_type: JumpType) -> u16 {
+    pub fn handle_jump_instruction(&mut self, memory_bus: &MemoryBus, jump_type: JumpType) -> u16 {
         match jump_type {
             JumpType::JumpToImmediateOperand(condition) => {
                 let should_jump = check_instruction_condition(condition, &self.registers.f);
@@ -24,7 +24,7 @@ impl RustBoy {
                 } else {
                     self.increment_cycle_counter(3)
                 };
-                self.jump(should_jump)
+                self.jump(memory_bus, should_jump)
             }
             JumpType::JumpToHL => {
                 self.pc = self.registers.get_hl();
@@ -36,12 +36,12 @@ impl RustBoy {
 
     /// Jumps (the program counter) to the given address if should_jump is true. Otherwise, it just
     /// moves to the next instruction.
-    fn jump(&self, should_jump: bool) -> u16 {
+    fn jump(&self, memory_bus: &MemoryBus, should_jump: bool) -> u16 {
         if should_jump {
             // The Rust Boy is little endian so the least significant byte is stored first. However,
             // in the correct order, so we can just patch them together.
-            let low_byte = self.read_byte(self.pc.wrapping_add(1)) as u16;
-            let high_byte = self.read_byte(self.pc.wrapping_add(2)) as u16;
+            let low_byte = memory_bus.read_byte(self.pc.wrapping_add(1)) as u16;
+            let high_byte = memory_bus.read_byte(self.pc.wrapping_add(2)) as u16;
             (high_byte << 8) | low_byte
         } else {
             // If we don't jump we just move to the next instruction.

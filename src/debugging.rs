@@ -4,10 +4,10 @@ use wasm_timer::Instant;
 
 use crate::RustBoy;
 use crate::cpu::instructions::ArithmeticOrLogicalSource;
-use crate::gpu::GPU;
-use crate::gpu::registers::{GPURegisters, LCDCRegister};
-use crate::gpu::tile_handling::{Tile, TilePixelValue};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
+use crate::ppu::registers::{LCDCRegister, PPURegisters};
+use crate::ppu::tile_handling::{Tile, TilePixelValue};
+use crate::{CPU, MemoryBus, PPU};
 use std::fs;
 use std::io::Write;
 
@@ -101,92 +101,90 @@ pub fn setup_debugging_logs_files(debugging_flags: &mut DebugInfo) {
 /// Don't want all this in release builds, which is why we use the cfg conditional
 /// compilation feature.
 #[cfg(debug_assertions)]
-pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
+pub fn doctor_log(cpu: &mut CPU, memory_bus: &MemoryBus, ppu: &PPU, log_file: &str) {
     let mut data = format!(
         "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
-        rust_boy.registers.a,
-        rust_boy.registers.f.get(),
-        rust_boy.registers.b,
-        rust_boy.registers.c,
-        rust_boy.registers.d,
-        rust_boy.registers.e,
-        rust_boy.registers.h,
-        rust_boy.registers.l,
-        rust_boy.sp,
-        rust_boy.pc,
-        rust_boy.read_byte(rust_boy.pc),
-        rust_boy.read_byte(rust_boy.pc.wrapping_add(1)),
-        rust_boy.read_byte(rust_boy.pc.wrapping_add(2)),
-        rust_boy.read_byte(rust_boy.pc.wrapping_add(3))
+        cpu.registers.a,
+        cpu.registers.f.get(),
+        cpu.registers.b,
+        cpu.registers.c,
+        cpu.registers.d,
+        cpu.registers.e,
+        cpu.registers.h,
+        cpu.registers.l,
+        cpu.sp,
+        cpu.pc,
+        memory_bus.read_byte(cpu.pc),
+        memory_bus.read_byte(cpu.pc.wrapping_add(1)),
+        memory_bus.read_byte(cpu.pc.wrapping_add(2)),
+        memory_bus.read_byte(cpu.pc.wrapping_add(3))
     );
 
     if log_file == LOG_FILE_NAME {
         data.pop();
         data.push_str(&format!(
             " SPMEM:{:02X},{:02X},{:02X},{:02X},CURR:{:02X},{:02X},{:02X},{:02X},{:02X}",
-            rust_boy.read_byte(rust_boy.sp.saturating_sub(4)),
-            rust_boy.read_byte(rust_boy.sp.saturating_sub(3)),
-            rust_boy.read_byte(rust_boy.sp.saturating_sub(2)),
-            rust_boy.read_byte(rust_boy.sp.saturating_sub(1)),
-            rust_boy.read_byte(rust_boy.sp),
-            rust_boy.read_byte(rust_boy.sp.saturating_add(1)),
-            rust_boy.read_byte(rust_boy.sp.saturating_add(2)),
-            rust_boy.read_byte(rust_boy.sp.saturating_add(3)),
-            rust_boy.read_byte(rust_boy.sp.saturating_add(4)),
+            memory_bus.read_byte(cpu.sp.saturating_sub(4)),
+            memory_bus.read_byte(cpu.sp.saturating_sub(3)),
+            memory_bus.read_byte(cpu.sp.saturating_sub(2)),
+            memory_bus.read_byte(cpu.sp.saturating_sub(1)),
+            memory_bus.read_byte(cpu.sp),
+            memory_bus.read_byte(cpu.sp.saturating_add(1)),
+            memory_bus.read_byte(cpu.sp.saturating_add(2)),
+            memory_bus.read_byte(cpu.sp.saturating_add(3)),
+            memory_bus.read_byte(cpu.sp.saturating_add(4)),
         ));
 
-        let ppu_mode_as_u8 = GPURegisters::get_gpu_mode(&rust_boy.memory).as_u8();
-        let ppu_mode_sign = if GPURegisters::get_lcd_control(&rust_boy.memory) & 0b1000_0000 != 0 {
+        let stat_register = PPURegisters::get_lcd_status(memory_bus);
+        data.push_str(&format!(" STAT:{:<08b}", stat_register));
+
+        let lyc = PPURegisters::get_scanline_compare(memory_bus);
+        data.push_str(&format!(" LYC:{:<3}", lyc));
+
+        let ppu_mode_as_u8 = PPURegisters::get_ppu_mode(memory_bus).as_u8();
+        let ppu_mode_sign = if PPURegisters::get_lcd_control(memory_bus) & 0b1000_0000 != 0 {
             "+"
         } else {
             "-"
         };
         data.push_str(&format!(" PPU:{}{}", ppu_mode_sign, ppu_mode_as_u8));
 
-        let stat_register = GPURegisters::get_lcd_status(&rust_boy.memory);
-        data.push_str(&format!(" STAT:{:<08b}", stat_register));
-
-        let lyc = GPURegisters::get_scanline_compare(&rust_boy.memory);
-        data.push_str(&format!(" LYC:{:<3}", lyc));
-
         // We use the get scanline internal function to get the current scanline immediately
         // from the memory without any additional sync checks done for syncing GPU and CPU.
-        let current_scanline = GPURegisters::get_scanline_internal(&rust_boy.memory);
+        let current_scanline = PPURegisters::get_scanline_internal(memory_bus);
         data.push_str(&format!(" SCANLINE:{:<3}", current_scanline));
 
-        data.push_str(&format!(" IME:{}", u8::from(rust_boy.ime)));
+        data.push_str(&format!(" IME:{}", u8::from(cpu.ime)));
         data.push_str(&format!(
             " IF:{:02X}",
-            InterruptFlagRegister::get_interrupt_flag_register(&rust_boy.memory)
+            InterruptFlagRegister::get_interrupt_flag_register(memory_bus)
         ));
         data.push_str(&format!(
             " IE:{:02X}",
-            InterruptEnableRegister::get_interrupt_enable_register(&rust_boy.memory)
+            InterruptEnableRegister::get_interrupt_enable_register(memory_bus)
         ));
 
-        let cycles_in_dots: u32 = rust_boy.gpu.rendering_info.dots_clock;
+        let cycles_in_dots: u32 = ppu.rendering_info.dots_clock;
         data.push_str(&format!(" CY_DOTS:{:<3}", cycles_in_dots));
 
-        let total_cycles: u128 = rust_boy.gpu.rendering_info.total_dots;
+        let total_cycles: u128 = ppu.rendering_info.total_dots;
         data.push_str(&format!(" TOTAL_CY_DOTS:{:<10}\n", total_cycles));
     }
     if log_file == "doctor" {
-        rust_boy
-            .debugging_flags
+        cpu.debugging_flags
             .file_handle_doctor_logs
             .as_ref()
             .expect("Doctor log file handle should be created")
             .write_all(data.as_bytes())
             .expect("Should be able to write data to doctor log file");
     } else {
-        rust_boy.debugging_flags.current_number_of_lines_in_log_file += 1;
-        if rust_boy.debugging_flags.current_number_of_lines_in_log_file == 2_000_000 {
-            rust_boy.debugging_flags.current_number_of_lines_in_log_file = 0;
-            rust_boy.debugging_flags.log_file_index += 1;
-            setup_debugging_logs_files(&mut rust_boy.debugging_flags);
+        cpu.debugging_flags.current_number_of_lines_in_log_file += 1;
+        if cpu.debugging_flags.current_number_of_lines_in_log_file == 2_000_000 {
+            cpu.debugging_flags.current_number_of_lines_in_log_file = 0;
+            cpu.debugging_flags.log_file_index += 1;
+            setup_debugging_logs_files(&mut cpu.debugging_flags);
         }
-        rust_boy
-            .debugging_flags
+        cpu.debugging_flags
             .file_handle_extensive_logs
             .as_ref()
             .expect("Doctor log file handle should be created")
@@ -198,7 +196,8 @@ pub fn doctor_log(rust_boy: &mut RustBoy, log_file: &str) {
 /// Log the instruction bytes to the log file.
 #[cfg(debug_assertions)]
 pub fn instruction_log(
-    rust_boy: &RustBoy,
+    cpu: &CPU,
+    memory_bus: &MemoryBus,
     log_file: &str,
     instruction: Option<crate::cpu::instructions::Instruction>,
     interrupt_location: Option<u16>,
@@ -206,7 +205,7 @@ pub fn instruction_log(
     let data = if let Some(instruction) = instruction {
         format!(
             "{:<50}",
-            entire_instruction_to_string(rust_boy, instruction)
+            entire_instruction_to_string(cpu, memory_bus, instruction)
         )
     } else if let Some(interrupt_location) = interrupt_location {
         format!(
@@ -222,16 +221,14 @@ pub fn instruction_log(
     };
 
     if log_file == "doctor" {
-        rust_boy
-            .debugging_flags
+        cpu.debugging_flags
             .file_handle_doctor_logs
             .as_ref()
             .expect("Doctor log file handle should be created")
             .write_all(data.as_bytes())
             .expect("Should be able to write data to doctor log file");
     } else {
-        rust_boy
-            .debugging_flags
+        cpu.debugging_flags
             .file_handle_extensive_logs
             .as_ref()
             .expect("Doctor log file handle should be created")
@@ -243,12 +240,13 @@ pub fn instruction_log(
 /// Match the instruction to the length of the instruction to copy its entire bytes
 #[cfg(debug_assertions)]
 pub fn entire_instruction_to_string(
-    rust_boy: &RustBoy,
+    cpu: &CPU,
+    memory_bus: &MemoryBus,
     instruction: crate::cpu::instructions::Instruction,
 ) -> String {
-    use crate::cpu::instructions::Instruction;
     use crate::cpu::instructions::add_and_adc::AddWordSource;
     use crate::cpu::instructions::load::{LoadType, LoadWordSource};
+    use crate::cpu::instructions::*;
     let mut res = format!("{:?}", instruction);
     match instruction {
         Instruction::ADDByte(source)
@@ -260,13 +258,13 @@ pub fn entire_instruction_to_string(
         | Instruction::XOR(source)
         | Instruction::CP(source) => match source {
             ArithmeticOrLogicalSource::D8 => {
-                push_next_immediate_byte_as_hex_to_string(rust_boy, &mut res)
+                push_next_immediate_byte_as_hex_to_string(cpu, memory_bus, &mut res)
             }
             _ => {}
         },
         Instruction::ADDWord(_, source) => match source {
             AddWordSource::E8 => {
-                push_next_immediate_byte_as_hex_to_string(rust_boy, &mut res);
+                push_next_immediate_byte_as_hex_to_string(cpu, memory_bus, &mut res);
             }
             _ => {}
         },
@@ -278,29 +276,26 @@ pub fn entire_instruction_to_string(
                 };
                 match source {
                     LoadWordSource::D16 => {
-                        push_next_two_immediate_bytes_to_string(rust_boy, &mut res);
+                        push_next_two_immediate_bytes_to_string(cpu, memory_bus, &mut res);
                     }
                     _ => {}
                 }
             }
         },
-        Instruction::LDH(crate::cpu::instructions::ldh::LDHType::LDH(target, source)) => {
-            match (target, source) {
-                (
-                    crate::cpu::instructions::ldh::LDHSourceOrTarget::A,
-                    crate::cpu::instructions::ldh::LDHSourceOrTarget::A8Ref,
-                ) => push_next_immediate_byte_as_hex_to_string(rust_boy, &mut res),
-                _ => {}
+        Instruction::LDH(ldh::LDHType::LDH(target, source)) => match (target, source) {
+            (ldh::LDHSourceOrTarget::A, ldh::LDHSourceOrTarget::A8Ref) => {
+                push_next_immediate_byte_as_hex_to_string(cpu, memory_bus, &mut res)
             }
-        }
+            _ => {}
+        },
         Instruction::JR(_) => {
-            push_next_immediate_byte_as_signed_integer_to_string(rust_boy, &mut res);
+            push_next_immediate_byte_as_signed_integer_to_string(cpu, memory_bus, &mut res);
         }
         Instruction::JP(_) => {
-            push_next_two_immediate_bytes_as_hex_big_endian_to_string(rust_boy, &mut res);
+            push_next_two_immediate_bytes_as_hex_big_endian_to_string(cpu, memory_bus, &mut res);
         }
         Instruction::CALL(_) => {
-            push_next_four_immediate_bytes_as_hex_to_string(rust_boy, &mut res);
+            push_next_four_immediate_bytes_as_hex_to_string(cpu, memory_bus, &mut res);
         }
         _ => {}
     }
@@ -309,21 +304,29 @@ pub fn entire_instruction_to_string(
 }
 
 #[cfg(debug_assertions)]
-fn push_next_immediate_byte_as_hex_to_string(rust_boy: &RustBoy, string: &mut String) {
-    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
+fn push_next_immediate_byte_as_hex_to_string(
+    cpu: &CPU,
+    memory_bus: &MemoryBus,
+    string: &mut String,
+) {
+    let first_immediate_byte = memory_bus.read_byte(cpu.pc + 1);
     string.push_str(&format!(" {:02X} ", first_immediate_byte,));
 }
 
 #[cfg(debug_assertions)]
-fn push_next_immediate_byte_as_signed_integer_to_string(rust_boy: &RustBoy, string: &mut String) {
-    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1) as i8;
+fn push_next_immediate_byte_as_signed_integer_to_string(
+    cpu: &CPU,
+    memory_bus: &MemoryBus,
+    string: &mut String,
+) {
+    let first_immediate_byte = memory_bus.read_byte(cpu.pc + 1) as i8;
     string.push_str(&format!(" {} ", first_immediate_byte,));
 }
 
 #[cfg(debug_assertions)]
-fn push_next_two_immediate_bytes_to_string(rust_boy: &RustBoy, string: &mut String) {
-    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
-    let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
+fn push_next_two_immediate_bytes_to_string(cpu: &CPU, memory_bus: &MemoryBus, string: &mut String) {
+    let first_immediate_byte = memory_bus.read_byte(cpu.pc + 1);
+    let second_immediate_byte = memory_bus.read_byte(cpu.pc + 2);
     string.push_str(&format!(
         " {:08b} {:08b} ",
         first_immediate_byte, second_immediate_byte
@@ -332,11 +335,12 @@ fn push_next_two_immediate_bytes_to_string(rust_boy: &RustBoy, string: &mut Stri
 
 #[cfg(debug_assertions)]
 fn push_next_two_immediate_bytes_as_hex_big_endian_to_string(
-    rust_boy: &RustBoy,
+    cpu: &CPU,
+    memory_bus: &MemoryBus,
     string: &mut String,
 ) {
-    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
-    let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
+    let first_immediate_byte = memory_bus.read_byte(cpu.pc + 1);
+    let second_immediate_byte = memory_bus.read_byte(cpu.pc + 2);
     string.push_str(&format!(
         " {:02X} {:02X} ",
         second_immediate_byte, first_immediate_byte
@@ -344,11 +348,15 @@ fn push_next_two_immediate_bytes_as_hex_big_endian_to_string(
 }
 
 #[cfg(debug_assertions)]
-fn push_next_four_immediate_bytes_as_hex_to_string(rust_boy: &RustBoy, string: &mut String) {
-    let first_immediate_byte = rust_boy.read_byte(rust_boy.pc + 1);
-    let second_immediate_byte = rust_boy.read_byte(rust_boy.pc + 2);
-    let third_immediate_byte = rust_boy.read_byte(rust_boy.pc + 3);
-    let fourth_immediate_byte = rust_boy.read_byte(rust_boy.pc + 4);
+fn push_next_four_immediate_bytes_as_hex_to_string(
+    cpu: &CPU,
+    memory_bus: &MemoryBus,
+    string: &mut String,
+) {
+    let first_immediate_byte = memory_bus.read_byte(cpu.pc + 1);
+    let second_immediate_byte = memory_bus.read_byte(cpu.pc + 2);
+    let third_immediate_byte = memory_bus.read_byte(cpu.pc + 3);
+    let fourth_immediate_byte = memory_bus.read_byte(cpu.pc + 4);
     string.push_str(&format!(
         " {:02X} {:02X} {:02X} {:02X} ",
         first_immediate_byte, second_immediate_byte, third_immediate_byte, fourth_immediate_byte
@@ -367,16 +375,16 @@ fn push_match_interrupt_location_to_interrupt_name(interrupt_location: u16) -> O
     }
 }
 
-impl GPU {
+impl PPU {
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically according to LCDC bit 4 (background_and_window_tile_data) as tile structs.
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
-    pub fn get_background_and_window_tile_data_debug(&self, rust_boy: &RustBoy) -> [Tile; 256] {
-        if LCDCRegister::get_background_and_window_tile_data_flag(&rust_boy.memory) {
-            self.get_background_and_window_tile_data_block_0_and_1_debug(rust_boy)
+    pub fn get_background_and_window_tile_data_debug(&self, memory_bus: &MemoryBus) -> [Tile; 256] {
+        if LCDCRegister::get_background_and_window_tile_data_flag(memory_bus) {
+            self.get_background_and_window_tile_data_block_0_and_1_debug(memory_bus)
         } else {
-            self.get_background_and_window_tile_data_block_2_and_1_debug(rust_boy)
+            self.get_background_and_window_tile_data_block_2_and_1_debug(memory_bus)
         }
     }
 
@@ -384,8 +392,8 @@ impl GPU {
     /// Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
     #[allow(dead_code)]
     #[cfg(debug_assertions)]
-    pub fn get_object_tile_data_debug(&self, rust_boy: &RustBoy) -> [Tile; 256] {
-        self.get_background_and_window_tile_data_block_0_and_1_debug(rust_boy)
+    pub fn get_object_tile_data_debug(&self, memory_bus: &MemoryBus) -> [Tile; 256] {
+        self.get_background_and_window_tile_data_block_0_and_1_debug(memory_bus)
     }
 
     /// Returns the tile data in Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
@@ -393,9 +401,9 @@ impl GPU {
     #[cfg(debug_assertions)]
     pub fn get_background_and_window_tile_data_block_0_and_1_debug(
         &self,
-        rust_boy: &RustBoy,
+        memory_bus: &MemoryBus,
     ) -> [Tile; 256] {
-        rust_boy.tile_set[0..256].try_into().expect(
+        memory_bus.tile_set[0..256].try_into().expect(
             "Slice should be of correct length, work with me here compiler:\
                 0 ... 256 = 256 (Tiles)",
         )
@@ -406,15 +414,18 @@ impl GPU {
     #[cfg(debug_assertions)]
     pub fn get_background_and_window_tile_data_block_2_and_1_debug(
         &self,
-        rust_boy: &RustBoy,
+        memory_bus: &MemoryBus,
     ) -> [Tile; 256] {
-        [&rust_boy.tile_set[256..384], &rust_boy.tile_set[128..256]]
-            .concat()
-            .try_into()
-            .expect(
-                "Slice should be of correct length, work with me here compiler:\
+        [
+            &memory_bus.tile_set[256..384],
+            &memory_bus.tile_set[128..256],
+        ]
+        .concat()
+        .try_into()
+        .expect(
+            "Slice should be of correct length, work with me here compiler:\
                 256 ... 384 + 128 ... 256 = 128 + 128 = 256 (Tiles)",
-            )
+        )
     }
 }
 

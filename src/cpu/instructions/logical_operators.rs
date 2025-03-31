@@ -1,13 +1,17 @@
 use super::ArithmeticOrLogicalSource;
-use crate::RustBoy;
+use crate::{CPU, MemoryBus};
 
-impl RustBoy {
+impl CPU {
     /// Handles the AND instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The AND instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_and_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_and_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         let new_value = self.and(value);
         self.registers.a = new_value;
         new_pc
@@ -27,9 +31,13 @@ impl RustBoy {
     /// Handles the XOR instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The XOR instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_xor_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_xor_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         let new_value = self.xor(value);
         self.registers.a = new_value;
         new_pc
@@ -49,9 +57,13 @@ impl RustBoy {
     /// Handles the OR instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The OR instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_or_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_or_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         let new_value = self.or(value);
         self.registers.a = new_value;
         new_pc
@@ -71,9 +83,13 @@ impl RustBoy {
     /// Handles the CP instruction for the given [ArithmeticSource](super::ArithmeticOrLogicalSource).
     ///
     /// The CP instruction takes 1 cycle if the source is a register and 2 otherwise.
-    pub fn handle_cp_instruction(&mut self, source: ArithmeticOrLogicalSource) -> u16 {
+    pub fn handle_cp_instruction(
+        &mut self,
+        memory_bus: &MemoryBus,
+        source: ArithmeticOrLogicalSource,
+    ) -> u16 {
         let new_pc = source.increment_pc_and_cycle(self);
-        let value = source.get_value(&self.registers, &self, self.pc);
+        let value = source.get_value(memory_bus, &self.registers, self.pc);
         self.sub(value, false);
         new_pc
     }

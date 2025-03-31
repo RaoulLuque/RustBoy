@@ -1,10 +1,10 @@
 use super::{
-    GPU, TILE_DATA_BLOCK_0_START, TILE_DATA_BLOCK_1_START, TILE_DATA_BLOCK_2_START,
+    PPU, TILE_DATA_BLOCK_0_START, TILE_DATA_BLOCK_1_START, TILE_DATA_BLOCK_2_START,
     TILE_DATA_BLOCK_SIZE, TILEMAP_ONE_START, TILEMAP_SIZE, TILEMAP_ZERO_START,
 };
-use crate::gpu::registers::LCDCRegister;
 use crate::memory_bus::VRAM_BEGIN;
-use crate::{MEMORY_SIZE, RustBoy};
+use crate::ppu::registers::LCDCRegister;
+use crate::{MEMORY_SIZE, MemoryBus, RustBoy};
 
 /// Represents the possible values of a tile pixel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -27,14 +27,14 @@ impl TilePixelValue {
     }
 }
 
-impl GPU {
+impl PPU {
     /// Handles a change in the tile data. The change is simply applied to the tile set.
     ///
-    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     /// TODO: Make this a non static method and pass in memory bus?
-    pub(crate) fn handle_tile_data_change(rust_boy: &mut RustBoy, address: u16) {
+    pub(crate) fn handle_tile_data_change(memory_bus: &mut MemoryBus, address: u16) {
         // Tiles rows are encoded in two bytes with the first byte always
         // on an even address. Bitwise ANDing the address with 0xffe
         // gives us the address of the first byte.
@@ -42,8 +42,8 @@ impl GPU {
         let address_first_byte = address & 0xFFFE;
 
         // First we need to get the two bytes that encode the tile row.
-        let byte1 = rust_boy.memory[address_first_byte as usize];
-        let byte2 = rust_boy.memory[address_first_byte as usize + 1];
+        let byte1 = memory_bus.memory[address_first_byte as usize];
+        let byte2 = memory_bus.memory[address_first_byte as usize + 1];
 
         // Then we need to get the tile index from the address.
         let normalized_address = address - VRAM_BEGIN;
@@ -77,77 +77,77 @@ impl GPU {
             // We can now convert the two bits to the corresponding TilePixelValue.
             let value = TilePixelValue::from_bits(lower_bit, upper_bit);
 
-            rust_boy.tile_set[tile_index][row_index][pixel_index] = value;
+            memory_bus.tile_set[tile_index][row_index][pixel_index] = value;
         }
         // We set the memory changed flags to make sure the GPU receives the new tilemap later
         // in rendering.
         if address < 0x8800 {
             // The address lies in block 0
-            rust_boy.gpu.memory_changed.tile_data_block_0_1_changed = true;
+            memory_bus.memory_changed.tile_data_block_0_1_changed = true;
         } else if address < 0x9000 {
             // The address lies in block 1
-            rust_boy.gpu.memory_changed.tile_data_block_0_1_changed = true;
-            rust_boy.gpu.memory_changed.tile_data_block_2_1_changed = true;
+            memory_bus.memory_changed.tile_data_block_0_1_changed = true;
+            memory_bus.memory_changed.tile_data_block_2_1_changed = true;
         } else {
             // The address lies only in block 2
-            rust_boy.gpu.memory_changed.tile_data_block_2_1_changed = true;
+            memory_bus.memory_changed.tile_data_block_2_1_changed = true;
         }
     }
 
     /// Returns true if the tile data currently used for the background and window has changed since
     /// the last time it was checked (usually the last scanline).
     ///
-    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn current_bg_and_wd_tile_data_changed(&mut self, memory: &[u8; MEMORY_SIZE]) -> bool {
-        if LCDCRegister::get_background_and_window_tile_data_flag(memory) {
-            self.memory_changed.tile_data_block_0_1_changed
+    pub fn current_bg_and_wd_tile_data_changed(memory_bus: &MemoryBus) -> bool {
+        if LCDCRegister::get_background_and_window_tile_data_flag(memory_bus) {
+            memory_bus.memory_changed.tile_data_block_0_1_changed
         } else {
-            self.memory_changed.tile_data_block_2_1_changed
+            memory_bus.memory_changed.tile_data_block_2_1_changed
         }
     }
 
     /// Returns true if the tilemap currently used for the background has changed since the last
     /// time it was checked (usually the last scanline).
     ///
-    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn current_background_tile_map_changed(&mut self, memory: &[u8; MEMORY_SIZE]) -> bool {
-        if LCDCRegister::get_background_tile_map_flag(memory) {
-            self.memory_changed.tile_map_1_changed
+    pub fn current_background_tile_map_changed(memory_bus: &MemoryBus) -> bool {
+        if LCDCRegister::get_background_tile_map_flag(memory_bus) {
+            memory_bus.memory_changed.tile_map_1_changed
         } else {
-            self.memory_changed.tile_map_0_changed
+            memory_bus.memory_changed.tile_map_0_changed
         }
     }
 
     /// Returns true if the tilemap currently used for the window has changed since the last
     /// time it was checked (usually the last scanline).
     ///
-    /// Also sets flags in self.memory_changed, to keep track of which parts
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
     /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
-    pub fn current_window_tile_map_changed(&mut self, memory: &[u8; MEMORY_SIZE]) -> bool {
-        if LCDCRegister::get_window_tile_map_flag(memory) {
-            self.memory_changed.tile_map_1_changed
+    pub fn current_window_tile_map_changed(memory_bus: &MemoryBus) -> bool {
+        if LCDCRegister::get_window_tile_map_flag(memory_bus) {
+            memory_bus.memory_changed.tile_map_1_changed
         } else {
-            self.memory_changed.tile_map_0_changed
+            memory_bus.memory_changed.tile_map_0_changed
         }
     }
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically, according to LCDC bit 6 (window_tile_map).
-    pub fn get_window_tile_map(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
-        if !LCDCRegister::get_window_tile_map_flag(memory) {
-            memory[TILEMAP_ZERO_START..TILEMAP_ZERO_START + TILEMAP_SIZE]
+    pub fn get_window_tile_map(memory_bus: &MemoryBus) -> [u8; 1024] {
+        if !LCDCRegister::get_window_tile_map_flag(memory_bus) {
+            memory_bus.memory[TILEMAP_ZERO_START..TILEMAP_ZERO_START + TILEMAP_SIZE]
                 .try_into()
                 .expect(
                     "Slice should be of correct length, work with me here compiler:\
                 0x9800 ... (0x9800 + 1024) = 1024 (bytes)",
                 )
         } else {
-            memory[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
+            memory_bus.memory[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
                 .try_into()
                 .expect(
                     "Slice should be of correct length, work with me here compiler:\
@@ -158,26 +158,23 @@ impl GPU {
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
     /// automatically according to LCDC bit 4 (background_and_window_tile_data).
-    pub fn get_background_and_window_tile_data(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 4096] {
-        if LCDCRegister::get_background_and_window_tile_data_flag(memory) {
-            self.get_background_and_window_tile_data_block_0_and_1(memory)
+    pub fn get_background_and_window_tile_data(memory_bus: &MemoryBus) -> [u8; 4096] {
+        if LCDCRegister::get_background_and_window_tile_data_flag(memory_bus) {
+            PPU::get_background_and_window_tile_data_block_0_and_1(memory_bus)
         } else {
-            self.get_background_and_window_tile_data_block_2_and_1(memory)
+            PPU::get_background_and_window_tile_data_block_2_and_1(memory_bus)
         }
     }
 
     /// Returns the current tile set for the objects. That is, the tile set in
     /// Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
-    pub fn get_object_tile_data(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 4096] {
-        self.get_background_and_window_tile_data_block_0_and_1(memory)
+    pub fn get_object_tile_data(memory_bus: &MemoryBus) -> [u8; 4096] {
+        PPU::get_background_and_window_tile_data_block_0_and_1(memory_bus)
     }
 
     /// Returns the tile data in Block 0 (0x8000 - 0x87FF) and Block 1 (0x8800 - 0x8FFF).
-    pub fn get_background_and_window_tile_data_block_0_and_1(
-        &self,
-        memory: &[u8; MEMORY_SIZE],
-    ) -> [u8; 4096] {
-        memory[TILE_DATA_BLOCK_0_START..TILE_DATA_BLOCK_1_START + TILE_DATA_BLOCK_SIZE]
+    pub fn get_background_and_window_tile_data_block_0_and_1(memory_bus: &MemoryBus) -> [u8; 4096] {
+        memory_bus.memory[TILE_DATA_BLOCK_0_START..TILE_DATA_BLOCK_1_START + TILE_DATA_BLOCK_SIZE]
             .try_into()
             .expect(
                 "Slice should be of correct length, work with me here compiler:\
@@ -186,13 +183,12 @@ impl GPU {
     }
 
     /// Returns the tile data in Block 2 (0x9000 - 0x97FF) and Block 1 (0x8800 - 0x8FFF).
-    pub fn get_background_and_window_tile_data_block_2_and_1(
-        &self,
-        memory: &[u8; MEMORY_SIZE],
-    ) -> [u8; 4096] {
+    pub fn get_background_and_window_tile_data_block_2_and_1(memory_bus: &MemoryBus) -> [u8; 4096] {
         [
-            &memory[TILE_DATA_BLOCK_2_START..TILE_DATA_BLOCK_2_START + TILE_DATA_BLOCK_SIZE],
-            &memory[TILE_DATA_BLOCK_1_START..TILE_DATA_BLOCK_1_START + TILE_DATA_BLOCK_SIZE],
+            &memory_bus.memory
+                [TILE_DATA_BLOCK_2_START..TILE_DATA_BLOCK_2_START + TILE_DATA_BLOCK_SIZE],
+            &memory_bus.memory
+                [TILE_DATA_BLOCK_1_START..TILE_DATA_BLOCK_1_START + TILE_DATA_BLOCK_SIZE],
         ]
         .concat()
         .try_into()
@@ -204,17 +200,17 @@ impl GPU {
 
     /// Returns the current tilemap for the background. Switches the addressing mode
     /// automatically according to LCDC bit 3 (background_tile_map).
-    pub fn get_background_tile_map(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
-        if !LCDCRegister::get_background_tile_map_flag(memory) {
-            self.get_background_tile_map_zero(memory)
+    pub fn get_background_tile_map(memory_bus: &MemoryBus) -> [u8; 1024] {
+        if !LCDCRegister::get_background_tile_map_flag(memory_bus) {
+            PPU::get_background_tile_map_zero(memory_bus)
         } else {
-            self.get_background_tile_map_one(memory)
+            PPU::get_background_tile_map_one(memory_bus)
         }
     }
 
     /// Returns the zeroth tilemap (0x9800 - 0x9BFF).
-    pub fn get_background_tile_map_zero(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
-        memory[TILEMAP_ZERO_START..TILEMAP_ZERO_START + TILEMAP_SIZE]
+    pub fn get_background_tile_map_zero(memory_bus: &MemoryBus) -> [u8; 1024] {
+        memory_bus.memory[TILEMAP_ZERO_START..TILEMAP_ZERO_START + TILEMAP_SIZE]
             .try_into()
             .expect(
                 "Slice should be of correct length, work with me here compiler:\
@@ -223,8 +219,8 @@ impl GPU {
     }
 
     /// Returns the first tilemap (0x9C00 - 0x9FFF).
-    pub fn get_background_tile_map_one(&self, memory: &[u8; MEMORY_SIZE]) -> [u8; 1024] {
-        memory[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
+    pub fn get_background_tile_map_one(memory_bus: &MemoryBus) -> [u8; 1024] {
+        memory_bus.memory[TILEMAP_ONE_START..TILEMAP_ONE_START + TILEMAP_SIZE]
             .try_into()
             .expect(
                 "Slice should be of correct length, work with me here compiler:\

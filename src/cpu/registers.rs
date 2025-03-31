@@ -60,7 +60,7 @@ impl CPURegisters {
 
     /// Returns the value of the AF register pair.
     pub fn get_af(&self) -> u16 {
-        ((self.a as u16) << 8) | (self.f.register as u16)
+        ((self.a as u16) << 8) | (self.f.get() as u16)
     }
 
     /// Returns the value of the BC register pair.
@@ -82,7 +82,7 @@ impl CPURegisters {
     pub fn set_af(&mut self, value: u16) {
         self.a = ((value & 0xFF00) >> 8) as u8;
         self.f = FlagsRegister {
-            register: (value & 0x00FF) as u8,
+            register: (value & 0x00F0) as u8,
         };
     }
 

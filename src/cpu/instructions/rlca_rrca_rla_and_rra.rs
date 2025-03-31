@@ -1,6 +1,6 @@
-use crate::RustBoy;
+use crate::CPU;
 
-impl RustBoy {
+impl CPU {
     /// Handles the RLCA instruction. In comparison to the RLC instruction, the RLCA instruction
     /// sets the zero flag to false.
     ///

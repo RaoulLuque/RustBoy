@@ -52,8 +52,8 @@ impl RustBoy {
         if self.timer_info.divider_running_m_cycle_counter
             >= M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT
         {
-            self.memory[DIVIDER_REGISTER_ADDRESS] =
-                self.memory[DIVIDER_REGISTER_ADDRESS].wrapping_add(1);
+            self.memory_bus.memory[DIVIDER_REGISTER_ADDRESS] =
+                self.memory_bus.memory[DIVIDER_REGISTER_ADDRESS].wrapping_add(1);
             self.timer_info.divider_running_m_cycle_counter -=
                 M_CYCLES_FOR_DIVIDER_REGISTER_INCREMENT;
         }
@@ -76,29 +76,31 @@ impl RustBoy {
     /// Increment the timer register and handle an overflow by setting the timer to the value
     /// provided in the [TIMER_MODULO_ADDRESS].
     fn increment_timer(&mut self) {
-        let current_timer_value = self.read_byte(TIMER_ADDRESS);
+        let current_timer_value = self.memory_bus.read_byte(TIMER_ADDRESS);
         // Check if overflow is imminent
         if current_timer_value == 0xFF {
             // TODO: Possibly handle case, where TIMER MODULE REGISTER is edited in same m-cycle
             // as this happens and then old value is supposed to be used, see:
             // https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff06--tma-timer-modulo
-            self.write_byte(TIMER_ADDRESS, self.get_timer_wraparound_value());
+            self.memory_bus
+                .write_byte(TIMER_ADDRESS, self.get_timer_wraparound_value());
             // Request a timer interrupt
-            InterruptFlagRegister::set_flag(&mut self.memory, Interrupt::Timer, true);
+            InterruptFlagRegister::set_flag(&mut self.memory_bus, Interrupt::Timer, true);
         } else {
-            self.write_byte(TIMER_ADDRESS, current_timer_value.wrapping_add(1));
+            self.memory_bus
+                .write_byte(TIMER_ADDRESS, current_timer_value.wrapping_add(1));
         }
     }
 
     /// Checks the timer control for whether the timer enabled bit is set and returns the result
     fn is_timer_enabled(&self) -> bool {
-        self.read_byte(TIMER_CONTROL_ADDRESS) & 0b100 != 0
+        self.memory_bus.read_byte(TIMER_CONTROL_ADDRESS) & 0b100 != 0
     }
 
     /// Checks the timer control for which timer frequency is selected and returns the frequency in
     /// #M-Cycles per Increment
     fn get_timer_frequency_in_m_cycles(&self) -> u32 {
-        match self.read_byte(TIMER_CONTROL_ADDRESS) & 0b11 {
+        match self.memory_bus.read_byte(TIMER_CONTROL_ADDRESS) & 0b11 {
             0b00 => TIMER_FREQUENCY_ZERO_IN_M_CYCLES,
             0b01 => TIMER_FREQUENCY_ONE_IN_M_CYCLES,
             0b10 => TIMER_FREQUENCY_TWO_IN_M_CYCLES,
@@ -110,6 +112,6 @@ impl RustBoy {
     /// Checks the timer modulo address [TIMER_MODULO_ADDRESS] to determine the value the timer should reset to when it
     /// wraps around.
     fn get_timer_wraparound_value(&self) -> u8 {
-        self.read_byte(TIMER_MODULO_ADDRESS)
+        self.memory_bus.read_byte(TIMER_MODULO_ADDRESS)
     }
 }

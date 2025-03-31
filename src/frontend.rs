@@ -3,14 +3,14 @@ pub(crate) mod shader;
 use winit::event::WindowEvent;
 use winit::window::Window;
 
-use super::{MEMORY_SIZE, ORIGINAL_SCREEN_WIDTH};
+use super::{MEMORY_SIZE, MemoryBus, ORIGINAL_SCREEN_WIDTH};
 use crate::frontend::shader::{
     ObjectsInScanline, TileData, TilemapUniform, setup_render_shader_pipeline,
     setup_scanline_shader_pipeline,
 };
-use crate::gpu::GPU;
-use crate::gpu::information_for_shader::ChangesToPropagateToShader;
-use crate::gpu::object_handling::custom_ordering;
+use crate::ppu::PPU;
+use crate::ppu::information_for_shader::ChangesToPropagateToShader;
+use crate::ppu::object_handling::custom_ordering;
 
 /// Big struct capturing the current state of the window and shader pipeline, including its buffers.
 pub struct State<'a> {
@@ -320,8 +320,8 @@ impl<'a> State<'a> {
     /// the scanline shader pipeline.
     pub fn render_scanline(
         &mut self,
-        rust_boy_gpu: &mut GPU,
-        memory: &[u8; MEMORY_SIZE],
+        rust_boy_ppu: &mut PPU,
+        memory_bus: &mut MemoryBus,
         current_scanline: u8,
     ) {
         // Create a view of the offscreen texture.
@@ -366,8 +366,8 @@ impl<'a> State<'a> {
 
         // Update the background tilemap if the tilemap currently in use changed or if we switched
         // the tilemap we are using since the last scanline
-        if rust_boy_gpu.current_background_tile_map_changed(memory)
-            | rust_boy_gpu.memory_changed.background_tile_map_flag_changed
+        if PPU::current_background_tile_map_changed(memory_bus)
+            | memory_bus.memory_changed.background_tile_map_flag_changed
         {
             // trace!("Updating tilemap");
             // trace!(
@@ -381,7 +381,7 @@ impl<'a> State<'a> {
             // );
 
             // Update tilemap and tile atlas (e.g., VRAM changes)
-            let new_tilemap_data = rust_boy_gpu.buffers_for_rendering.background_tile_map;
+            let new_tilemap_data = rust_boy_ppu.buffers_for_rendering.background_tile_map;
             let tilemap = TilemapUniform::from_array(&new_tilemap_data);
             self.queue.write_buffer(
                 &self.background_tilemap_buffer,
@@ -392,11 +392,11 @@ impl<'a> State<'a> {
 
         // Update the background tilemap if the tilemap currently in use changed or if we switched
         // the tilemap we are using since the last scanline
-        if rust_boy_gpu.current_window_tile_map_changed(memory)
-            | rust_boy_gpu.memory_changed.window_tile_map_flag_changed
+        if PPU::current_window_tile_map_changed(memory_bus)
+            | memory_bus.memory_changed.window_tile_map_flag_changed
         {
             // Update tilemap and tile atlas (e.g., VRAM changes)
-            let new_tilemap_data = rust_boy_gpu.buffers_for_rendering.window_tile_map;
+            let new_tilemap_data = rust_boy_ppu.buffers_for_rendering.window_tile_map;
             let tilemap = TilemapUniform::from_array(&new_tilemap_data);
             self.queue.write_buffer(
                 &self.window_tilemap_buffer,
@@ -407,8 +407,8 @@ impl<'a> State<'a> {
 
         // Update the tile data if the tile data currently in use changed or if we switched
         // the tilemap we are using since the last scanline
-        if rust_boy_gpu.current_bg_and_wd_tile_data_changed(memory)
-            | rust_boy_gpu.memory_changed.tile_data_flag_changed
+        if PPU::current_bg_and_wd_tile_data_changed(memory_bus)
+            | memory_bus.memory_changed.tile_data_flag_changed
         {
             // DEBUG
             // trace!("Updating tile data");
@@ -428,7 +428,7 @@ impl<'a> State<'a> {
             // );
 
             let new_background_tile_data_plain =
-                rust_boy_gpu.buffers_for_rendering.bg_and_wd_tile_data;
+                rust_boy_ppu.buffers_for_rendering.bg_and_wd_tile_data;
             self.queue.write_buffer(
                 &self.bg_and_wd_tile_data_buffer,
                 0,
@@ -437,12 +437,12 @@ impl<'a> State<'a> {
         }
 
         // Update the background and window viewport position if either of them changed since the last scanline
-        if rust_boy_gpu
+        if memory_bus
             .memory_changed
             .background_viewport_position_changed
-            || rust_boy_gpu.memory_changed.window_viewport_position_changed
+            || memory_bus.memory_changed.window_viewport_position_changed
         {
-            let updated_bg_and_wd_viewport_position = rust_boy_gpu
+            let updated_bg_and_wd_viewport_position = rust_boy_ppu
                 .buffers_for_rendering
                 .bg_and_wd_viewport_position;
             self.queue.write_buffer(
@@ -453,7 +453,7 @@ impl<'a> State<'a> {
         }
 
         // Update the palette buffer if the palettes have changed
-        let updated_palettes = rust_boy_gpu.buffers_for_rendering.palettes;
+        let updated_palettes = rust_boy_ppu.buffers_for_rendering.palettes;
         self.queue.write_buffer(
             &self.palette_buffer,
             0,
@@ -461,7 +461,7 @@ impl<'a> State<'a> {
         );
 
         // Update the current scanline and object size uniform buffer
-        let updated_current_scanline_lcd_control_and_window_internal_line_info = rust_boy_gpu
+        let updated_current_scanline_lcd_control_and_window_internal_line_info = rust_boy_ppu
             .buffers_for_rendering
             .rendering_line_lcd_control_and_window_internal_line_info;
         // DEBUG
@@ -478,8 +478,8 @@ impl<'a> State<'a> {
         );
 
         // Update the object tile data buffer if it changed since the last scanline
-        if rust_boy_gpu.memory_changed.tile_data_block_0_1_changed {
-            let new_object_tile_data = rust_boy_gpu.buffers_for_rendering.object_tile_data;
+        if memory_bus.memory_changed.tile_data_block_0_1_changed {
+            let new_object_tile_data = rust_boy_ppu.buffers_for_rendering.object_tile_data;
             self.queue.write_buffer(
                 &self.object_tile_data_buffer,
                 0,
@@ -488,7 +488,7 @@ impl<'a> State<'a> {
         }
 
         // Update the objects in scanline buffer
-        let mut objects_in_scanline = rust_boy_gpu
+        let mut objects_in_scanline = rust_boy_ppu
             .buffers_for_rendering
             .objects_in_scanline_buffer;
         // Sort objects in scanline by their x coordinate, see https://gbdev.io/pandocs/OAM.html#drawing-priority
@@ -513,7 +513,7 @@ impl<'a> State<'a> {
         }
 
         // Reset the changed flags so on the next scanline only buffers are updated which need to be
-        rust_boy_gpu.memory_changed = ChangesToPropagateToShader::new_false();
+        memory_bus.memory_changed = ChangesToPropagateToShader::new_false();
 
         // Submit the compute commands to the GPU
         // Submit will accept anything that implements IntoIter

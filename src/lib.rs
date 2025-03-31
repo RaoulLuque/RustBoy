@@ -11,10 +11,10 @@
 mod cpu;
 mod debugging;
 mod frontend;
-mod gpu;
 mod input;
 mod interrupts;
 mod memory_bus;
+mod ppu;
 mod timer;
 
 #[cfg(target_arch = "wasm32")]
@@ -26,14 +26,12 @@ use debugging::DebugInfo;
 #[cfg(debug_assertions)]
 use debugging::setup_debugging_logs_files;
 use frontend::State;
-use gpu::GPU;
-use gpu::RenderTask;
-use input::Joypad;
 use input::{handle_key_pressed_event, handle_key_released_event};
 use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
+use ppu::RenderTask;
 use timer::TimerInfo;
 
-use crate::gpu::tile_handling::{Tile, empty_tile};
+use crate::ppu::tile_handling::{Tile, empty_tile};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::{
     dpi::PhysicalSize,
@@ -42,6 +40,12 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::WindowBuilder,
 };
+
+// Export main parts of the RustBoy
+pub use cpu::CPU;
+pub use input::Joypad;
+pub use memory_bus::MemoryBus;
+pub use ppu::PPU;
 
 const TARGET_FPS: f64 = 60.0;
 const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS;
@@ -85,35 +89,10 @@ const MEMORY_SIZE: usize = 65536;
 ///
 /// The debugging flags are used to control flags used in debugging the RustBoy.
 pub struct RustBoy {
-    // CPU
-    registers: CPURegisters,
-    pc: u16,
-    sp: u16,
-    cycle_counter: u64,
-    cycles_current_instruction: Option<u8>,
-    ime: bool,
-    ime_to_be_set: bool,
-    halted: bool,
-    just_entered_halt: bool,
-
-    // Memory
-    memory: [u8; MEMORY_SIZE],
-    bios: [u8; 0x0100],
-    being_initialized: bool,
-    starting_up: bool,
-    pub tile_set: [Tile; 384],
-
-    // GPU
-    gpu: GPU,
-
-    // Timers
+    cpu: CPU,
+    memory_bus: MemoryBus,
+    ppu: PPU,
     timer_info: TimerInfo,
-
-    // Joypad
-    joypad: Joypad,
-
-    // Debugging Flags
-    debugging_flags: DebugInfo,
 }
 
 impl RustBoy {
@@ -126,25 +105,10 @@ impl RustBoy {
     /// The GPU is initialized to an empty state.
     pub fn new_before_boot(debugging_flags: DebugInfo) -> RustBoy {
         RustBoy {
-            registers: CPURegisters::new_zero(),
-            pc: 0x0000,
-            sp: 0xFFFE,
-            cycle_counter: 0,
-            cycles_current_instruction: None,
-            memory: [0; 65536],
-            bios: [0; 0x0100],
-            starting_up: true,
-            being_initialized: true,
-            tile_set: [empty_tile(); 384],
-            ime: false,
-            ime_to_be_set: false,
-            halted: false,
-            just_entered_halt: false,
-            gpu: GPU::new_empty(&debugging_flags),
+            memory_bus: MemoryBus::new_before_boot(&debugging_flags),
+            ppu: PPU::new_empty(&debugging_flags),
             timer_info: TimerInfo::new(),
-            joypad: Joypad::new_blank(),
-
-            debugging_flags,
+            cpu: CPU::new_before_boot_rom(debugging_flags),
         }
     }
 
@@ -154,12 +118,12 @@ impl RustBoy {
     /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
     pub fn new_after_boot(debugging_flags: DebugInfo) -> RustBoy {
         let mut rust_boy = RustBoy::new_before_boot(debugging_flags);
-        rust_boy.registers = CPURegisters::new_after_boot();
-        rust_boy.pc = 0x0100;
-        rust_boy.starting_up = false;
+        rust_boy.cpu.registers = CPURegisters::new_after_boot();
+        rust_boy.cpu.pc = 0x0100;
+        rust_boy.memory_bus.starting_up = false;
 
-        rust_boy.initialize_hardware_registers();
-        rust_boy.being_initialized = false;
+        CPU::initialize_hardware_registers(&mut rust_boy.memory_bus);
+        rust_boy.memory_bus.being_initialized = false;
         rust_boy
     }
 }
@@ -304,12 +268,14 @@ pub async fn run(
 fn setup_rust_boy(mut debugging_flags: DebugInfo, rom_data: &[u8]) -> RustBoy {
     // Initialize the logging for debug if compiling in debug mode
     #[cfg(debug_assertions)]
-    setup_debugging_logs_files(&mut debugging_flags);
+    if debugging_flags.doctor || debugging_flags.file_logs {
+        setup_debugging_logs_files(&mut debugging_flags);
+    }
 
     // TODO: Handle header checksum (init of Registers f.H and f.C): https://gbdev.io/pandocs/Power_Up_Sequence.html#obp
     let mut rust_boy = RustBoy::new_after_boot(debugging_flags);
 
-    rust_boy.load_program(rom_data);
+    rust_boy.memory_bus.load_program(rom_data);
 
     rust_boy
 }
@@ -380,11 +346,15 @@ fn handle_redraw_requested_event(
                 // since we have just written a line to the framebuffer. If it was to render a frame,
                 // it has to stay as is, since we still need to render the frame
                 *current_rendering_task = RenderTask::None;
-                state.render_scanline(&mut rust_boy.gpu, &rust_boy.memory, current_scanline);
+                state.render_scanline(
+                    &mut rust_boy.ppu,
+                    &mut rust_boy.memory_bus,
+                    current_scanline,
+                );
             } else {
                 // Otherwise, the current rendering task was to render a frame, and we still need to
                 // write the last line to the framebuffer
-                state.render_scanline(&mut rust_boy.gpu, &rust_boy.memory, 143);
+                state.render_scanline(&mut rust_boy.ppu, &mut rust_boy.memory_bus, 143);
             }
         }
     }
@@ -434,8 +404,11 @@ fn handle_redraw_requested_event(
 /// Handle the case in the game boy loop, where we are not requesting a redraw.
 fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
     // Fetch and execute next instruction with cpu_step().
-    rust_boy.cpu_step();
+    rust_boy
+        .cpu
+        .cpu_step(&mut rust_boy.memory_bus, &mut rust_boy.ppu);
     let last_num_of_cycles = rust_boy
+        .cpu
         .cycles_current_instruction
         .expect("Cycles should be set by cpu_step()");
 
@@ -448,11 +421,11 @@ fn handle_no_rendering_task(rust_boy: &mut RustBoy) -> RenderTask {
 
     // Check what has to be done for rendering and sync gpu with cpu with gpu_step()
     let new_rendering_task = rust_boy
-        .gpu
-        .gpu_step(&mut rust_boy.memory, last_num_of_dots);
+        .ppu
+        .ppu_step(&mut rust_boy.memory_bus, last_num_of_dots);
 
     // Reset the cycles of the current instruction
-    rust_boy.cycles_current_instruction = None;
+    rust_boy.cpu.cycles_current_instruction = None;
 
     // Return the new total number of cpu cycles and possible rendering tasks
     new_rendering_task
