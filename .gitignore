@@ -11,3 +11,4 @@
 *.svg
 *.data
 *.old
+/.cargo
