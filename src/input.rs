@@ -1,6 +1,6 @@
 use crate::cpu::is_bit_set;
 use crate::memory_bus::JOYPAD_REGISTER;
-use crate::{MEMORY_SIZE, MemoryBus, RustBoy};
+use crate::{MemoryBus, RustBoy};
 use winit::keyboard::{KeyCode, PhysicalKey};
 
 const SELECT_DIRECTION_BUTTON_BIT: u8 = 4;

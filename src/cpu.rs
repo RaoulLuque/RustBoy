@@ -11,8 +11,7 @@ use crate::debugging::{DebugInfo, LOG_FILE_NAME};
 #[cfg(debug_assertions)]
 use crate::debugging::{doctor_log, instruction_log};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
-use crate::memory_bus::{OAM_END, OAM_START};
-use crate::{MemoryBus, PPU, RustBoy};
+use crate::{MemoryBus, PPU};
 use instructions::Instruction;
 
 pub struct CPU {

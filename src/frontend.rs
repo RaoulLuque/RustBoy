@@ -3,7 +3,7 @@ pub(crate) mod shader;
 use winit::event::WindowEvent;
 use winit::window::Window;
 
-use super::{MEMORY_SIZE, MemoryBus, ORIGINAL_SCREEN_WIDTH};
+use super::{MemoryBus, ORIGINAL_SCREEN_WIDTH};
 use crate::frontend::shader::{
     ObjectsInScanline, TileData, TilemapUniform, setup_render_shader_pipeline,
     setup_scanline_shader_pipeline,

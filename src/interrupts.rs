@@ -1,6 +1,6 @@
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 use crate::memory_bus::{INTERRUPT_ENABLE_REGISTER, INTERRUPT_FLAG_REGISTER};
-use crate::{CPU, MEMORY_SIZE, MemoryBus, RustBoy};
+use crate::{CPU, MemoryBus};
 
 const VBLANK_INTERRUPT_LOCATION: u16 = 0x0040;
 const LCD_STAT_INTERRUPT_LOCATION: u16 = 0x0048;

@@ -1,7 +1,7 @@
 use crate::PPU;
 use crate::memory_bus::{OAM_END, OAM_START};
 use crate::ppu::registers::LCDCRegister;
-use crate::{MEMORY_SIZE, MemoryBus};
+use crate::MemoryBus;
 use bytemuck::cast_ref;
 
 /// Represents an object/sprite in the GPU's object attribute memory. These structs are used to

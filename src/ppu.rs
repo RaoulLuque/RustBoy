@@ -7,8 +7,8 @@ use crate::cpu::is_bit_set;
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::interrupts::{Interrupt, InterruptFlagRegister};
 use crate::ppu::registers::LCDCRegister;
-use crate::{MEMORY_SIZE, MemoryBus, RustBoy};
-use information_for_shader::{BuffersForRendering, ChangesToPropagateToShader};
+use crate::MemoryBus;
+use information_for_shader::BuffersForRendering;
 use registers::PPURegisters;
 
 const TILE_DATA_BLOCK_0_START: usize = 0x8000;

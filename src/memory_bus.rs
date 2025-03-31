@@ -1,11 +1,9 @@
-use crate::cpu::registers::CPURegisters;
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::input::{ButtonState, Joypad};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::ppu::information_for_shader::ChangesToPropagateToShader;
-use crate::ppu::registers::PPURegisters;
 use crate::ppu::tile_handling::{Tile, empty_tile};
-use crate::{MEMORY_SIZE, PPU, RustBoy};
+use crate::{MEMORY_SIZE, PPU};
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
 const ROM_BANK_0_END: u16 = 0x4000;

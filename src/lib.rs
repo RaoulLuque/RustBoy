@@ -27,11 +27,9 @@ use debugging::DebugInfo;
 use debugging::setup_debugging_logs_files;
 use frontend::State;
 use input::{handle_key_pressed_event, handle_key_released_event};
-use interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use ppu::RenderTask;
 use timer::TimerInfo;
 
-use crate::ppu::tile_handling::{Tile, empty_tile};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::{
     dpi::PhysicalSize,
@@ -204,8 +202,8 @@ pub async fn run(
     }
     // Force a resize event to trigger initial configuration
     let _ = window.request_inner_size(PhysicalSize::new(
-        crate::ORIGINAL_SCREEN_WIDTH,
-        crate::ORIGINAL_SCREEN_HEIGHT,
+        ORIGINAL_SCREEN_WIDTH,
+        ORIGINAL_SCREEN_HEIGHT,
     ));
 
     let mut state = State::new(&window).await;

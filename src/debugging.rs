@@ -2,8 +2,6 @@
 /// all over the place.
 use wasm_timer::Instant;
 
-use crate::RustBoy;
-use crate::cpu::instructions::ArithmeticOrLogicalSource;
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::ppu::registers::{LCDCRegister, PPURegisters};
 use crate::ppu::tile_handling::{Tile, TilePixelValue};

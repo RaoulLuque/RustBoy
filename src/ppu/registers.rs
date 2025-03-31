@@ -1,13 +1,11 @@
 use super::{
-    DOTS_IN_HBLANK_PLUS_TRANSFER, DOTS_IN_VBLANK, PPU, PPU_MODE_WHILE_LCD_TURNED_OFF,
-    RenderingInfo, RenderingMode,
+    PPU, PPU_MODE_WHILE_LCD_TURNED_OFF, RenderingMode,
 };
 use crate::cpu::{clear_bit, is_bit_set, set_bit};
 
 use crate::debugging::DebuggingFlagsWithoutFileHandles;
 use crate::interrupts::{Interrupt, InterruptFlagRegister};
-use crate::ppu::information_for_shader::ChangesToPropagateToShader;
-use crate::{MEMORY_SIZE, MemoryBus};
+use crate::MemoryBus;
 
 // Addresses of the GPU registers
 const LCDC_REGISTER_ADDRESS: usize = 0xFF40;
