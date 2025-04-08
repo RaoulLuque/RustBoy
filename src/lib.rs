@@ -187,15 +187,13 @@ pub async fn run(
     // Add a canvas to the HTML document
     #[cfg(target_arch = "wasm32")]
     {
-        // Winit prevents sizing with CSS, so we have to set
-        // the size manually when on web.
         use winit::platform::web::WindowExtWebSys;
         let canvas = window.canvas().expect("Canvas not found");
-        canvas.style().set_css_text("width: 160px; height: 144px;"); // Enforce size
         web_sys::window()
             .and_then(|win| win.document())
             .and_then(|doc| {
-                let dst = doc.get_element_by_id("emulator-body")?;
+                // Target the container div instead of the body
+                let dst = doc.get_element_by_id("screen-container")?;
                 dst.append_child(&web_sys::Element::from(canvas)).ok()
             })
             .expect("Failed to append canvas");

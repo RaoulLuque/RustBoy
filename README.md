@@ -19,6 +19,8 @@ The app also runs in the web using WASM.
 - [Binjgb - A Game Boy emulator implemented in C with good trace
   logging for comparing logs instruction by instruction](https://github.com/binji/binjgb)
 
+- [Image Source for GameBoy Image](https://commons.wikimedia.org/wiki/File:Gameboy.svg)
+
 ## How to Start
 
 TBD
