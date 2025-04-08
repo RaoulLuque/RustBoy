@@ -55,22 +55,6 @@ const MEMORY_SIZE: usize = 65536;
 /// Struct to represent the Rust Boy.
 /// It is split into 3 main parts: The CPU, the memory bus, and the GPU.
 ///
-/// The CPU has 8 registers, a program counter (PC), a stack pointer (SP), and a memory bus.
-/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
-/// The CPU also has a cycle counter to keep track of the number of cycles executed.
-///
-/// Additionally, the CPU has an interrupt master enable (IME) flag to control the handling of
-/// interrupts, see [Pan Docs](https://gbdev.io/pandocs/Interrupts.html). ime_to_be_set is used
-/// to set the IME flag after the current instruction is executed which is necessary for the
-/// correct execution of the EI instruction.
-///
-/// In addition to the IME flag, the CPU has a halted flag to indicate if the CPU is halted.
-/// See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt) for more information on this.
-///
-/// At last the CPU has a starting_up flag to indicate if the CPU/System is starting up.
-///
-/// For implementations of the CPU instructions please see [instructions].
-///
 /// The memory bus is a struct that represents the memory of the Rust Boy.
 /// It is an array that represents the memory of the RustBoy.
 /// 65536 is the size of the memory in bytes

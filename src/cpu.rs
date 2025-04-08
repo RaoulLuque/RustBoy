@@ -14,9 +14,28 @@ use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::{MemoryBus, PPU};
 use instructions::Instruction;
 
+/// Struct to represent the CPU of the RustBoy.
+///
+/// The CPU has 8 registers, a program counter (PC), a stack pointer (SP), and a memory bus.
+/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+/// The CPU also has a cycle counter as well as a cycles_current_instruction field to keep track
+/// of the number of cycles executed.
+///
+/// Additionally, the CPU has an interrupt master enable (IME) flag to control the handling of
+/// interrupts, see [Pan Docs](https://gbdev.io/pandocs/Interrupts.html). ime_to_be_set is used
+/// to set the IME flag after the current instruction is executed, which is necessary for the
+/// correct execution of the EI instruction.
+///
+/// In addition to the IME flag, the CPU has a halted flag to indicate if the CPU is halted.
+/// See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt) for more information on this.
+///
+/// For implementations of the CPU instructions, please see [instructions].
 pub struct CPU {
+    /// The 8 registers of the CPU.
     pub registers: CPURegisters,
+    /// The program counter (PC) of the CPU.
     pub pc: u16,
+    /// The stack pointer (SP) of the CPU.
     pub sp: u16,
     cycle_counter: u64,
     pub(crate) cycles_current_instruction: Option<u8>,
@@ -30,7 +49,7 @@ pub struct CPU {
 }
 
 impl CPU {
-    /// Sets the stackpointer (SP) to the provided value.
+    /// Sets the stack pointer (SP) to the provided value.
     fn set_sp(&mut self, value: u16) {
         self.sp = value;
     }
@@ -46,6 +65,9 @@ impl CPU {
 
     /// Reads the next instruction and executes it in the CPU.
     /// Doing so, the program counter (pc) is updated to point to the address of the next instruction.
+    ///
+    /// Also handles interrupts and the halt mode of the CPU. This method is called in a loop
+    /// alternating with [crate::PPU::ppu_step].
     pub fn cpu_step(&mut self, memory_bus: &mut MemoryBus, ppu: &PPU) {
         // Log the current state of the registers if in debug mode. Don't want all this in release
         // builds, which is why we use the cfg conditional compilation feature.
@@ -53,7 +75,6 @@ impl CPU {
         if !self.halted {
             // We only log the current state right after an instruction is executed, so we don't
             // have to log the state of the registers if we are in halt mode.
-            // TODO: Make this more compact by calling a function to handle the logging
             if self.debugging_flags.doctor {
                 doctor_log(self, memory_bus, ppu, "doctor");
             }
