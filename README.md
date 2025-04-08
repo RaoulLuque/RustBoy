@@ -5,7 +5,7 @@ The app also runs in the web using WASM.
 
 ## ROMs that work
 
-- Dr. Mario (almost)
+- Dr. Mario
 
 ## Resources and Tutorials Used
 
