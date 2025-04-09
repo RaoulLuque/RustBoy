@@ -1,5 +1,7 @@
-use super::{clear_bit, is_bit_set, set_bit};
+//! This module contains the CPU registers including the flags register and the methods to access
+//! and modify the registers.
 
+use crate::memory_bus::{clear_bit, is_bit_set, set_bit};
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
 const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
 const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
@@ -8,9 +10,9 @@ const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 /// Struct to represent the registers of the CPU.
 /// The CPU has 8 registers, each 8 bits (1 byte) wide.
 /// The registers purposes are:
-/// - a: accumulator
-/// - f: [FlagsRegister]
-/// - else: general purpose
+/// - `a`: accumulator
+/// - `f`: [FlagsRegister]
+/// - `else`: general purpose
 ///
 /// The registers can either be accessed in pairs or individually.
 ///

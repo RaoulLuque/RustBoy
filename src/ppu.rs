@@ -4,8 +4,8 @@ pub mod registers;
 pub(crate) mod tile_handling;
 
 use crate::MemoryBus;
-use crate::cpu::is_bit_set;
 use crate::interrupts::{Interrupt, InterruptFlagRegister};
+use crate::memory_bus::is_bit_set;
 use crate::ppu::registers::LCDCRegister;
 use information_for_shader::BuffersForRendering;
 use registers::PPURegisters;

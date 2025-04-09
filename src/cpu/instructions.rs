@@ -1,14 +1,14 @@
 //! This module contains the CPU instructions. The instructions are represented as an enum and
 //! the CPU struct has a method to execute the instruction.
 //!
-//! The instructions are divided into two categories: prefix and non-prefix instructions.
+//! The instructions are divided into two categories: prefixed and non-prefixed instructions.
 //! For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
 //! the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/) or the
 //! [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7).
 //!
 //! The instructions are implemented in separate modules for better organization and readability.
 //! In the cases where instructions share the same target or source for their operations
-//! (e.g. ADD and ADC, [ArithmeticOrLogicalSource]), they use a common type to represent the target or source which is then
+//! (e.g. ADD and ADC who share [ArithmeticOrLogicalSource]), they use a common type to represent the target or source which is then
 //! implemented in this module.
 
 pub(crate) mod add_and_adc;
@@ -195,7 +195,8 @@ impl Instruction {
 }
 
 impl CPU {
-    /// Executes the instruction on the CPU.
+    /// Executes the provided instruction on the CPU by matching the instruction and calling the
+    /// corresponding handler function to execute the instruction.
     pub fn execute(&mut self, memory_bus: &mut MemoryBus, instruction: Instruction) -> u16 {
         use Instruction::*;
         let next_pc = match instruction {

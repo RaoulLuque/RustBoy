@@ -1,41 +1,42 @@
-//! CPU module
 //! This module contains the CPU struct and its methods.
-//! The execution of instructions is handled/implemented in the [instructions] module.
+//! The execution of instructions is handled/implemented in the [instructions] (sub-)module.
 
 pub(crate) mod instructions;
-mod memory_bus;
 pub mod registers;
 
 use crate::cpu::registers::CPURegisters;
 use crate::debugging::{DebugInfo, LOG_FILE_NAME};
 #[cfg(debug_assertions)]
-use crate::debugging::{doctor_log, instruction_log};
+use crate::debugging::{doctor_log_helper, instruction_log};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::{MemoryBus, PPU};
 use instructions::Instruction;
 
 /// Struct to represent the CPU of the RustBoy.
 ///
-/// The CPU has 8 registers, a program counter (PC), a stack pointer (SP), and a memory bus.
-/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
-/// The CPU also has a cycle counter as well as a cycles_current_instruction field to keep track
-/// of the number of cycles executed.
-///
-/// Additionally, the CPU has an interrupt master enable (IME) flag to control the handling of
-/// interrupts, see [Pan Docs](https://gbdev.io/pandocs/Interrupts.html). ime_to_be_set is used
-/// to set the IME flag after the current instruction is executed, which is necessary for the
-/// correct execution of the EI instruction.
-///
-/// In addition to the IME flag, the CPU has a halted flag to indicate if the CPU is halted.
-/// See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt) for more information on this.
+/// - `registers`: The 8 general-purpose registers of the CPU, including the accumulator and flag register.
+///     For details, refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+/// - `pc`: The program counter, which points to the address of the next instruction to be executed.
+/// - `sp`: The stack pointer, which points at the top of the stack. Note that the stack grows downwards.
+/// - `cycle_counter`: A counter to track the total number of cycles executed by the CPU.
+/// - `cycles_current_instruction`: Tracks the number of cycles taken by the current instruction being executed.
+/// - `ime`: The interrupt master enable (IME) flag, which controls whether interrupts are enabled or disabled.
+///     See [Pan Docs](https://gbdev.io/pandocs/Interrupts.html) for more details.
+/// - `ime_to_be_set`: A flag used to set the IME flag after the current instruction is executed,
+///     necessary for the correct execution of the EI instruction.
+/// - `halted`: Indicates whether the CPU is in a halted state. See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt).
+/// - `just_entered_halt`: A flag to track if the CPU has just entered the halt state, used to handle the halt bug.
+///     See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt-bug) for more details.
+/// - `debugging_flags`: Flags used for debugging purposes, such as logging the state of the CPU.
 ///
 /// For implementations of the CPU instructions, please see [instructions].
 pub struct CPU {
-    /// The 8 registers of the CPU.
+    /// The 8 general-purpose registers of the CPU, including the accumulator and flag register.
+    /// For details, refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
     pub registers: CPURegisters,
-    /// The program counter (PC) of the CPU.
+    /// The program counter, which points to the address of the next instruction to be executed.
     pub pc: u16,
-    /// The stack pointer (SP) of the CPU.
+    /// The stack pointer, which points at the top of the stack. Note that the stack grows downwards.
     pub sp: u16,
     cycle_counter: u64,
     pub(crate) cycles_current_instruction: Option<u8>,
@@ -49,7 +50,7 @@ pub struct CPU {
 }
 
 impl CPU {
-    /// Sets the stack pointer (SP) to the provided value.
+    /// Sets the stack pointer (sp) to the provided value.
     fn set_sp(&mut self, value: u16) {
         self.sp = value;
     }
@@ -68,19 +69,23 @@ impl CPU {
     ///
     /// Also handles interrupts and the halt mode of the CPU. This method is called in a loop
     /// alternating with [crate::PPU::ppu_step].
+    ///
+    /// Needs access to the memory bus to read the instruction byte, execute it and possibly change
+    /// memory during execution of the instruction.
     pub fn cpu_step(&mut self, memory_bus: &mut MemoryBus, ppu: &PPU) {
-        // Log the current state of the registers if in debug mode. Don't want all this in release
-        // builds, which is why we use the cfg conditional compilation feature.
+        // Log the current state of the registers if in debug mode.
         #[cfg(debug_assertions)]
         if !self.halted {
             // We only log the current state right after an instruction is executed, so we don't
             // have to log the state of the registers if we are in halt mode.
-            if self.debugging_flags.doctor {
-                doctor_log(self, memory_bus, ppu, "doctor");
-            }
-            if self.debugging_flags.file_logs {
-                doctor_log(self, memory_bus, ppu, LOG_FILE_NAME)
-            }
+            doctor_log_helper(
+                self,
+                memory_bus,
+                ppu,
+                "doctor",
+                self.debugging_flags.doctor,
+                self.debugging_flags.file_logs,
+            );
         }
 
         // This variable tracks if an interrupt was requested, to possibly override the check
@@ -117,10 +122,6 @@ impl CPU {
             }
         }
 
-        // No interrupt was requested, so we can continue executing instructions.
-        // Except if the cpu is halted, in which case need to check if an interrupt is requested
-        // and if so, go out of halt mode.
-
         // We use the following flag to track the halt bug. That is, if the IME flag is set to 0
         // and the CPU just entered halt mode and an interrupt both is requested and enabled, the
         // CPU will go out of halt, but the next instruction will be executed twice instead of once,
@@ -144,18 +145,16 @@ impl CPU {
                 }
                 self.increment_cycle_counter(1);
 
-                // Log the current state of the registers if in debug mode. Don't want all this in release
-                // builds, which is why we use the cfg conditional compilation feature.
+                // Log the current state of the registers if in debug mode.
                 #[cfg(debug_assertions)]
-                {
-                    // We are leaving halt mode, so we log the current state of the registers
-                    if self.debugging_flags.doctor {
-                        doctor_log(self, memory_bus, ppu, "doctor");
-                    }
-                    if self.debugging_flags.file_logs {
-                        doctor_log(self, memory_bus, ppu, LOG_FILE_NAME)
-                    }
-                }
+                doctor_log_helper(
+                    self,
+                    memory_bus,
+                    ppu,
+                    "doctor",
+                    self.debugging_flags.doctor,
+                    self.debugging_flags.file_logs,
+                );
             } else {
                 // If no interrupt is requested, just increment the cycle counter and return.
                 self.increment_cycle_counter(1);
@@ -204,6 +203,10 @@ impl CPU {
         }
     }
 
+    /// Creates a new CPU instance with all registers and flags set to 0 and/or false. The debugging
+    /// flags are set to the provided value.
+    ///
+    /// This is used to initialize the CPU to a state it is in before the boot ROM in executed.
     pub fn new_before_boot_rom(debugging_flags: DebugInfo) -> Self {
         CPU {
             registers: CPURegisters::new_zero(),
@@ -262,19 +265,4 @@ impl CPU {
         memory_bus.write_byte(0xFF4B, 0x00);
         memory_bus.write_byte(0xFFFF, 0x00);
     }
-}
-
-/// Checks if the bit at the given position is set in the given value.
-pub fn is_bit_set(value: u8, bit_position: u8) -> bool {
-    (value & (1 << bit_position)) != 0
-}
-
-/// Sets the bit at the given position in the given value.
-pub fn set_bit(value: u8, bit_position: u8) -> u8 {
-    value | (1 << bit_position)
-}
-
-/// Clears the bit at the given position in the given value.
-pub fn clear_bit(value: u8, bit_position: u8) -> u8 {
-    value & !(1 << bit_position)
 }

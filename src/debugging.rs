@@ -1,5 +1,6 @@
-/// This module contains the debugging functions for the RustBoy emulator. Therefore, it is a bit
-/// all over the place.
+//! This module contains the debugging functions for the RustBoy emulator.
+//! It provides utilities for logging, debugging, and inspecting the state of the emulator.
+//! The functions and structs in this module are primarily used during development and testing.
 use wasm_timer::Instant;
 
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
@@ -12,17 +13,19 @@ use std::io::Write;
 pub const LOG_FILE_NAME: &str = "extensive_logs";
 
 /// Struct to represent the debugging information/flags.
-/// The flags are:
-/// - `doctor`: If true, the emulator runs in game boy doctor compatible mode.
-/// - `file_logs`: If true, the emulator writes logs to a file.
-/// - `binjgb_mode`: If true, the emulator runs in binjgb mode, that is, it runs in a mode where
-/// the logs of this and the binjgb emulator are compatible.
-/// - `timing_mode`: If true, the emulator runs in timing mode, that is, it exits when the serial
-/// output is 'P' (capital letter).
-/// - `start_time`: The time when the emulator started running. Used in combination with timing mode.
-/// - `sb_to_terminal`: If true, the emulator prints the serial output to the terminal.
-/// see https://github.com/robert/gameboy-doctor
-
+/// This struct contains various flags and handles used for debugging the emulator.
+///
+/// Fields:
+/// - `file_handle_doctor_logs`: Optional file handle for writing doctor logs.
+/// - `file_handle_extensive_logs`: Optional file handle for writing extensive logs.
+/// - `log_file_index`: Index of the current log file.
+/// - `current_number_of_lines_in_log_file`: Number of lines written to the current log file.
+/// - `doctor`: Flag indicating if the emulator runs in Game Boy Doctor compatible mode.
+/// - `file_logs`: Flag indicating if logs should be written to a file.
+/// - `binjgb_mode`: Flag indicating if the emulator runs in binjgb mode.
+/// - `timing_mode`: Flag indicating if the emulator runs in timing mode.
+/// - `start_time`: Optional start time of the emulator, used in timing mode.
+/// - `sb_to_terminal`: Flag indicating if serial output should be printed to the terminal.
 #[derive(Debug)]
 pub struct DebugInfo {
     pub file_handle_doctor_logs: Option<std::fs::File>,
@@ -37,6 +40,8 @@ pub struct DebugInfo {
     pub sb_to_terminal: bool,
 }
 
+/// Struct to represent the debugging information/flags. This struct is similar to [DebugInfo],
+/// but does not contain handles to the log files, which makes it easier to pass around.
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct DebuggingFlagsWithoutFileHandles {
@@ -61,6 +66,9 @@ impl DebuggingFlagsWithoutFileHandles {
     }
 }
 
+/// Sets up the debugging log files for the emulator.
+/// This function creates the necessary log directory and initializes file handles
+/// for doctor logs and extensive logs based on the current log file index.
 #[cfg(debug_assertions)]
 pub fn setup_debugging_logs_files(debugging_flags: &mut DebugInfo) {
     let log_file_index = debugging_flags.log_file_index;
@@ -95,9 +103,27 @@ pub fn setup_debugging_logs_files(debugging_flags: &mut DebugInfo) {
     }
 }
 
-/// Write the gameboy doctor logs to the log file.
-/// Don't want all this in release builds, which is why we use the cfg conditional
-/// compilation feature.
+/// Helper function to log debugging information. Calls [doctor_log] for [LOG_FILE_NAME] and a provided log file name
+#[cfg(debug_assertions)]
+pub fn doctor_log_helper(
+    cpu: &mut CPU,
+    memory_bus: &MemoryBus,
+    ppu: &PPU,
+    log_file: &str,
+    doctor_flag: bool,
+    file_logs_flag: bool,
+) {
+    if doctor_flag {
+        doctor_log(cpu, memory_bus, ppu, log_file);
+    }
+    if file_logs_flag {
+        doctor_log(cpu, memory_bus, ppu, LOG_FILE_NAME)
+    }
+}
+
+/// Logs the state of the emulator to a log file.
+/// This function writes detailed debugging information about the CPU, memory, and PPU state
+/// to the specified log file. It is only included in debug builds.
 #[cfg(debug_assertions)]
 pub fn doctor_log(cpu: &mut CPU, memory_bus: &MemoryBus, ppu: &PPU, log_file: &str) {
     let mut data = format!(
@@ -191,7 +217,7 @@ pub fn doctor_log(cpu: &mut CPU, memory_bus: &MemoryBus, ppu: &PPU, log_file: &s
     }
 }
 
-/// Log the instruction bytes to the log file.
+/// Log the instruction as a pretty string to the provided log file.
 #[cfg(debug_assertions)]
 pub fn instruction_log(
     cpu: &CPU,
@@ -427,6 +453,7 @@ impl PPU {
     }
 }
 
+/// Converts a tile to a string representation.
 #[allow(dead_code)]
 pub fn tile_to_string(tile: &Tile) -> String {
     let mut string = String::new();
@@ -440,6 +467,7 @@ pub fn tile_to_string(tile: &Tile) -> String {
     string
 }
 
+/// Converts an array of tiles to a string representation.
 #[allow(dead_code)]
 pub fn tile_data_to_string(tile_data: &[Tile; 256]) -> String {
     let mut res_string = String::new();
@@ -477,6 +505,7 @@ fn tile_n_string(tile_index: usize) -> String {
     format!("Tile {}:", tile_index)
 }
 
+/// Converts a pixel with a value/color to a string representation.
 #[allow(dead_code)]
 pub fn convert_pixel_to_string(pixel: &TilePixelValue) -> String {
     match pixel {
@@ -487,6 +516,7 @@ pub fn convert_pixel_to_string(pixel: &TilePixelValue) -> String {
     }
 }
 
+/// Converts a tile map (array of u8) to a string representation.
 #[allow(dead_code)]
 pub fn tile_map_to_string(tile_map: &[u8; 1024]) -> String {
     let mut string = String::new();

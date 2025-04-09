@@ -1,8 +1,7 @@
 use super::{PPU, PPU_MODE_WHILE_LCD_TURNED_OFF, RenderingMode};
-use crate::cpu::{clear_bit, is_bit_set, set_bit};
-
 use crate::MemoryBus;
 use crate::interrupts::{Interrupt, InterruptFlagRegister};
+use crate::memory_bus::{clear_bit, is_bit_set, set_bit};
 
 // Addresses of the GPU registers
 const LCDC_REGISTER_ADDRESS: usize = 0xFF40;

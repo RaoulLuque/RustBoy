@@ -1,5 +1,5 @@
-use crate::cpu::is_bit_set;
 use crate::memory_bus::JOYPAD_REGISTER;
+use crate::memory_bus::is_bit_set;
 use crate::{MemoryBus, RustBoy};
 use winit::keyboard::{KeyCode, PhysicalKey};
 
