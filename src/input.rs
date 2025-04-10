@@ -1,3 +1,10 @@
+//! This module handles the input from the GameBoy joypad. It provides methods to read and write
+//! to the joypad register, as well as to handle button press and release events.
+//!
+//! While a [Joypad] struct is defined in this module, it actually only serves as a namespace for
+//! the static methods that handle joypad functionality. The actual data is held in the [MemoryBus]
+//! struct.
+
 use crate::memory_bus::JOYPAD_REGISTER;
 use crate::memory_bus::is_bit_set;
 use crate::{MemoryBus, RustBoy};
@@ -63,7 +70,7 @@ impl Joypad {
     ///
     /// We set the upper two bits
     /// to 1 by default, whereas in the real RustBoy they have no purpose. Otherwise, this register
-    /// 0xFF00 behaves as described in the [Pan Docs](https://gbdev.io/pandocs/Joypad_Input.html).
+    /// 0xFF00 behaves as described in the [Pan Docs - Joypad Input](https://gbdev.io/pandocs/Joypad_Input.html).
     pub fn get_joypad_register(memory_bus: &MemoryBus) -> u8 {
         let value: u8 = (memory_bus.memory[JOYPAD_REGISTER as usize] & 0b0011_0000) | 0b1100_0000;
         let select_action_button_flag = is_bit_set(value, SELECT_ACTION_BUTTON_BIT);

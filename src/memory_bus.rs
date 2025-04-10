@@ -1,3 +1,9 @@
+//! This module contains the [MemoryBus] struct, which handles all reads and writes to the main
+//! memory of the RustBoy.
+//!
+//! The main functionality is provided by [MemoryBus::read_byte] and [MemoryBus::write_byte],
+//! which handle the reading and writing of bytes to the memory.
+
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::input::{ButtonState, Joypad};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
@@ -21,7 +27,23 @@ pub(crate) const JOYPAD_REGISTER: u16 = 0xFF00;
 pub(crate) const INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
 pub(crate) const INTERRUPT_ENABLE_REGISTER: u16 = 0xFFFF;
 
+/// Struct to represent the memory bus of the RustBoy.
+///
+/// - `memory`: An array representing the main memory of the RustBoy, with a size of [MEMORY_SIZE] bytes.
+/// - `bios`: An array representing the BIOS of the RustBoy, used during startup instead of the
+///     first 0x0100 bytes of memory.
+/// - `being_initialized`: A flag indicating if the memory bus is being initialized.
+///     During this phase, writes to certain registers (e.g., DMA Register) should not cause side effects.
+/// - `starting_up`: A flag indicating if the RustBoy is in the startup phase, where the BIOS is
+///     used instead of the ROM.
+/// - `debugging_flags_without_file_handles`: Flags used for debugging purposes.
+/// - `memory_changed`: Tracks changes to memory that need to be propagated to the shader for rendering.
+/// - `tile_set`: An array of tiles representing the graphics data of the RustBoy.
+///
+/// For details on memory mapping and behavior, refer to [Pan Docs - Memory Map](https://gbdev.io/pandocs/Memory_Map.html)
+/// and [Pan Docs - Hardware Registers](https://gbdev.io/pandocs/Hardware_Reg_List.html).
 pub struct MemoryBus {
+    /// An array representing the main memory of the RustBoy, with a size of [MEMORY_SIZE] bytes.
     pub memory: [u8; MEMORY_SIZE],
     bios: [u8; 0x0100],
     pub(crate) being_initialized: bool,
@@ -32,7 +54,7 @@ pub struct MemoryBus {
     pub(crate) memory_changed: ChangesToPropagateToShader,
 
     // The following should be tried to get rid of
-    pub tile_set: [Tile; 384],
+    pub(crate) tile_set: [Tile; 384],
 
     pub(crate) dma_happened: bool,
 
@@ -60,7 +82,7 @@ impl MemoryBus {
         }
     }
 
-    /// Read a byte from the memory at the given address.
+    /// Read a byte from memory at the given address.
     pub(super) fn read_byte(&self, address: u16) -> u8 {
         match address {
             ROM_BANK_0_BEGIN..ROM_BANK_0_END => {
@@ -99,7 +121,7 @@ impl MemoryBus {
         }
     }
 
-    /// Write a byte to the memory at the given address.
+    /// Write a byte to memory at the given address.
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             // TODO: Add Memory bank controller
@@ -205,7 +227,7 @@ impl MemoryBus {
     /// is the starting address of the transfer divided by 0x100 (= 256). The transfer takes 160
     /// cycles.
     ///
-    /// TODO: Possibly split the copy instruction into 40 individual writes each taking 4 cycles
+    /// TODO: Possibly split the dma into 40 individual writes each taking 4 cycles
     /// to simulate the transfer speed of the DMG.
     pub(crate) fn handle_dma(&mut self, address: u8) {
         if !self.debugging_flags_without_file_handles.binjgb_mode {
@@ -219,6 +241,9 @@ impl MemoryBus {
         }
     }
 
+    /// Creates a new instance of the [MemoryBus] struct with the given [DebugInfo]. The memory,
+    /// including the bios' memory, is set to 0 and the starting_up and being_initialized
+    /// flags are set to true.
     pub fn new_before_boot(debug_info: &DebugInfo) -> Self {
         MemoryBus {
             memory: [0; 65536],

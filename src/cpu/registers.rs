@@ -16,7 +16,7 @@ const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 ///
 /// The registers can either be accessed in pairs or individually.
 ///
-/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+/// For details please refer to [Pan Docs - CPU Registers and Flags](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
 #[derive(Debug)]
 pub struct CPURegisters {
     pub a: u8,

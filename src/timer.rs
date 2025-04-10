@@ -1,3 +1,7 @@
+//! This module contains the [TimerInfo] struct and its methods, which are used to handle the Timer
+//! and Divider registers in the RustBoy. For more information on this, please refer to
+//! [Pan Docs - Timer and Divider Registers](https://gbdev.io/pandocs/Timer_and_Divider_Registers.html)
+
 use crate::interrupts::{Interrupt, InterruptFlagRegister};
 use crate::{M_CYCLES_PER_SECOND, RustBoy};
 
@@ -18,12 +22,14 @@ const TIMER_FREQUENCY_ONE_IN_M_CYCLES: u32 = M_CYCLES_PER_SECOND / TIMER_FREQUEN
 const TIMER_FREQUENCY_TWO_IN_M_CYCLES: u32 = M_CYCLES_PER_SECOND / TIMER_FREQUENCY_TWO;
 const TIMER_FREQUENCY_THREE_IN_M_CYCLES: u32 = M_CYCLES_PER_SECOND / TIMER_FREQUENCY_THREE;
 
+/// Struct to keep track of the timer and divider registers.
 pub struct TimerInfo {
     divider_running_m_cycle_counter: u32,
     timer_running_m_cycle_counter: u32,
 }
 
 impl TimerInfo {
+    /// Creates a new instance of TimerInfo with the divider and timer cycle counters set to 0.
     pub fn new() -> TimerInfo {
         TimerInfo {
             divider_running_m_cycle_counter: 0,

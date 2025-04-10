@@ -28,12 +28,8 @@ impl TilePixelValue {
 }
 
 impl PPU {
-    /// Handles a change in the tile data. The change is simply applied to the tile set.
-    ///
-    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
-    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
-    /// to the shader.
-    /// TODO: Make this a non static method and pass in memory bus?
+    /// Handles a change in the tile data. The change is simply applied to the tile set stored in
+    /// the memory bus.
     pub(crate) fn handle_tile_data_change(memory_bus: &mut MemoryBus, address: u16) {
         // Tiles rows are encoded in two bytes with the first byte always
         // on an even address. Bitwise ANDing the address with 0xffe
@@ -95,11 +91,7 @@ impl PPU {
     }
 
     /// Returns true if the tile data currently used for the background and window has changed since
-    /// the last time it was checked (usually the last scanline).
-    ///
-    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
-    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
-    /// to the shader.
+    /// the last scanline.
     pub fn current_bg_and_wd_tile_data_changed(memory_bus: &MemoryBus) -> bool {
         if LCDCRegister::get_background_and_window_tile_data_flag(memory_bus) {
             memory_bus.memory_changed.tile_data_block_0_1_changed
@@ -109,11 +101,7 @@ impl PPU {
     }
 
     /// Returns true if the tilemap currently used for the background has changed since the last
-    /// time it was checked (usually the last scanline).
-    ///
-    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
-    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
-    /// to the shader.
+    /// scanline.
     pub fn current_background_tile_map_changed(memory_bus: &MemoryBus) -> bool {
         if LCDCRegister::get_background_tile_map_flag(memory_bus) {
             memory_bus.memory_changed.tile_map_1_changed
@@ -123,11 +111,7 @@ impl PPU {
     }
 
     /// Returns true if the tilemap currently used for the window has changed since the last
-    /// time it was checked (usually the last scanline).
-    ///
-    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
-    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
-    /// to the shader.
+    /// scanline.
     pub fn current_window_tile_map_changed(memory_bus: &MemoryBus) -> bool {
         if LCDCRegister::get_window_tile_map_flag(memory_bus) {
             memory_bus.memory_changed.tile_map_1_changed
@@ -157,7 +141,7 @@ impl PPU {
     }
 
     /// Returns the current tile set for the background and window. Switches the addressing mode
-    /// automatically according to LCDC bit 4 (background_and_window_tile_data).
+    /// automatically, according to LCDC bit 4 (background_and_window_tile_data).
     pub fn get_background_and_window_tile_data(memory_bus: &MemoryBus) -> [u8; 4096] {
         if LCDCRegister::get_background_and_window_tile_data_flag(memory_bus) {
             PPU::get_background_and_window_tile_data_block_0_and_1(memory_bus)
@@ -199,7 +183,7 @@ impl PPU {
     }
 
     /// Returns the current tilemap for the background. Switches the addressing mode
-    /// automatically according to LCDC bit 3 (background_tile_map).
+    /// automatically, according to LCDC bit 3 (background_tile_map).
     pub fn get_background_tile_map(memory_bus: &MemoryBus) -> [u8; 1024] {
         if !LCDCRegister::get_background_tile_map_flag(memory_bus) {
             PPU::get_background_tile_map_zero(memory_bus)

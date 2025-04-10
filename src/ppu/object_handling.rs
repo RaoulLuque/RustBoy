@@ -24,7 +24,7 @@ pub struct Object {
 }
 
 impl Default for Object {
-    /// Creates a new instance of object with all zero values.
+    /// Creates a new instance of Object with all zero values.
     fn default() -> Self {
         Object {
             y_position: 0,
@@ -36,6 +36,7 @@ impl Default for Object {
 }
 
 impl Object {
+    /// Converts an instance of Object to a byte array. This is used to send the object data to the shader.
     pub fn to_bytes(&self) -> [u32; 4] {
         [
             self.y_position as u32,
@@ -47,7 +48,12 @@ impl Object {
 }
 
 impl PPU {
-    /// TODO: Write docstring
+    /// Returns the objects that are currently on the scanline.
+    ///
+    /// It iterates over the OAM (Object Attribute Memory) and checks whether an object is on the
+    /// current scanline. A maximum of 10 objects can be drawn per scanline, so if there are more
+    /// than 10 objects in the OAM that should be drawn, the first 10 are returned. The returning
+    /// array always has 10 entries, but the unused entries are just filled with 0s.
     pub fn get_objects_for_current_scanline(
         &self,
         memory_bus: &MemoryBus,
@@ -93,6 +99,9 @@ impl PPU {
     }
 }
 
+/// A custom ordering used to sort objects in the current scanline according to their x position.
+///
+/// Basically orders u32s like cmp() would, except for zeros, which are always [std::cmp::Ordering::Greater].
 pub fn custom_ordering(a: u32, b: u32) -> std::cmp::Ordering {
     if a == b {
         std::cmp::Ordering::Equal

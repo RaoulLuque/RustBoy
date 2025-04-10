@@ -32,10 +32,9 @@ const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 
 /// Represents the registers that control the GPU.
 ///
-/// This struct is empty and has no fields. Instead it is just used to group the GPU registers and make
-/// the interface nicer. The actual data of the registers is held in the [MemoryBus](MemoryBus).
-///
-/// TODO: Explain static function setup
+/// This struct is empty and has no fields. Instead it is just used to group the GPU registers and
+/// centralize the methods used to access the GPU registers. The actual data of the registers is
+/// held in the [MemoryBus](MemoryBus).
 ///
 /// The registers have the following address and function:
 /// - 0xFF40: LCDC - LCD Control Register
@@ -51,10 +50,11 @@ const LYC_INT_SELECT_BIT_POSITION: usize = 6;
 /// - 0xFF4B: WX - Window X Position Register
 pub struct PPURegisters {}
 
-/// Represents the LCDC register of the GPU. This struct is empty and has no fields. Instead, it is
-/// just used to make the interface nicer and the actual register is held in the [MemoryBus](MemoryBus).
+/// Represents the LCDC register of the GPU.
 ///
-/// TODO: Explain static function setup
+/// This struct is empty and has no fields. Instead it is just used to group the GPU registers and
+/// centralize the methods used to access the GPU registers. The actual data of the registers is
+/// held in the [MemoryBus](MemoryBus).
 ///
 /// The LCDC register is used to control the LCD.
 /// It is an 8-bit register with the following bits:
@@ -68,10 +68,11 @@ pub struct PPURegisters {}
 /// - Bit 7: Display off/on (0 = off, 1 = on)
 pub struct LCDCRegister {}
 
-/// Represents the LCD status register of the GPU. This struct is empty and has no fields. Instead, it is
-/// just used to make the interface nicer and the actual register is held in the [MemoryBus](MemoryBus).
+/// Represents the LCD status register of the GPU.
 ///
-/// TODO: Explain static function setup
+/// This struct is empty and has no fields. Instead it is just used to group the GPU registers and
+/// centralize the methods used to access the GPU registers. The actual data of the registers is
+/// held in the [MemoryBus](MemoryBus).
 ///
 /// The LCD status register is used to control the LCD status.
 /// It is an 8-bit register with the following bits (see https://gbdev.io/pandocs/STAT.html#ff41--stat-lcd-status)
@@ -85,6 +86,9 @@ pub struct LCDCRegister {}
 pub struct LCDStatusRegister {}
 
 impl PPU {
+    /// Read one of the GPU registers at the provided address.
+    ///
+    /// Needs a reference to the memory bus, since the registers are stored on/in the memory bus.
     pub fn read_registers(memory_bus: &MemoryBus, address: u16) -> u8 {
         match address {
             0xFF40 => PPURegisters::get_lcd_control(memory_bus),
@@ -107,9 +111,8 @@ impl PPU {
 
     /// Writes to the GPU registers.
     ///
-    /// Needs a reference to the interrupt flag register, if a write
-    /// to the scanline register is made and LY=LYC is set, in which case a stat interrupt might
-    /// be requested.
+    /// Needs a mutable reference to the memory bus, since the actual writes will happen on/in the
+    /// memory bus.
     pub fn write_registers(memory_bus: &mut MemoryBus, address: u16, value: u8) {
         match address {
             0xFF40 => PPURegisters::set_lcd_control(memory_bus, value),
@@ -132,8 +135,8 @@ impl PPU {
 impl PPURegisters {
     /// Set the LCD Control register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_lcd_control(memory_bus: &mut MemoryBus, value: u8) {
         let old_value = PPURegisters::get_lcd_control(memory_bus);
@@ -163,8 +166,9 @@ impl PPURegisters {
 
     /// Set the LCD Status register to the provided value.
     ///
-    /// Needs a reference to the interrupt flag register, if the LYC=LY Coincidence Flag is set,
-    /// in which case a stat interrupt might be requested.
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
+    /// to the shader.
     pub fn set_lcd_status(memory_bus: &mut MemoryBus, value: u8) {
         memory_bus.memory[LCD_STATUS_REGISTER_ADDRESS] =
             LCDStatusRegister::with_self_from_u8(memory_bus, value);
@@ -177,8 +181,8 @@ impl PPURegisters {
 
     /// Set the Background Scroll Y register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_bg_scroll_y(memory_bus: &mut MemoryBus, value: u8) {
         memory_bus.memory[BG_SCROLL_Y_REGISTER_ADDRESS] = value;
@@ -189,8 +193,8 @@ impl PPURegisters {
 
     /// Set the Background Scroll X register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_bg_scroll_x(memory_bus: &mut MemoryBus, value: u8) {
         memory_bus.memory[BG_SCROLL_X_REGISTER_ADDRESS] = value;
@@ -201,8 +205,8 @@ impl PPURegisters {
 
     /// Set the current scanline register to the provided value.
     ///
-    /// Needs a reference to the interrupt flag register, if LY=LYC and a stat interrupt might be
-    /// requested.
+    /// Possibly sets the lyc ly coincidence flag in the LCD status register, if the current scanline
+    /// is equal to the LY Compare register.
     pub(super) fn set_scanline(memory_bus: &mut MemoryBus, value: u8) {
         memory_bus.memory[SCANLINE_REGISTER_ADDRESS] = value;
         LCDStatusRegister::set_lyc_ly_coincidence_flag(
@@ -214,8 +218,8 @@ impl PPURegisters {
 
     /// Set the LY (Scanline) Compare register to the provided value.
     ///
-    /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
-    /// LY=LYC and the LYC int select is set.
+    /// Possibly sets the lyc ly coincidence flag in the LCD status register, if the current scanline
+    /// is equal to the LY Compare register.
     fn set_scanline_compare(memory_bus: &mut MemoryBus, value: u8) {
         memory_bus.memory[SCANLINE_COMPARE_REGISTER_ADDRESS] = value;
         LCDStatusRegister::set_lyc_ly_coincidence_flag(
@@ -227,8 +231,8 @@ impl PPURegisters {
 
     /// Set the GPU/PPU Mode to the provided value.
     ///
-    /// Needs a reference to the interrupt flag register to possibly request a stat interrupt, if
-    /// the corresponding mode int select flag is set to the provided mode which is being entered.
+    /// Possibly sets an interrupt flag in the interrupt flag register depending on the mode and the
+    /// interrupt select flags in the LCD status register.
     pub(crate) fn set_ppu_mode(memory_bus: &mut MemoryBus, mode: RenderingMode) {
         LCDStatusRegister::set_ppu_mode(memory_bus, mode);
         match mode {
@@ -253,8 +257,8 @@ impl PPURegisters {
 
     /// Set the background palette register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_background_palette(memory_bus: &mut MemoryBus, value: u8) {
         if PPURegisters::get_background_palette(memory_bus) != value {
@@ -265,8 +269,8 @@ impl PPURegisters {
 
     /// Set the object palette 0 register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_object_palette_zero(memory_bus: &mut MemoryBus, value: u8) {
         if PPURegisters::get_object_palette_zero(memory_bus) != value {
@@ -277,8 +281,8 @@ impl PPURegisters {
 
     /// Set the object palette 1 register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_object_palette_one(memory_bus: &mut MemoryBus, value: u8) {
         if PPURegisters::get_object_palette_one(memory_bus) != value {
@@ -289,8 +293,8 @@ impl PPURegisters {
 
     /// Set the window Y position register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_window_y_position(memory_bus: &mut MemoryBus, value: u8) {
         if PPURegisters::get_window_y_position(memory_bus) != value {
@@ -301,8 +305,8 @@ impl PPURegisters {
 
     /// Set the window X position register to the provided value.
     ///
-    /// Also sets flags in the provided [super::ChangesToPropagateToShader] struct, to keep track of which parts
-    /// of the GPU memory_bus changed for the next scanline/frame rendering to propagate these changes
+    /// Also sets flags in memory_bus.memory_changed, to keep track of which parts
+    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
     /// to the shader.
     pub fn set_window_x_position(memory_bus: &mut MemoryBus, value: u8) {
         if PPURegisters::get_window_x_position(memory_bus) != value {
@@ -344,14 +348,8 @@ impl PPURegisters {
 
     /// Get the current scanline register.
     ///
-    /// This function has rendering info, the current rendering mode and the cycles of the current
-    /// instruction as optional parameters. These are used to correctly determine the current scanline
-    /// based on a quirk if called from the memory_bus bus (that is, called by the CPU). If the GPU is
-    /// in HBlank mode and about to increment the scanline, we want to return this already incremented
-    /// scanline instead of the current one since in the real Game Boy they (GPU and CPU) would run in
-    /// parallel.
-    ///
-    /// TODO: Update docstring
+    /// This function only returns 0x90, if the debugging flag `doctor` is set. To bypass this, use
+    /// [PPURegisters::get_scanline_internal].
     pub fn get_scanline(memory_bus: &MemoryBus) -> u8 {
         if memory_bus.debugging_flags_without_file_handles.doctor {
             // Game Boy Doctor specifies that reading from the LY register (scanline) should always
@@ -362,6 +360,7 @@ impl PPURegisters {
         }
     }
 
+    /// Get the current scanline register.
     pub(crate) fn get_scanline_internal(memory_bus: &MemoryBus) -> u8 {
         memory_bus.memory[SCANLINE_REGISTER_ADDRESS]
     }

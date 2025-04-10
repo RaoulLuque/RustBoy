@@ -2,7 +2,7 @@
 //! the CPU struct has a method to execute the instruction.
 //!
 //! The instructions are divided into two categories: prefixed and non-prefixed instructions.
-//! For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
+//! For details please refer to [Pan Docs - CPU Instruction set](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
 //! the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/) or the
 //! [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7).
 //!
@@ -45,7 +45,7 @@ use res_and_set::ResAndSetInstructionType;
 use std::cmp::PartialEq;
 
 /// Represents a CPU instruction. The instruction can be either a prefix or non-prefix instruction.
-/// For details please refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
+/// For details please refer to [Pan Docs - CPU Instruction set](https://gbdev.io/pandocs/CPU_Instruction_Set.html),
 /// the [interactive CPU instruction set guide](https://meganesu.github.io/generate-gb-opcodes/) or
 /// the [CPU opcode reference](https://rgbds.gbdev.io/docs/v0.9.0/gbz80.7).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

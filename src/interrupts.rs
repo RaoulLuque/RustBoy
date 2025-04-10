@@ -1,3 +1,11 @@
+//! This module contains the methods used to handle interrupts in the RustBoy.
+//!
+//! There are two registers that are used to handle interrupts in the GameBoy:
+//! the [InterruptEnableRegister] and the [InterruptFlagRegister]. These are both represented by
+//! structs in this module, however, have no fields, since the actual register data is stored
+//! in the [MemoryBus]. Instead, the structs are used to provide static methods that handle the
+//! functionality of the registers and interrupts.
+
 use crate::memory_bus::{
     INTERRUPT_ENABLE_REGISTER, INTERRUPT_FLAG_REGISTER, clear_bit, is_bit_set, set_bit,
 };

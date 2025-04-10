@@ -1,7 +1,6 @@
 use clap::Parser;
 use rustboy::run;
 
-/// Simple program to greet a person
 #[derive(Parser, Debug)]
 #[command(name = "Rust Boy")]
 #[command(about = "A Game Boy emulator written in Rust", long_about = None)]
@@ -36,6 +35,8 @@ struct Args {
     rom_path: String,
 }
 
+/// Main function to run the emulator. Calls the [run] function from the [rustboy] crate with the
+/// arguments parsed from the command line.
 fn main() {
     let args = Args::parse();
 

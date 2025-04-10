@@ -15,24 +15,24 @@ use instructions::Instruction;
 /// Struct to represent the CPU of the RustBoy.
 ///
 /// - `registers`: The 8 general-purpose registers of the CPU, including the accumulator and flag register.
-///     For details, refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+///     For details, refer to [Pan Docs - CPU Registers and Flags](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
 /// - `pc`: The program counter, which points to the address of the next instruction to be executed.
 /// - `sp`: The stack pointer, which points at the top of the stack. Note that the stack grows downwards.
 /// - `cycle_counter`: A counter to track the total number of cycles executed by the CPU.
 /// - `cycles_current_instruction`: Tracks the number of cycles taken by the current instruction being executed.
 /// - `ime`: The interrupt master enable (IME) flag, which controls whether interrupts are enabled or disabled.
-///     See [Pan Docs](https://gbdev.io/pandocs/Interrupts.html) for more details.
+///     See [Pan Docs - Interrupts](https://gbdev.io/pandocs/Interrupts.html) for more details.
 /// - `ime_to_be_set`: A flag used to set the IME flag after the current instruction is executed,
 ///     necessary for the correct execution of the EI instruction.
-/// - `halted`: Indicates whether the CPU is in a halted state. See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt).
+/// - `halted`: Indicates whether the CPU is in a halted state. See [Pan Docs - Halt](https://gbdev.io/pandocs/halt.html#halt).
 /// - `just_entered_halt`: A flag to track if the CPU has just entered the halt state, used to handle the halt bug.
-///     See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt-bug) for more details.
+///     See [Pan Docs - Halt Bug](https://gbdev.io/pandocs/halt.html#halt-bug) for more details.
 /// - `debugging_flags`: Flags used for debugging purposes, such as logging the state of the CPU.
 ///
 /// For implementations of the CPU instructions, please see [instructions].
 pub struct CPU {
     /// The 8 general-purpose registers of the CPU, including the accumulator and flag register.
-    /// For details, refer to [Pan Docs](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
+    /// For details, refer to [Pan Docs - CPU Registers and Flags](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html).
     pub registers: CPURegisters,
     /// The program counter, which points to the address of the next instruction to be executed.
     pub pc: u16,
@@ -126,7 +126,7 @@ impl CPU {
         // and the CPU just entered halt mode and an interrupt both is requested and enabled, the
         // CPU will go out of halt, but the next instruction will be executed twice instead of once,
         // which we simulate by not setting the new program counter (PC) to the next instruction.
-        // See [Pan Docs](https://gbdev.io/pandocs/halt.html#halt-bug)
+        // See [Pan Docs - Halt Bug](https://gbdev.io/pandocs/halt.html#halt-bug)
         let mut halt_bug = false;
 
         if self.halted {
@@ -223,7 +223,7 @@ impl CPU {
     }
 
     /// Initializes the hardware registers to their default values after the boot rom ran.
-    /// See [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
+    /// See [Pan Docs - Power up Sequence](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
     pub(crate) fn initialize_hardware_registers(memory_bus: &mut MemoryBus) {
         memory_bus.write_byte(0xFF00, 0xCF);
         memory_bus.write_byte(0xFF01, 0x00);

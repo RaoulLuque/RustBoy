@@ -1,3 +1,7 @@
+//! This module contains the code to render the GameBoy screen using WebGPU.
+//! It uses a compute shader to render the screen scanline by scanline to a offscreen (not actually
+//! framebuffer) texture. The texture is then rendered to the screen using a render shader.
+
 pub(crate) mod shader;
 
 use winit::event::WindowEvent;
@@ -79,12 +83,12 @@ pub struct State<'a> {
     /// has length 10, but the number of objects that are in the current scanline might be less.
     /// In that case, the rest of the buffer is filled with zeroes. Each object consists of four
     /// bytes which give the information about the object. The bytes are as follows:
-    /// - Byte 0: The y coordinate of the object (with some extras, see [Pan Docs](https://gbdev.io/pandocs/OAM.html)).
-    /// - Byte 1: The x coordinate of the object (with some extras, see [Pan Docs](https://gbdev.io/pandocs/OAM.html)).
+    /// - Byte 0: The y coordinate of the object (with some extras, see [Pan Docs - OAM](https://gbdev.io/pandocs/OAM.html)).
+    /// - Byte 1: The x coordinate of the object (with some extras, see [Pan Docs - OAM](https://gbdev.io/pandocs/OAM.html)).
     /// - Byte 2: The tile index of the object.
     /// - Byte 3: The attributes of the object.
     ///
-    /// See also [Pan Docs](https://gbdev.io/pandocs/OAM.html).
+    /// See also [Pan Docs - OAM](https://gbdev.io/pandocs/OAM.html).
     objects_in_scanline_buffer: wgpu::Buffer,
     /// Buffer to hold the palette data (a u32 array of 4 elements). The first three elements
     /// mirror the registers FF47, FF48, and FF49 as specified in the Pandocs
@@ -102,7 +106,7 @@ pub struct State<'a> {
     /// - The third entry is a flag whether the window is being drawn this scanline.
     /// - The fourth entry is the window internal line counter, that is, if the window is being
     /// drawn this scanline, the line that is taken from the window tilemap, see
-    /// [Pan Docs](https://gbdev.io/pandocs/Scrolling.html#window).
+    /// [Pan Docs - Scrolling](https://gbdev.io/pandocs/Scrolling.html#window).
     rendering_line_lcd_control_and_window_internal_line_info_buffer: wgpu::Buffer,
 
     /// This texture is used as an "offscreen" framebuffer of size 160 x 144 pixels. That is, the size

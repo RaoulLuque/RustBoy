@@ -1,3 +1,11 @@
+//! This module contains the graphics logic internal to the RustBoy. That is, emulates the PPU
+//! and thereby the PPU of the Game Boy. The main method for this is [PPU::ppu_step], which is called
+//! every time the CPU makes a step, that is, executes an instruction.
+//!
+//! The [PPU] struct itself only contains information important for the screen rendering using WPPU, and instead,
+//! all the data is stored centralized on the [MemoryBus] as it is done in the original
+//! Game Boy.
+
 pub(crate) mod information_for_shader;
 pub(crate) mod object_handling;
 pub mod registers;
@@ -18,48 +26,55 @@ const TILEMAP_ZERO_START: usize = 0x9800;
 const TILEMAP_ONE_START: usize = 0x9C00;
 const TILEMAP_SIZE: usize = 1024;
 
-/// The number of dots (GPU cycles) in the Transfer Mode.
+/// The number of dots (PPU cycles) in the Transfer Mode.
 const DOTS_IN_TRANSFER: u32 = 172;
-/// The number of dots (GPU cycles) in the HBlank plus in the Transfer Mode.
+/// The number of dots (PPU cycles) in the HBlank plus in the Transfer Mode.
 pub(crate) const DOTS_IN_HBLANK_PLUS_TRANSFER: u32 = 376;
-/// The number of dots (GPU cycles) in the OAM Scan Mode.
+/// The number of dots (PPU cycles) in the OAM Scan Mode.
 const DOTS_IN_OAM_SCAN: u32 = 80;
-/// The number of dots (GPU cycles) in the VBlank Mode.
+/// The number of dots (PPU cycles) in the VBlank Mode.
 pub(crate) const DOTS_IN_VBLANK: u32 = 4560;
 
-/// The GPU mode the GPU is in when the LCD is turned off.
+/// The PPU mode the PPU is in when the LCD is turned off.
 pub(crate) const PPU_MODE_WHILE_LCD_TURNED_OFF: RenderingMode = RenderingMode::HBlank0;
 
-/// Represents the GPU of the Rust Boy.
-/// It has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF) containing the tile set with 384 tiles
-/// and two tilemaps of 32 * 32 = 1024 bytes each.
+/// Struct to represent the PPU (Pixel processing Unit ("GPU")) of the RustBoy.
 ///
-/// The tile set is a 2D array of 8x8 tile pixel values which redundantly stores the tiles
-/// which are already in vram. They are however more accessible than via the vram.
+/// - `rendering_info`: Contains information about the current rendering state of the PPU, such as
+///     the number of dots (cycles) elapsed and flags for window rendering.
+/// - `buffers_for_rendering`: Buffers used for the shaders, including tile and object data.
 ///
-/// The tilemaps are two 2D arrays of 32x32 tile u8 indices which are used to determine which tile
-/// to draw at which position on the screen. They are just stored directly in the vram field.
+/// The PPU in the RustBoy has a video RAM (VRAM) of 8KB (0x8000 - 0x9FFF), which contains:
+/// - A tile set with 384 tiles, stored as a 2D array of 8x8 tile pixel values for easier access.
+/// - Two tile maps of 32x32 (1024 bytes each), used to determine which tile to draw at each screen position.
+/// This data is however stored in the [MemoryBus] and not the PPU struct. Instead this struct
+/// offers the static methods to handle PPU tasks in the RustBoy.
 ///
-/// Also has a tile_data_changed flag to indicate if the tile data has changed.
+/// For details on PPU modes and rendering, refer to [Pan Docs - Graphics](https://gbdev.io/pandocs/Graphics.html).
 pub struct PPU {
     pub(crate) rendering_info: RenderingInfo,
     pub(crate) buffers_for_rendering: BuffersForRendering,
 }
 
-/// Struct to collect the information about the current rendering state of the GPU.
+/// Struct to collect the information about the current rendering state of the PPU.
 ///
-/// TODO: Add more detailed docstring
+/// The fields are as follows (note that 4 (T) dots = 1 (M) cpu-cycle):
+/// - `dots_clock`: Tracks the number of dots (PPU cycles) elapsed in the current mode.
+/// - `total_dots`: Tracks the total number of dots (PPU cycles) elapsed since the start of the emulation.
+/// - `dots_for_transfer`: Tracks the number of dots spent in the Transfer mode for the current scanline.
+/// - `lcd_was_turned_off`: Indicates whether the LCD was turned off during the current frame.
+/// - `first_scanline_after_lcd_was_turned_on`: Indicates whether the current scanline is the first after the LCD was turned on.
 /// - `window_internal_line_counter`: Determines how many lines have been rendered where the window
-/// was part of the line. Its value is incremented after transfer mode (3). That is, before it,
-/// it indicates the next line that will be used from the window tilemap and after transfer mode (3)
-/// it indicates both how many lines have been rendered already and what the next line used from
-/// the window tilemap will be.
+///   was part of the line. Its value is incremented after Transfer mode (3). That is, before it,
+///   it indicates the next line that will be used from the window tilemap and after Transfer mode (3)
+///   it indicates both how many lines have been rendered already and what the next line used from
+///   the window tilemap will be.
 /// - `wy_condition_was_met_this_frame`: Indicates if the window y position (wy) was equal to the current
-/// scanline at some point already throughout this frame.
-/// - `window_is_rendered_this_scanline`: Indicates after exiting transfer mode (3), if the window is rendered
-/// on the current scanline. Before exiting transfer mode, it indicates the state for the last scanline
+///   scanline at some point already throughout this frame.
+/// - `window_is_rendered_this_scanline`: Indicates after exiting Transfer mode (3), if the window is rendered
+///   on the current scanline. Before exiting Transfer mode, it indicates the state for the last scanline.
 pub struct RenderingInfo {
-    // GPU rendering info
+    // PPU rendering info
     pub(crate) dots_clock: u32,
     pub(crate) total_dots: u128,
     dots_for_transfer: u32,
@@ -71,13 +86,13 @@ pub struct RenderingInfo {
     window_is_rendered_this_scanline: bool,
 }
 
-/// Represents the possible rendering modes of the GPU.
-/// Rendering modes are used to determine what the GPU is currently doing.
-/// The GPU can be in one of four rendering modes:
-/// - HBlank: The GPU is currently in the horizontal blanking period.
-/// - VBlank: The GPU is currently in the vertical blanking period.
-/// - OAMSearch: The GPU is currently searching for sprites.
-/// - Transfer: The GPU is currently transferring data to the screen.
+/// Represents the possible rendering modes of the PPU.
+/// Rendering modes are used to determine what the PPU is currently doing.
+/// The PPU can be in one of four rendering modes:
+/// - `HBlank`: The PPU is currently in the horizontal blanking period.
+/// - `VBlank`: The PPU is currently in the vertical blanking period.
+/// - `OAMSearch`: The PPU is currently searching for objects/sprites for the current scanline.
+/// - `Transfer`: The PPU is currently transferring data to the screen.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum RenderingMode {
     HBlank0,
@@ -86,7 +101,7 @@ pub(crate) enum RenderingMode {
     Transfer3,
 }
 
-/// Represents the possible tasks of the GPU.
+/// Represents the possible tasks of the PPU.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderTask {
     None,
@@ -95,20 +110,21 @@ pub enum RenderTask {
 }
 
 impl PPU {
-    /// Steps the GPU by the given number of dots.
-    /// Returns a RenderTask indicating what the GPU should do next.
-    /// For now, the GPU only renders the entire frame before entering VBlank.
-    /// In the future, the GPU should render by lines.
+    /// Steps the PPU by the given number of dots.
+    /// Returns a RenderTask indicating what the PPU should do next.
     ///
-    /// The GPU steps through four different [RenderingMode]s. When VBlank is entered, or rather,
+    /// The PPU steps through four different [RenderingMode]s. When VBlank is entered, or rather,
     /// when HBlank is exited, the flag for a VBlank interrupt is set.
+    ///
+    /// For more information on the rendering modes and the PPU in general, see
+    /// [Pan Docs - Rendering](https://gbdev.io/pandocs/Rendering.html)
     pub fn ppu_step(&mut self, memory_bus: &mut MemoryBus, dots: u32) -> RenderTask {
         // Always increment total dots (for debugging purposes)
         self.rendering_info.total_dots += dots as u128;
 
         if LCDCRegister::get_display_on_flag(memory_bus) == false {
             if self.rendering_info.lcd_was_turned_off == false {
-                // If the LCD is not enabled, there is no rendering task and we can reset the GPU
+                // If the LCD is not enabled, there is no rendering task and we can reset the PPU
                 // to its initial state. We only do this once when the LCD is turned off.
                 self.rendering_info.dots_clock = 0;
                 self.rendering_info.dots_for_transfer = 0;
@@ -119,7 +135,7 @@ impl PPU {
             RenderTask::None
         } else {
             if self.rendering_info.lcd_was_turned_off {
-                // If the LCD was turned off, the GPU starts in HBlank mode and after this goes
+                // If the LCD was turned off, the PPU starts in HBlank mode and after this goes
                 // RenderingMode::Transfer3, which happens only after the lcd was turned on for the
                 // first "HBlank cycle", see:
                 // https://www.reddit.com/r/EmuDev/comments/1cykjdr/gameboy_ppu_timing_question/
@@ -132,9 +148,6 @@ impl PPU {
                 self.rendering_info.lcd_was_turned_off = false;
             }
             self.rendering_info.dots_clock += dots;
-            if self.rendering_info.dots_clock >= 10000 {
-                println!("Test");
-            }
             match PPURegisters::get_ppu_mode(memory_bus) {
                 RenderingMode::HBlank0 => {
                     if self.rendering_info.first_scanline_after_lcd_was_turned_on {
@@ -145,7 +158,7 @@ impl PPU {
                             PPURegisters::set_ppu_mode(memory_bus, RenderingMode::Transfer3);
                             // We can now set the first_scanline_after_lcd_was_turned_on flag to
                             // false, since after this we are in Transfer mode and then regular
-                            // HBlank mode, so the GPU can return to normal operation.
+                            // HBlank mode, so the PPU can return to normal operation.
                             self.rendering_info.first_scanline_after_lcd_was_turned_on = false;
                         }
                     } else {
@@ -160,8 +173,8 @@ impl PPU {
                             );
                             if PPURegisters::get_scanline_internal(memory_bus) == 144 {
                                 // We are entering VBlank, so we need to set the VBlank flag
-                                // and set the GPU mode to VBlank. Also, we send a render frame request to
-                                // the GPU, which renders the framebuffer to the screen.
+                                // and set the PPU mode to VBlank. Also, we send a render frame request to
+                                // the PPU, which renders the framebuffer to the screen.
                                 PPURegisters::set_ppu_mode(memory_bus, RenderingMode::VBlank1);
                                 InterruptFlagRegister::set_flag(
                                     memory_bus,
@@ -170,8 +183,8 @@ impl PPU {
                                 );
                                 return RenderTask::RenderFrame;
                             } else {
-                                // We are still in HBlank, so we need to set the GPU mode to OAMScan2.
-                                // Also we send a request to the GPU to write the current line to the
+                                // We are still in HBlank, so we need to set the PPU mode to OAMScan2.
+                                // Also we send a request to the PPU to write the current line to the
                                 // framebuffer
                                 // We need to return current scanline - 1, since we are already in the next
                                 // scanline.
@@ -257,12 +270,6 @@ impl PPU {
     }
 
     /// Writes a byte to the VRAM at the given address.
-    ///
-    /// Also sets flags in self.memory_changed, to keep track of which parts
-    /// of the GPU memory changed for the next scanline/frame rendering to propagate these changes
-    /// to the shader.
-    ///
-    /// TODO: Make this a non static method and pass in memory bus?
     pub fn write_vram(memory_bus: &mut MemoryBus, address: u16, value: u8) {
         memory_bus.memory[address as usize] = value;
 
@@ -271,11 +278,11 @@ impl PPU {
         if address >= 0x9800 {
             if address < 0x9C00 {
                 // We are writing to tilemap 0. Therefore, we set the changed flag to make sure
-                // the GPU receives the new tilemap later in rendering.
+                // the PPU receives the new tilemap later in rendering.
                 memory_bus.memory_changed.tile_map_0_changed = true;
             } else {
                 // We are writing to tilemap 1. Therefore, we set the changed flag to make sure
-                // the GPU receives the new tilemap later in rendering.
+                // the PPU receives the new tilemap later in rendering.
                 memory_bus.memory_changed.tile_map_1_changed = true;
             }
             return;
@@ -284,11 +291,7 @@ impl PPU {
         }
     }
 
-    /// Returns a new GPU with empty tile set and empty VRAM.
-    ///
-    /// The lcd_was_turned_off flag is set to
-    /// true, so the GPU starts off in HBlank mode instead of OAMScan, which is the supposed
-    /// behavior after the LCD was turned on (for the first time or after being turned off).
+    /// Returns a new PPU instance set to the initial state of the PPU.
     pub fn new_empty() -> Self {
         Self {
             rendering_info: RenderingInfo::new_initial_state(),
@@ -298,7 +301,7 @@ impl PPU {
 }
 
 impl RenderingMode {
-    /// Returns the current rendering mode of the GPU as an u8. The conversions are as follows
+    /// Returns the current rendering mode of the PPU as an u8. The conversions are as follows:
     /// - HBlank: 0
     /// - VBlank: 1
     /// - OAMScan: 2
@@ -312,7 +315,7 @@ impl RenderingMode {
         }
     }
 
-    /// Converts a u8 to a [RenderingMode]. The conversions are as follows
+    /// Converts a u8 to a [RenderingMode]. The conversions are as follows:
     /// - 0: HBlank
     /// - 1: VBlank
     /// - 2: OAMScan
@@ -379,7 +382,7 @@ impl RenderingInfo {
     /// Checks if the window y position (wy) is equal to the current scanline.
     /// If so, we set the wy_condition_was_triggered_this_frame flag to true. Otherwise, we don't
     /// do anything.
-    /// This is always checked when entering OAMScan (mode 2), see [Pan Docs](https://gbdev.io/pandocs/Scrolling.html#window)
+    /// This is always checked when entering OAMScan (mode 2), see [Pan Docs - Scrolling](https://gbdev.io/pandocs/Scrolling.html#window)
     fn check_wy_condition(&mut self, current_scanline: u8, wy: u8) {
         // Check if the current scanline is equal to the y position of the window (wy)
         if current_scanline == wy {

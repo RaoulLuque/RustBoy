@@ -7,6 +7,8 @@
 #![warn(rust_2021_compatibility)] // Warn about issues with Rust 2021 edition
 #![warn(clippy::all)] // Enable all Clippy lints
 //! This crate provides the methods used to run a Rust Boy emulator written in Rust. It can be run both natively and on the web using WebAssembly.
+//!
+//! For an in depth explication of the original Game Boy, which this emulates, please refer to [Pan Docs](https://gbdev.io/pandocs/).
 
 mod cpu;
 mod debugging;
@@ -46,34 +48,22 @@ pub use memory_bus::MemoryBus;
 pub use ppu::PPU;
 
 const TARGET_FPS: f64 = 60.0;
-const TARGET_FRAME_DURATION: f64 = 1.0 / TARGET_FPS;
+const TARGET_FRAME_DURATION_IN_SECS: f64 = 1.0 / TARGET_FPS;
 pub(crate) const ORIGINAL_SCREEN_WIDTH: u32 = 160;
 pub(crate) const ORIGINAL_SCREEN_HEIGHT: u32 = 144;
 const M_CYCLES_PER_SECOND: u32 = 1_048_576;
 const MEMORY_SIZE: usize = 65536;
 
 /// Struct to represent the Rust Boy.
-/// It is split into 3 main parts: The CPU, the memory bus, and the GPU.
+/// It splits up into 3 main parts: The [CPU](CPU), the [Memory Bus](MemoryBus), and the [PPU](PPU) (Pixel Processing Unit).
+/// The fourth field is the [TimerInfo](TimerInfo) struct, which keeps track of the timer and divider registers.
 ///
-/// The memory bus is a struct that represents the memory of the Rust Boy.
-/// It is an array that represents the memory of the RustBoy.
-/// 65536 is the size of the memory in bytes
-/// The memory bus also has a bios array that represents the BIOS of the RustBoy which is used
-/// during startup instead of the first 0x0100 bytes of the memory.
-/// Furthermore, there is a being_initialized flag to indicate if the memory bus is being
-/// initialized. In this case, some writes should not cause side effects like DMA transfers being
-/// scheduled.
-///
-/// The GPU is a struct that represents the graphics processing unit of the RustBoy. It contains
-/// the registers, VRAM and other graphics related data.
-///
-///
-///
-/// The debugging flags are used to control flags used in debugging the RustBoy.
+/// For an in depth explication of the original Game Boy, which this emulates, please refer to [Pan Docs](https://gbdev.io/pandocs/).
 pub struct RustBoy {
     cpu: CPU,
     memory_bus: MemoryBus,
     ppu: PPU,
+    // TODO: Move this into memory bus?
     timer_info: TimerInfo,
 }
 
@@ -97,7 +87,7 @@ impl RustBoy {
     /// Creates a new instance of the RustBoy struct.
     /// The registers and pointers are all set to their values which they would have after the
     /// boot rom has been executed. For reference, see in the
-    /// [Pan Docs](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
+    /// [Pan Docs - Power up Sequence](https://gbdev.io/pandocs/Power_Up_Sequence.html#obp)
     pub fn new_after_boot(debugging_flags: DebugInfo) -> RustBoy {
         let mut rust_boy = RustBoy::new_before_boot(debugging_flags);
         rust_boy.cpu.registers = CPURegisters::new_after_boot();
@@ -277,7 +267,7 @@ fn run_headless(rust_boy: &mut RustBoy) {
             // should be drawn or we still wait
             let now = Instant::now();
             let elapsed = now.duration_since(last_frame_time);
-            if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
+            if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION_IN_SECS {
                 last_frame_time = Instant::now();
                 current_rendering_task = RenderTask::None;
             }
@@ -344,7 +334,7 @@ fn handle_redraw_requested_event(
         // should be drawn or we still wait
         let now = Instant::now();
         let elapsed = now.duration_since(*last_frame_time);
-        if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION {
+        if elapsed.as_secs_f64() >= TARGET_FRAME_DURATION_IN_SECS {
             *last_frame_time = Instant::now();
             *current_rendering_task = RenderTask::None;
 

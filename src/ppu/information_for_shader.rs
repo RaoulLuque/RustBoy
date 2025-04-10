@@ -7,6 +7,17 @@ use crate::ppu::registers::PPURegisters;
 
 /// Struct to keep track of the resources that are fetched during transfer (and OAMScan) mode which are then
 /// sent to the shader.
+///
+/// The buffers are as follows:
+/// - `background_tile_map`: The tile map for the background.
+/// - `window_tile_map`: The tile map for the window.
+/// - `bg_and_wd_tile_data`: The tile data for the background and window.
+/// - `bg_and_wd_viewport_position`: The viewport position for the background and window.
+/// - `palettes`: The palettes for the background and window.
+/// - `rendering_line_lcd_control_and_window_internal_line_info`: The LCD control register and window
+/// internal line info.
+/// - `object_tile_data`: The tile data for the objects.
+/// - `objects_in_scanline_buffer`: The objects in the current scanline buffer.
 pub struct BuffersForRendering {
     // Transfer mode buffers:
     pub(crate) background_tile_map: [u8; 1024],
@@ -43,6 +54,8 @@ impl PPU {
     /// next scanline to be rendered using the scanline shader. This data is buffered because the original
     /// RustBoy fetches it in mode 3 (Transfer) and we only actually render it in mode 0 (HBlank).
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
+    ///
+    /// Hence, this function is called once for every scanline when exiting mode 3 (Transfer).
     pub(super) fn fetch_rendering_information_to_rendering_buffer(
         &mut self,
         memory_bus: &MemoryBus,
@@ -108,6 +121,8 @@ impl PPU {
     /// next scanline to be rendered using the scanline shader. This is buffered because the original
     /// RustBoy fetches it in mode 2 (OAMScan) and we only actually render it in mode 0 (HBlank).
     /// So, to avoid reading already changed data for rendering, we buffer the "old state".
+    ///
+    /// Hence, this function is called once for every scanline when exiting mode 2 (OAMScan).
     pub(super) fn fetch_objects_in_scanline_to_rendering_buffer(
         &mut self,
         memory_bus: &MemoryBus,
@@ -120,9 +135,20 @@ impl PPU {
 
 /// Struct to keep track of changes/writes to tile data, tilemap, viewport position, and OAM.
 ///
-/// We reset this struct after rendering each scanline. Therefore, it tracks the resources that
-/// changed since the last scanline which the render step can use to only (re)send the data that
-/// actually changed to the Shader/GPU.
+/// It tracks the resources that changed since the last scanline which the render step can use to
+/// only (re)send the data that actually changed to the Shader/GPU.
+///
+/// There are flags for the following changes:
+/// - `tile_data_flag_changed`: The tile data changed.
+/// - `tile_data_block_0_1_changed`: The tile data block 0/1 changed.
+/// - `tile_data_block_2_1_changed`: The tile data block 2/1 changed.
+/// - `background_tile_map_flag_changed`: The background tile map changed.
+/// - `window_tile_map_flag_changed`: The window tile map changed.
+/// - `tile_map_0_changed`: The tile map 0 changed.
+/// - `tile_map_1_changed`: The tile map 1 changed.
+/// - `background_viewport_position_changed`: The background viewport position changed.
+/// - `window_viewport_position_changed`: The window viewport position changed.
+/// - `palette_changed`: The palette changed.
 pub struct ChangesToPropagateToShader {
     pub(crate) tile_data_flag_changed: bool,
     pub(crate) tile_data_block_0_1_changed: bool,
@@ -137,7 +163,7 @@ pub struct ChangesToPropagateToShader {
 }
 
 impl ChangesToPropagateToShader {
-    /// Returns a new instance of MemoryChanged with only false values
+    /// Returns a new instance of MemoryChanged with everything set to false.
     pub(crate) fn new_false() -> Self {
         Self {
             tile_data_flag_changed: false,
@@ -153,6 +179,7 @@ impl ChangesToPropagateToShader {
         }
     }
 
+    /// Returns a new instance of MemoryChanged with everything set to true.
     pub(crate) fn new_true() -> Self {
         Self {
             tile_data_flag_changed: true,
