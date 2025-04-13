@@ -32,6 +32,7 @@ use input::{handle_key_pressed_event, handle_key_released_event};
 use ppu::RenderTask;
 use timer::TimerInfo;
 
+use winit::dpi::LogicalSize;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::{
     dpi::PhysicalSize,
@@ -40,7 +41,6 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::WindowBuilder,
 };
-
 // Export main parts of the RustBoy
 pub use cpu::CPU;
 pub use input::Joypad;
@@ -155,7 +155,13 @@ pub async fn run(
     }
 
     let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let window = WindowBuilder::new()
+        .with_inner_size(LogicalSize::new(
+            ORIGINAL_SCREEN_WIDTH,
+            ORIGINAL_SCREEN_HEIGHT,
+        ))
+        .build(&event_loop)
+        .unwrap();
     window.set_title("RustBoy");
 
     // Add a canvas to the HTML document
@@ -172,11 +178,6 @@ pub async fn run(
             })
             .expect("Failed to append canvas");
     }
-    // Force a resize event to trigger initial configuration
-    let _ = window.request_inner_size(PhysicalSize::new(
-        ORIGINAL_SCREEN_WIDTH,
-        ORIGINAL_SCREEN_HEIGHT,
-    ));
 
     let mut state = State::new(&window).await;
     let mut surface_configured = false;
