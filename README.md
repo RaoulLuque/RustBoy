@@ -138,7 +138,7 @@ for more information on possible issues with some platforms.
 
 Running the emulator is as easy as running the following command:
 
-```
+```commandline
 cargo run --release -- --ROM "roms/[ROM_NAME].gb"
 ```
 
@@ -148,6 +148,25 @@ want to run. Some test roms are included in the `roms` folder.
 One can also run the emulator in development mode by removing the
 `--release` flag. This will, however, slow down the emulator
 significantly.
+
+### Running the emulator in the browser
+
+The emulator can also be run in the browser using WASM and wasm-pack.
+To do this, the build target `wasm32-unknown-unknown` needs to be
+installed. With this, one simply needs to run
+
+```commandline
+wasm-pack build --target web --release  
+```
+
+A webserver can then, for example, be started by running
+
+```commandline
+python3 -m http.server 8000
+```
+
+This just hosts the [index.html](index.html) file. The server is then
+running on `localhost:8000`.
 
 ## Missing features
 
