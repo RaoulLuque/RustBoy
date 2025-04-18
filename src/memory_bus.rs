@@ -4,12 +4,15 @@
 //! The main functionality is provided by [MemoryBus::read_byte] and [MemoryBus::write_byte],
 //! which handle the reading and writing of bytes to the memory.
 
+mod mbc;
+
 use crate::debugging::{DebugInfo, DebuggingFlagsWithoutFileHandles};
 use crate::input::{ButtonState, Joypad};
 use crate::interrupts::{InterruptEnableRegister, InterruptFlagRegister};
 use crate::ppu::information_for_shader::ChangesToPropagateToShader;
 use crate::ppu::tile_handling::{Tile, empty_tile};
 use crate::{MEMORY_SIZE, PPU};
+use mbc::MBC;
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
 const ROM_BANK_0_END: u16 = 0x4000;
@@ -19,6 +22,8 @@ const ROM_BANK_1_BEGIN: u16 = 0x4000;
 const ROM_BANK_1_END: u16 = 0x8000;
 pub const VRAM_BEGIN: u16 = 0x8000;
 pub const VRAM_END: u16 = 0xA000;
+pub const RAM_BANK_BEGIN: u16 = 0xA000;
+pub const RAM_BANK_END: u16 = 0xC000;
 pub const OAM_START: u16 = 0xFE00;
 pub const OAM_END: u16 = 0xFEA0;
 const UNUSABLE_RAM_BEGIN: u16 = 0xFEA0;
@@ -36,6 +41,7 @@ pub(crate) const INTERRUPT_ENABLE_REGISTER: u16 = 0xFFFF;
 ///     During this phase, writes to certain registers (e.g., DMA Register) should not cause side effects.
 /// - `starting_up`: A flag indicating if the RustBoy is in the startup phase, where the BIOS is
 ///     used instead of the ROM.
+/// - `memory_bank_controller`: The memory bank controller (MBC) used for the RustBoy.
 /// - `debugging_flags_without_file_handles`: Flags used for debugging purposes.
 /// - `memory_changed`: Tracks changes to memory that need to be propagated to the shader for rendering.
 /// - `tile_set`: An array of tiles representing the graphics data of the RustBoy.
@@ -48,6 +54,8 @@ pub struct MemoryBus {
     bios: [u8; 0x0100],
     pub(crate) being_initialized: bool,
     pub(crate) starting_up: bool,
+
+    memory_bank_controller: Option<MBC>,
 
     pub(crate) debugging_flags_without_file_handles: DebuggingFlagsWithoutFileHandles,
 
@@ -65,7 +73,33 @@ pub struct MemoryBus {
 impl MemoryBus {
     /// Loads a program into the memory bus at address 0x0000.
     pub fn load_program(&mut self, rom_data: &[u8]) {
-        self.load(0x0000, &rom_data);
+        let mbc_type = rom_data[0x147];
+        match mbc_type {
+            0x00 => {
+                // No MBC
+                self.load(0x0000, &rom_data);
+            }
+            0x01 => {
+                // MBC1
+                self.memory_bank_controller =
+                    Some(MBC::new(mbc::MBCType::MBC1, rom_data.to_vec(), 0));
+            }
+            0x02 => {
+                // MBC1 + RAM
+                let ram_size = rom_data[0x149] as usize;
+                self.memory_bank_controller =
+                    Some(MBC::new(mbc::MBCType::MBC1, rom_data.to_vec(), ram_size));
+            }
+            0x03 => {
+                // MBC1 + RAM + Battery
+                let ram_size = rom_data[0x149] as usize;
+                self.memory_bank_controller =
+                    Some(MBC::new(mbc::MBCType::MBC1, rom_data.to_vec(), ram_size));
+            }
+            _ => {
+                panic!("The MBC type {:#02X} is not supported yet", mbc_type);
+            }
+        }
     }
 
     /// Reads the instruction byte from the memory at the given address. Used separately to check
@@ -91,13 +125,31 @@ impl MemoryBus {
                         BIOS_BEGIN..BIOS_END => self.bios[address as usize],
                         _ => self.memory[address as usize],
                     }
+                } else if let Some(mbc) = &self.memory_bank_controller {
+                    // If a memory bank controller is present, we read from it
+                    mbc.read_byte(address)
                 } else {
                     self.memory[address as usize]
                 }
             }
-            ROM_BANK_1_BEGIN..ROM_BANK_1_END => self.memory[address as usize],
+            ROM_BANK_1_BEGIN..ROM_BANK_1_END => {
+                if let Some(mbc) = &self.memory_bank_controller {
+                    // If a memory bank controller is present, we read from it
+                    mbc.read_byte(address)
+                } else {
+                    self.memory[address as usize]
+                }
+            }
 
             VRAM_BEGIN..VRAM_END => self.memory[address as usize],
+            RAM_BANK_BEGIN..RAM_BANK_END => {
+                if let Some(mbc) = &self.memory_bank_controller {
+                    // If a memory bank controller is present, we read from it
+                    mbc.read_byte(address)
+                } else {
+                    self.memory[address as usize]
+                }
+            }
             OAM_START..OAM_END => self.memory[address as usize],
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
                 // When trying to read from unusable RAM, we return 0xFF
@@ -126,13 +178,29 @@ impl MemoryBus {
         match address {
             // TODO: Add Memory bank controller
             ROM_BANK_0_BEGIN..ROM_BANK_0_END => {
-                // When trying to write to ROM, we just do nothing (for now)
+                // When trying to write to ROM, we only do something if a memory bank controller is
+                // being used
+                if let Some(mbc) = &mut self.memory_bank_controller {
+                    mbc.write_byte(address, value);
+                }
             }
             ROM_BANK_1_BEGIN..ROM_BANK_1_END => {
-                // When trying to write to ROM, we just do nothing (for now)
+                // When trying to write to ROM, we only do something if a memory bank controller is
+                // being used
+                if let Some(mbc) = &mut self.memory_bank_controller {
+                    mbc.write_byte(address, value);
+                }
             }
 
             VRAM_BEGIN..VRAM_END => PPU::write_vram(self, address, value),
+            RAM_BANK_BEGIN..RAM_BANK_END => {
+                if let Some(mbc) = &mut self.memory_bank_controller {
+                    // If a memory bank controller is present, we write to it
+                    mbc.write_byte(address, value);
+                } else {
+                    self.memory[address as usize] = value;
+                }
+            }
             OAM_START..OAM_END => self.memory[address as usize] = value,
             UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
                 // When trying to write to unusable RAM, we just do nothing
@@ -250,6 +318,8 @@ impl MemoryBus {
             bios: [0; 0x0100],
             starting_up: true,
             being_initialized: true,
+
+            memory_bank_controller: None,
 
             debugging_flags_without_file_handles:
                 DebuggingFlagsWithoutFileHandles::from_debugging_flags(debug_info),
