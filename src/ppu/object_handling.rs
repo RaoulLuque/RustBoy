@@ -60,8 +60,8 @@ impl PPU {
         scanline: u8,
     ) -> [[u32; 4]; 10] {
         let oam_as_objects: &[Object; 40] =
-            cast_ref::<[u8; (OAM_END - OAM_START) as usize], [Object; 40]>(
-                memory_bus.memory[OAM_START as usize..OAM_END as usize]
+            cast_ref::<[u8; (OAM_END + 1 - OAM_START) as usize], [Object; 40]>(
+                memory_bus.memory[OAM_START as usize..=OAM_END as usize]
                     .as_ref()
                     .try_into()
                     .expect(

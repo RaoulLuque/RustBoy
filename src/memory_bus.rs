@@ -15,19 +15,19 @@ use crate::{MEMORY_SIZE, PPU};
 use mbc::MBC;
 
 const ROM_BANK_0_BEGIN: u16 = 0x0000;
-const ROM_BANK_0_END: u16 = 0x4000;
+const ROM_BANK_0_END: u16 = 0x3FFF;
 const BIOS_BEGIN: u16 = 0x0000;
-const BIOS_END: u16 = 0x00FF;
+const BIOS_END: u16 = 0x00FE;
 const ROM_BANK_1_BEGIN: u16 = 0x4000;
-const ROM_BANK_1_END: u16 = 0x8000;
+const ROM_BANK_1_END: u16 = 0x7FFF;
 pub const VRAM_BEGIN: u16 = 0x8000;
-pub const VRAM_END: u16 = 0xA000;
+pub const VRAM_END: u16 = 0x9FFF;
 pub const RAM_BANK_BEGIN: u16 = 0xA000;
-pub const RAM_BANK_END: u16 = 0xC000;
+pub const RAM_BANK_END: u16 = 0xBFFF;
 pub const OAM_START: u16 = 0xFE00;
-pub const OAM_END: u16 = 0xFEA0;
+pub const OAM_END: u16 = 0xFE9F;
 const UNUSABLE_RAM_BEGIN: u16 = 0xFEA0;
-const UNUSABLE_RAM_END: u16 = 0xFF00;
+const UNUSABLE_RAM_END: u16 = 0xFEFF;
 pub(crate) const JOYPAD_REGISTER: u16 = 0xFF00;
 pub(crate) const INTERRUPT_FLAG_REGISTER: u16 = 0xFF0F;
 pub(crate) const INTERRUPT_ENABLE_REGISTER: u16 = 0xFFFF;
@@ -119,10 +119,10 @@ impl MemoryBus {
     /// Read a byte from memory at the given address.
     pub(super) fn read_byte(&self, address: u16) -> u8 {
         match address {
-            ROM_BANK_0_BEGIN..ROM_BANK_0_END => {
+            ROM_BANK_0_BEGIN..=ROM_BANK_0_END => {
                 if self.starting_up {
                     match address {
-                        BIOS_BEGIN..BIOS_END => self.bios[address as usize],
+                        BIOS_BEGIN..=BIOS_END => self.bios[address as usize],
                         _ => self.memory[address as usize],
                     }
                 } else if let Some(mbc) = &self.memory_bank_controller {
@@ -132,7 +132,7 @@ impl MemoryBus {
                     self.memory[address as usize]
                 }
             }
-            ROM_BANK_1_BEGIN..ROM_BANK_1_END => {
+            ROM_BANK_1_BEGIN..=ROM_BANK_1_END => {
                 if let Some(mbc) = &self.memory_bank_controller {
                     // If a memory bank controller is present, we read from it
                     mbc.read_byte(address)
@@ -141,8 +141,8 @@ impl MemoryBus {
                 }
             }
 
-            VRAM_BEGIN..VRAM_END => self.memory[address as usize],
-            RAM_BANK_BEGIN..RAM_BANK_END => {
+            VRAM_BEGIN..=VRAM_END => self.memory[address as usize],
+            RAM_BANK_BEGIN..=RAM_BANK_END => {
                 if let Some(mbc) = &self.memory_bank_controller {
                     // If a memory bank controller is present, we read from it
                     mbc.read_byte(address)
@@ -150,8 +150,8 @@ impl MemoryBus {
                     self.memory[address as usize]
                 }
             }
-            OAM_START..OAM_END => self.memory[address as usize],
-            UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
+            OAM_START..=OAM_END => self.memory[address as usize],
+            UNUSABLE_RAM_BEGIN..=UNUSABLE_RAM_END => {
                 // When trying to read from unusable RAM, we return 0xFF
                 0xFF
             }
@@ -177,14 +177,14 @@ impl MemoryBus {
     pub(super) fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             // TODO: Add Memory bank controller
-            ROM_BANK_0_BEGIN..ROM_BANK_0_END => {
+            ROM_BANK_0_BEGIN..=ROM_BANK_0_END => {
                 // When trying to write to ROM, we only do something if a memory bank controller is
                 // being used
                 if let Some(mbc) = &mut self.memory_bank_controller {
                     mbc.write_byte(address, value);
                 }
             }
-            ROM_BANK_1_BEGIN..ROM_BANK_1_END => {
+            ROM_BANK_1_BEGIN..=ROM_BANK_1_END => {
                 // When trying to write to ROM, we only do something if a memory bank controller is
                 // being used
                 if let Some(mbc) = &mut self.memory_bank_controller {
@@ -192,8 +192,8 @@ impl MemoryBus {
                 }
             }
 
-            VRAM_BEGIN..VRAM_END => PPU::write_vram(self, address, value),
-            RAM_BANK_BEGIN..RAM_BANK_END => {
+            VRAM_BEGIN..=VRAM_END => PPU::write_vram(self, address, value),
+            RAM_BANK_BEGIN..=RAM_BANK_END => {
                 if let Some(mbc) = &mut self.memory_bank_controller {
                     // If a memory bank controller is present, we write to it
                     mbc.write_byte(address, value);
@@ -201,8 +201,8 @@ impl MemoryBus {
                     self.memory[address as usize] = value;
                 }
             }
-            OAM_START..OAM_END => self.memory[address as usize] = value,
-            UNUSABLE_RAM_BEGIN..UNUSABLE_RAM_END => {
+            OAM_START..=OAM_END => self.memory[address as usize] = value,
+            UNUSABLE_RAM_BEGIN..=UNUSABLE_RAM_END => {
                 // When trying to write to unusable RAM, we just do nothing
             }
 
@@ -303,7 +303,7 @@ impl MemoryBus {
             self.dma_happened = true;
         }
         let address = (address as u16) << 8;
-        for i in 0..(OAM_END - OAM_START) + 1 {
+        for i in 0..(OAM_END + 1 - OAM_START) + 1 {
             let value = self.read_byte(address + i);
             self.write_byte(OAM_START + i, value);
         }
