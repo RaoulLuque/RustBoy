@@ -24,10 +24,12 @@ Rust. A lot of parts are still missing, but this project can be seen
 as a continuation of that tutorial/implementation of what is still
 missing in that tutorial.
 
-## Screenshots
+## Showcase
 
-![Dr. Mario screenshot](img/dr._mario.png)
-![Tetris screenshot](img/tetris.png)
+![Pocket](img/pocket.gif)
+![Super Mario Land showcase](img/super_mario_land.gif)
+![Dr. Mario showcase](img/dr._mario.gif)
+![Kirbys Dreamland showcase](img/kirbys_dreamland.gif)
 
 ## Features
 
@@ -74,6 +76,9 @@ work without any problems:
 
 - Dr. Mario
 - Tetris
+- Super Mario Land
+- Kirby's Dreamland
+- Is that a demo in your pocket?
 - TicTacToe
 
 ## Resources and Tutorials Used
